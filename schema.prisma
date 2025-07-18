@@ -8,6 +8,191 @@ datasource db {
 }
 
 model Source {
-    id   Int    @id @default(autoincrement())
-    name String
+    id                Int                 @id @default(autoincrement())
+    name              String
+    script            String
+    url               String
+    documents         Document[]
+    groups            SourceGroup[]       @relation("SourceToSourceGroup")
+    SourceGroupSource SourceGroupSource[]
+    dateAdded         DateTime            @default(now())
+    dateModified      DateTime            @updatedAt
+}
+
+model SourceGroup {
+    id                Int                 @id @default(autoincrement())
+    name              String
+    sources           Source[]            @relation("SourceToSourceGroup")
+    SourceGroupSource SourceGroupSource[]
+    dateAdded         DateTime            @default(now())
+    dateModified      DateTime            @updatedAt
+}
+
+model Author {
+    id              Int              @id @default(autoincrement())
+    name            String
+    documents       Document[]
+    parliamentarian Parliamentarian?
+    dateAdded       DateTime         @default(now())
+    dateModified    DateTime         @updatedAt
+}
+
+model Parliamentarian {
+    id           Int      @id
+    party        String
+    seat         String
+    author       Author   @relation(fields: [id], references: [id])
+    dateAdded    DateTime @default(now())
+    dateModified DateTime @updatedAt
+}
+
+model Document {
+    id              Int              @id @default(autoincrement())
+    text            String
+    date            DateTime
+    url             String?
+    author          Author           @relation(fields: [authorId], references: [id])
+    authorId        Int
+    source          Source           @relation(fields: [sourceId], references: [id])
+    sourceId        Int
+    claims          Claim[]
+    dateAdded       DateTime         @default(now())
+    dateModified    DateTime         @updatedAt
+    documentFilters DocumentFilter[]
+}
+
+model Filter {
+    id       Int             @id @default(autoincrement())
+    name     String // e.g. "LengthFilter", "IsEnglish"
+    versions FilterVersion[]
+}
+
+model FilterVersion {
+    id              Int              @id @default(autoincrement())
+    filter          Filter           @relation(fields: [filterId], references: [id])
+    filterId        Int
+    version         String? // e.g. "v1.2", commit hash
+    summary         String?
+    createdAt       DateTime         @default(now())
+    documentFilters DocumentFilter[]
+}
+
+model DocumentFilter {
+    id              Int           @id @default(autoincrement())
+    document        Document      @relation(fields: [documentId], references: [id])
+    documentId      Int
+    filterVersion   FilterVersion @relation(fields: [filterVersionId], references: [id])
+    filterVersionId Int
+    passed          Boolean
+    checkedAt       DateTime      @default(now())
+
+    @@unique([documentId, filterVersionId])
+}
+
+model Issue {
+    id           Int       @id @default(autoincrement())
+    name         String
+    dimension    Dimension @relation(fields: [dimensionid], references: [id])
+    dimensionid  Int
+    claims       Claim[]
+    dateAdded    DateTime  @default(now())
+    dateModified DateTime  @updatedAt
+}
+
+model Dimension {
+    id              Int              @id @default(autoincrement())
+    name            String           @unique
+    issues          Issue[]
+    deconstructions Deconstruction[]
+    dateAdded       DateTime         @default(now())
+    dateModified    DateTime         @updatedAt
+}
+
+model Infrastructure {
+    id                                  Int                                   @id @default(autoincrement())
+    name                                String                                @unique
+    deconstructions                     Deconstruction[]
+    groups                              InfrastructureGroup[]                 @relation("InfraToInfraGroup")
+    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
+    dateAdded                           DateTime                              @default(now())
+    dateModified                        DateTime                              @updatedAt
+}
+
+model InfrastructureGroup {
+    id                                  Int                                   @id @default(autoincrement())
+    name                                String                                @unique
+    infrastructures                     Infrastructure[]                      @relation("InfraToInfraGroup")
+    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
+    dateAdded                           DateTime                              @default(now())
+    dateModified                        DateTime                              @updatedAt
+}
+
+// For join tables, typically no dateAdded/modified fields are needed unless
+// required
+model SourceGroupSource {
+    sourceId      Int
+    sourceGroupId Int
+    source        Source      @relation(fields: [sourceId], references: [id])
+    sourceGroup   SourceGroup @relation(fields: [sourceGroupId], references: [id])
+
+    @@id([sourceId, sourceGroupId])
+}
+
+model InfrastructureGroupOnInfrastructure {
+    infrastructureId      Int
+    infrastructureGroupId Int
+    infrastructure        Infrastructure      @relation(fields: [infrastructureId], references: [id])
+    infrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
+
+    @@id([infrastructureId, infrastructureGroupId])
+}
+
+model Extractor {
+    id      Int     @id @default(autoincrement())
+    name    String
+    details String?
+    claims  Claim[]
+}
+
+model Deconstructor {
+    id              Int              @id @default(autoincrement())
+    name            String
+    details         String?
+    deconstructions Deconstruction[]
+}
+
+model Claim {
+    id             Int              @id @default(autoincrement())
+    text           String
+    document       Document         @relation(fields: [documentid], references: [id])
+    documentid     Int
+    deconstruction Deconstruction[]
+    issue          Issue            @relation(fields: [issueid], references: [id])
+    issueid        Int
+
+    extractor    Extractor @relation(fields: [extractor_id], references: [id])
+    extractor_id Int
+
+    dateAdded    DateTime @default(now())
+    dateModified DateTime @updatedAt
+}
+
+model Deconstruction {
+    id               Int            @id @default(autoincrement())
+    claim            Claim          @relation(fields: [claimId], references: [id])
+    claimId          Int
+    infrastructure   Infrastructure @relation(fields: [infrastructureId], references: [id])
+    infrastructureId Int
+
+    valence     Int
+    Dimension   Dimension? @relation(fields: [dimensionId], references: [id])
+    dimensionId Int?
+
+    deconstructor    Deconstructor @relation(fields: [deconstructor_id], references: [id])
+    deconstructor_id Int
+
+    dateAdded    DateTime @default(now())
+    dateModified DateTime @updatedAt
+
+    @@unique([claimId, deconstructor_id])
 }
