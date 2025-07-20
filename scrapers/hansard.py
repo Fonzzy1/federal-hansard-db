@@ -1,21 +1,25 @@
 from datetime import datetime, timedelta
 import requests
 from bs4 import BeautifulSoup
+import time
+! pip install playwright
+! playwright install
+from playwright.sync_api import sync_playwright
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    page.goto('https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p...')
+    page.wait_for_selector('#react-root')  # Wait for main content to load
+    print(page.content())
+    browser.close()
 
 # Define a custom user agent
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Accept':
-'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Connection': 'keep-alive',
-    'Referer': 'https://www.aph.gov.au/',
-    'Cookie': 'Parlinfo-aphgovau-externalCORS=4ba52bd73866085a6864fd89ed103e9e; Parlinfo-aphgovau-external=4ba52bd73866085a6864fd89ed103e9e; parlInfo-session-cookie=1580277504185423176517254025611411939274'
 }
 
-start_date = datetime(1999, 12, 1)
-end_date   = datetime(1999, 12, 10)
+start_date = datetime(2025, 3, 25)
+end_date   = datetime(2025, 3, 25)
 chambers   = ['hansardr', 'hansards']
 
 def find_xml_link(soup, chamber, dt):
@@ -34,8 +38,7 @@ while date <= end_date:
     date_str = date.strftime('%Y-%m-%d')
     for chamber in chambers:
         url = (
-            f"http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;"
-            f'query%3DId%3A%22chamber/{chamber}/{date_str}/0000%22'
+            f"http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Id:chamber/{chamber}/{date_str}/0000"
         )
         try:
             response = requests.get(url, headers=HEADERS, timeout=10)  # <-- HEADERS here!
@@ -47,4 +50,16 @@ while date <= end_date:
                 print(f"{chamber} on {date_str}: No XML link")
         except Exception as e:
             print(f"{chamber} on {date_str}: Error: {e}")
+        time.sleep(1)
     date += timedelta(days=1)
+
+with sync_playwright() as p:
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+    page.goto(url)
+    page.wait_for_selector('#react-root')  # Wait for main content to load
+    print(page.content())
+    browser.close()
+
+
+
