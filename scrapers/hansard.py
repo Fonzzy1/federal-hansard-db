@@ -1,65 +1,94 @@
-from datetime import datetime, timedelta
+import os
 import requests
 from bs4 import BeautifulSoup
-import time
-! pip install playwright
-! playwright install
-from playwright.sync_api import sync_playwright
+from tqdm import tqdm
+import re
+import wget
+import zipfile
+from datetime import datetime
 
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto('https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p...')
-    page.wait_for_selector('#react-root')  # Wait for main content to load
-    print(page.content())
-    browser.close()
+def grab_and_format_yyyymmdd(s):
+    # Grab all digits in order
+    digits = re.findall(r'\d', s)
+    if len(digits) < 8:
+        return None  # Not enough digits
+    # Take the first 8 digits and join them
+    yyyymmdd = ''.join(digits[:8])
+    try:
+        date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
+        return date_obj.strftime("%Y-%m-%d")
+    except ValueError:
+        return None  # Invalid date
 
-# Define a custom user agent
-HEADERS = {
-}
+def ensure_dir(dir_path):
+    os.makedirs(dir_path, exist_ok=True)
 
-start_date = datetime(2025, 3, 25)
-end_date   = datetime(2025, 3, 25)
-chambers   = ['hansardr', 'hansards']
+def list_xml_files_from_html(url):
+    r = requests.get(url)
+    r.raise_for_status()
+    soup = BeautifulSoup(r.text, 'html.parser')
+    files = []
+    for l in soup.find_all('a', href=True):
+        href = l.get('href')
+        if href.endswith(".xml"):
+            file_url = requests.compat.urljoin(url, href)
+            files.append(file_url)
+    return files
 
-def find_xml_link(soup, chamber, dt):
-    links = soup.find_all('a', href=True)
-    for a in links:
-        href = a['href']
-        if (
-            href.startswith(f"/parlInfo/download/chamber/{chamber}/{dt}/toc_unixml/")
-            and href.endswith('.xml;fileType=text%2Fxml')
-        ):
-            return "http://parlinfo.aph.gov.au" + href
-    return None
-
-date = start_date
-while date <= end_date:
-    date_str = date.strftime('%Y-%m-%d')
-    for chamber in chambers:
-        url = (
-            f"http://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;query=Id:chamber/{chamber}/{date_str}/0000"
-        )
+def download_files(file_urls, dest_dir, rename_map=None):
+    ensure_dir(dest_dir)
+    for url in tqdm(file_urls, desc=f"Downloading to {dest_dir}"):
+        file_name = os.path.basename(url)
+        if rename_map and file_name in rename_map:
+            dest_file = rename_map[file_name]
+        else:
+            dest_file = file_name
+        dest = os.path.join(dest_dir, dest_file)
+        # Avoid redownloading
+        if os.path.exists(dest):
+            continue
         try:
-            response = requests.get(url, headers=HEADERS, timeout=10)  # <-- HEADERS here!
-            soup = BeautifulSoup(response.content, 'html.parser')
-            xml_link = find_xml_link(soup, chamber, date_str)
-            if xml_link:
-                print(f"{chamber} on {date_str}: XML link found: {xml_link}")
-            else:
-                print(f"{chamber} on {date_str}: No XML link")
+            with requests.get(url, stream=True, timeout=30) as r:
+                r.raise_for_status()
+                with open(dest, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
         except Exception as e:
-            print(f"{chamber} on {date_str}: Error: {e}")
-        time.sleep(1)
-    date += timedelta(days=1)
-
-with sync_playwright() as p:
-    browser = p.chromium.launch(headless=True)
-    page = browser.new_page()
-    page.goto(url)
-    page.wait_for_selector('#react-root')  # Wait for main content to load
-    print(page.content())
-    browser.close()
+            print(f"Error downloading {url}: {e}")
 
 
+def my_bar(current, total, width=80):
+    progress_message = f"\rDownloading: {current / 1024 / 1024:.2f}/{total / 1024 / 1024:.2f} MB"
+    print(progress_message, end="")
+
+### MAIN
+if __name__=="__main__":
+    # Set download and extraction path
+    download_path = "/tmp/master.zip"
+    extract_path = "/tmp"
+
+    # Download the zip
+    filename = wget.download("https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip",
+                  out=download_path, bar=my_bar)
+
+    # Unzip
+    with zipfile.ZipFile(filename, 'r') as zip_ref:
+        zip_ref.extractall(extract_path)
+    # Move the files
+
+    for house in ['hofreps','senate']:
+        for year in os.listdir(f"{extract_path}/hansard-xml-master/{house}"):
+            for file in os.listdir(f"{extract_path}/hansard-xml-master/{house}/{year}"):
+                os.rename(f"{extract_path}/hansard-xml-master/{house}/{year}/{file}",
+                          f"./scrapers/raw_sources/{house}/{grab_and_format_yyyymmdd(file)}.xml")
+
+
+    # OpenAustralia URLs (these are already in YYYY-mm-dd.xml)
+    reps_urls = list_xml_files_from_html("http://data.openaustralia.org.au/origxml/representatives_debates/")
+    senate_urls = list_xml_files_from_html("http://data.openaustralia.org.au/origxml/senate_debates/")
+
+    # Download OpenAustralia files (names unchanged)
+    download_files(reps_urls, "scrapers/raw_sources/hansard/hofreps")
+    download_files(senate_urls, "scrapers/raw_sources/hansard/senate")
 
