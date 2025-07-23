@@ -11,7 +11,7 @@ model Source {
     id                Int                 @id @default(autoincrement())
     name              String
     script            String
-    url               String
+    file              String
     documents         Document[]
     groups            SourceGroup[]       @relation("SourceToSourceGroup")
     SourceGroupSource SourceGroupSource[]
@@ -21,7 +21,7 @@ model Source {
 
 model SourceGroup {
     id                Int                 @id @default(autoincrement())
-    name              String
+    name              String              @unique
     sources           Source[]            @relation("SourceToSourceGroup")
     SourceGroupSource SourceGroupSource[]
     dateAdded         DateTime            @default(now())
@@ -59,10 +59,10 @@ model Parliament {
 
 model ParliamentarianParlement {
     parliamentarianId Int
-    parliamentId       Int
+    parliamentId      Int
 
     parliamentarian Parliamentarian @relation(fields: [parliamentarianId], references: [id])
-    parliament       Parliament       @relation(fields: [parliamentId], references: [id])
+    parliament      Parliament      @relation(fields: [parliamentId], references: [id])
 
     // Optionally add extra fields, e.g.:
     // from DateTime
