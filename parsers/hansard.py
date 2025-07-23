@@ -3,6 +3,109 @@ import asyncio
 import os 
 import xml.etree.ElementTree as ET
 from tqdm import tqdm 
+import lxml.etree as ET
+
+
+class HansardSpeechExtractorB:
+    MAIN_TAGS = ('speech', 'question', 'answer', 'continue', 'interjection', 'petition')
+    def __init__(self, source, from_file=True):
+        """
+        :param source: XML filename or string, depending on from_file.
+        :param from_file: If True, treat source as filename. If False, treat as string.
+        """
+        self.tree = ET.parse(source) if from_file else ET.fromstring(source)
+        self.root = self.tree.getroot() if from_file else self.tree
+        self.date = self.root.attrib.get('DATE', None)
+
+    def extract(self):
+        """Extract records for all main tags, return as list of dicts."""
+        result = []
+        result += self._extract_petitions()
+        result += self._extract_speeches()
+        result += self._extract_questions()
+        result += self._extract_answers()
+        result += self._extract_interjections()
+        # Implement _extract_continues if you encounter <CONTINUE> tags
+        return result
+
+    def _get_text(self, elem):
+        # Utility: get text of all PARA elements beneath elem
+        return ' '.join([' '.join(para.itertext()).strip()
+                        for para in elem.xpath('.//PARA')]).strip()
+
+    def _find_speaker(self, elem):
+        sp = elem.attrib.get('SPEAKER', '')
+        if not sp:
+            # Try <TALKER>/<NAME>
+            tkr = elem.find('.//TALKER/NAME')
+            sp = tkr.text if tkr is not None else ''
+        return sp
+
+    def _extract_petitions(self):
+        out = []
+        for p in self.root.xpath('.//PETITION'):
+            presenters = p.xpath('./PRESENTER.BLOCK//NAME/text()')
+            sp = '; '.join(presenters)
+            txt = self._get_text(p)
+            out.append({
+                "tag": "petition",
+                "speaker": sp,
+                "text": txt,
+                "date": self.date,
+            })
+        return out
+
+    def _extract_speeches(self):
+        out = []
+        for s in self.root.xpath('.//SPEECH'):
+            sp = self._find_speaker(s)
+            txt = self._get_text(s)
+            out.append({
+                "tag": "speech",
+                "speaker": sp,
+                "text": txt,
+                "date": self.date,
+            })
+        return out
+
+    def _extract_questions(self):
+        out = []
+        for q in self.root.xpath('.//QUESTION'):
+            sp = self._find_speaker(q)
+            txt = self._get_text(q)
+            out.append({
+                "tag": "question",
+                "speaker": sp,
+                "text": txt,
+                "date": self.date,
+            })
+        return out
+
+    def _extract_answers(self):
+        out = []
+        for a in self.root.xpath('.//ANSWER'):
+            sp = self._find_speaker(a)
+            txt = self._get_text(a)
+            out.append({
+                "tag": "answer",
+                "speaker": sp,
+                "text": txt,
+                "date": self.date,
+            })
+        return out
+
+    def _extract_interjections(self):
+        out = []
+        for i in self.root.xpath('.//INTERJECT'):
+            sp = self._find_speaker(i)
+            txt = self._get_text(i)
+            out.append({
+                "tag": "interjection",
+                "speaker": sp,
+                "text": txt,
+                "date": self.date,
+            })
+        return out
 
 class HansardSpeechExtractorA:
     MAIN_TAGS = ('speech', 'question', 'answer', 'continue', 'interjection')
@@ -115,6 +218,6 @@ def main():
     all_files = sorted(all_files)
     
     for filename in tqdm(all_files, total = len(all_files)):
-        self = HansardSpeechExtractorA(filename)
+        self = HansardSpeechExtractorB(filename)
         self.extract()
         
