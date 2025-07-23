@@ -6,6 +6,7 @@ import re
 import wget
 import zipfile
 from datetime import datetime
+import shutil
 
 def grab_and_format_yyyymmdd(s):
     # Grab all digits in order
@@ -18,7 +19,7 @@ def grab_and_format_yyyymmdd(s):
         date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
         return date_obj.strftime("%Y-%m-%d")
     except ValueError:
-        return None  # Invalid date
+        print(f'failed for {s}')
 
 def ensure_dir(dir_path):
     os.makedirs(dir_path, exist_ok=True)
@@ -80,8 +81,8 @@ if __name__=="__main__":
     for house in ['hofreps','senate']:
         for year in os.listdir(f"{extract_path}/hansard-xml-master/{house}"):
             for file in os.listdir(f"{extract_path}/hansard-xml-master/{house}/{year}"):
-                os.rename(f"{extract_path}/hansard-xml-master/{house}/{year}/{file}",
-                          f"./scrapers/raw_sources/{house}/{grab_and_format_yyyymmdd(file)}.xml")
+                shutil.move(f"{extract_path}/hansard-xml-master/{house}/{year}/{file}",
+                          f"./scrapers/raw_sources/hansard/{house}/{grab_and_format_yyyymmdd(file)}.xml")
 
 
     # OpenAustralia URLs (these are already in YYYY-mm-dd.xml)
