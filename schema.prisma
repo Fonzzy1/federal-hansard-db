@@ -38,12 +38,37 @@ model Author {
 }
 
 model Parliamentarian {
-    id           Int      @id
+    id           Int                        @id
     party        String
     seat         String
-    author       Author   @relation(fields: [id], references: [id])
-    dateAdded    DateTime @default(now())
-    dateModified DateTime @updatedAt
+    author       Author                     @relation(fields: [id], references: [id])
+    dateAdded    DateTime                   @default(now())
+    dateModified DateTime                   @updatedAt
+    parlements   ParliamentarianParlement[]
+}
+
+model Parliament {
+    id               Int                        @id
+    governmentParty  String
+    firstDate        DateTime
+    lastDate         DateTime
+    dateAdded        DateTime                   @default(now())
+    dateModified     DateTime                   @updatedAt
+    Parliamentarians ParliamentarianParlement[]
+}
+
+model ParliamentarianParlement {
+    parliamentarianId Int
+    parliamentId       Int
+
+    parliamentarian Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+    parliament       Parliament       @relation(fields: [parliamentId], references: [id])
+
+    // Optionally add extra fields, e.g.:
+    // from DateTime
+    // to DateTime
+
+    @@id([parliamentarianId, parliamentId])
 }
 
 model Document {
@@ -94,7 +119,6 @@ model Issue {
     name         String
     dimension    Dimension @relation(fields: [dimensionid], references: [id])
     dimensionid  Int
-    claims       Claim[]
     dateAdded    DateTime  @default(now())
     dateModified DateTime  @updatedAt
 }
@@ -167,8 +191,6 @@ model Claim {
     document       Document         @relation(fields: [documentid], references: [id])
     documentid     Int
     deconstruction Deconstruction[]
-    issue          Issue            @relation(fields: [issueid], references: [id])
-    issueid        Int
 
     extractor    Extractor @relation(fields: [extractor_id], references: [id])
     extractor_id Int
