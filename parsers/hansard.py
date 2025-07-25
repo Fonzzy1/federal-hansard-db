@@ -34,8 +34,10 @@ class HansardSpeechExtractor:
             }
 
     def _clean_hansard(self, string):
-        # Remove the first line
-        string = '\n'.join(string.split('\n')[1:])
+        # Remove the first line if it contains DOCTYPE
+        lines = string.split('\n')
+        if lines and 'DOCTYPE' in lines[0]:
+            string = '\n'.join(lines[1:])
         # Replace the bad chars
         char_map = {
                 "&mdash;": '---'
