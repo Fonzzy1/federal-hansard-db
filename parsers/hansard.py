@@ -5,12 +5,29 @@ import xml.etree.ElementTree as ET
 from tqdm import tqdm 
 import lxml.etree as ET
 from lxml import html
+import re
+from lxml.etree import _Element
+
+
+"""
+Goal is to extract:
+
+    Speeches
+    Question and answer pairs
+    Petitions
+
+All with interjections removed, and continues sliced together
+
+"""
 
 class HansardNoElementsException(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
 
+class EmptyDocumentError(Exception):
+    def __init__(self):
+        super().__init__()
 
 class FailedTalkerExtractionException(Exception):
     def __init__(self, element):
@@ -24,28 +41,35 @@ class FailedTextExtractionException(Exception):
 
 
 class HansardSpeechExtractor:
-    MAIN_TAGS_DICT = {
-            'speech': './/speech',
-            'question': './/question',
-            'answer': './/answer',
-            'continue': './/continue',
-            'interjection': './/interject',
-            'petition': './/petition'
-            }
 
     def _clean_hansard(self, string):
-        # Remove the first line if it contains DOCTYPE
+        # Step 1: Strip problematic declarations
         lines = string.split('\n')
-        if lines and 'DOCTYPE' in lines[0]:
+        if lines and ('DOCTYPE' in lines[0] or 'encoding' in lines[0]):
             string = '\n'.join(lines[1:])
-        # Replace the bad chars
+
+        # Step 2: Replace character entities
         char_map = {
-                "&mdash;": '---'
-                }
-        for k,v in char_map.items():
+            "&mdash;": "---",
+            "&nbsp;": " ",  # optional: handles Word exports
+        }
+        for k, v in char_map.items():
             string = string.replace(k, v)
-        repaired = html.fromstring(string)
-        fixed_xml = html.tostring(repaired, method='xml').decode()
+
+        # Step 3: Remove unbound namespace-prefixed tags (mc:, v:, o:, w10:, etc.)
+        # This prevents XML parser from failing
+        string = re.sub(r'<(/?)(mc|v|o|w10|w|o14|m):[^>]*>', '', string)
+        string = re.sub(r'\s(xmlns:[a-zA-Z0-9]+)="[^"]+"', '', string)  # remove xmlns decls
+        string = re.sub(r'\s[a-zA-Z0-9]+:[a-zA-Z0-9\-]+="[^"]*"', '', string)  # remove prefix:attr="..."
+
+        # Step 4: Parse using forgiving HTML parser
+        try:
+            repaired = html.fromstring(string)
+            ET.strip_tags(repaired, ET.Comment)
+            fixed_xml = html.tostring(repaired, method='xml').decode()
+        except etree.XMLSyntaxError:
+            raise FailedTextExtractionException("XML could not be parsed even after cleaning.")
+        
         return fixed_xml
 
     def __init__(self, source, from_file=True):
@@ -57,6 +81,10 @@ class HansardSpeechExtractor:
             hansard_string = open(source).read()
         else:
             hansard_string = source
+
+        if len(hansard_string) == 0:
+            raise EmptyDocumentError()
+
         cleaned_string = self._clean_hansard(hansard_string)
         self.tree = ET.fromstring(cleaned_string)
         self.root = self.tree
@@ -66,66 +94,128 @@ class HansardSpeechExtractor:
         date_elem = self.root.find('.//session.header/date')
         return date_elem.text.strip() if date_elem is not None and date_elem.text else None
 
-    def extract(self):
-        # Iterate over document to get all the items
+    def _extract_elements(self):
         self.elements = []
-        for k, v in self.MAIN_TAGS_DICT.items():
-            self.elements += self.root.findall(v)
-        if len(self.elements) == 0:
-            raise Exception('Failed to find Any Elements')
+        # Iterate over document to get all the items
+        raw_elements = list(self.tree.iter())
+        i = 0
+        while i < len(raw_elements):
+            el = raw_elements[i]
+            tag = el.tag.lower()
+            if tag == "question":
+                parent = el.getparent()
+                answer_ls = [child for child in parent if child is not el and child.tag.lower() == 'answer']
+                if len(answer_ls) != 0:
+                    self.elements.append({
+                        "type": "question_answer",
+                        "question": self._clean_element(el),
+                        "answer": self._clean_element(answer_ls[0])
+                        })
+                else:
+                    self.elements.append({
+                        "type": "question_answer",
+                        "question": self._clean_element(el),
+                        "answer": None
+                        })
 
-        self.elements= [x for x in self.elements if self._validate_element(x)]
+                i += 1
+            elif tag == "speech":
+                self.elements.append({
+                    "type": "speech",
+                    "element": self._clean_element(el)
+                })
+            elif tag == "petition":
+                self.elements.append({
+                    "type": "petition",
+                    "element": self._clean_element(el)
+                })
+
+            i += 1
+
+    def extract(self):
+        self._extract_elements()
 
         results = []
         for elem in self.elements:
-                entry = self._extract_entry(elem, elem.tag)
+            if elem['type'] == 'question_answer':
+
+                entry = {
+                        'type'  :'question_answer',
+                        'question_speaker': self._extract_talker(elem['question']),
+                        'answer_speaker': self._extract_talker(elem['answer']) if elem['answer'] else None,
+                        'question': self._extract_text(elem['question']),
+                        'answer': self._extract_text(elem['answer']) if elem['answer'] else None,
+                        'date': self.date
+                        }
+
                 results.append(entry)
+
+            else:
+                entry = {
+                        'type': elem['type'],
+                        'talker': self._extract_talker(elem['element']),
+                        'text':self._extract_text(elem['element']),
+                        'date':self.date
+                        }
+                results.append(entry)
+
+
         if len(results) < len(self.elements):
             raise Exception('Failed to parse elements')
         return results
 
-    def _validate_element(self,elem):
-        #Fail is elem is not para type or doensn't contain a para
-        if elem.tag != 'para' and len(elem.findall('./para'))==0:
-            return False
-        return True
 
-
-
+    def _clean_element(self,el):
+        for interjection in el.xpath('.//interjection'):
+            parent = interjection.getparent()
+            if parent is not None:
+                parent.remove(interjection)
+        return el
 
     def _extract_talker(self, elem):
+        name = ""
         try:
-            # All these tags have a "talk.start"
-            talk_start = elem.find('talk.start')
-            talker = talk_start.find('talker')
-            names = [n.text for n in talker.findall('name') if n.text]
-            name = names[0] if names else None
+            names = elem.xpath('.//name[@role="metadata"]/text()')
+            unique_names = set(names)
+            name = list(unique_names)[0]
         except:
-            raise  FailedTalkerExtractionException(elem)
+            pass
+        try:
+            names = elem.xpath('.//name[@role="display"]/text()')
+            unique_names = set(names)
+            name = list(unique_names)[0]
+        except:
+            pass
+        try:
+            names = elem.xpath('.//name/text()')
+            unique_names = set(names)
+            name = list(unique_names)[0]
+        except:
+            pass
+
+        # Fallback: check attributes of the element itself
+        if not name and "speaker" in elem.attrib:
+            name = elem.attrib.get("speaker", "")
+
         if not name:
-            raise FailedTalkerExtractionException(elem)
+            raise  FailedTalkerExtractionException(elem)
         return name
+
 
     def _extract_text(self, elem):
         texts = []
-        elements = elem.findall('.//para')
+        # Extract all <para> or <p>
+        elements = elem.xpath('.//para | .//p')
         for p in elements:
-            para_text = ''.join(p.itertext()).strip()
+            para_text = re.sub(r'\s+', ' ', ''.join(p.itertext())).strip()
             if para_text:
                 texts.append(para_text)
-        if len(texts)==0:
-            raise FailedTextExtractionException(elem)
-        return '\n'.join(texts)
 
-    def _extract_entry(self, elem, tag_type):
-        name= self._extract_talker(elem)
-        text = self._extract_text(elem)
-        return {
-            'speaker': name,
-            'date': self.date,
-            'text': text.strip(),
-            'type': tag_type
-        }
+        # If text was found in <para>/<p>, return it
+        if texts:
+            return '\n'.join(texts)
+
+
 
 def print_tag_tree(element, max_depth, indent=0):
     if indent >= max_depth:
@@ -159,14 +249,18 @@ for folder in folders:
         files = [os.path.join(folder_path, f) for f in files]
         all_files.extend(files)
 
-all_files = sorted(all_files)
+all_files = sorted(all_files,reverse=True)
 
 for filename in tqdm(all_files, total = len(all_files)):
-    self = HansardSpeechExtractor(filename)
-    results = self.extract()
-
+    try:
+        self = HansardSpeechExtractor(filename)
+        results = self.extract()
+    except EmptyDocumentError:
+        pass
     if len(results)==0:
         raise Exception(f'{filename} failed to parse')
+
+
 
 
 
