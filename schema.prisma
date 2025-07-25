@@ -76,14 +76,18 @@ model Document {
     text            String
     date            DateTime
     url             String?
+    type            String
     author          Author           @relation(fields: [authorId], references: [id])
     authorId        Int
+    citedBy         Document[]       @relation("RelatedDocuments")
+    references      Document[]       @relation("RelatedDocuments")
     source          Source           @relation(fields: [sourceId], references: [id])
     sourceId        Int
     claims          Claim[]
     dateAdded       DateTime         @default(now())
     dateModified    DateTime         @updatedAt
     documentFilters DocumentFilter[]
+    documentId      Int?
 }
 
 model Filter {

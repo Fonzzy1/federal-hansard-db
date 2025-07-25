@@ -88,6 +88,7 @@ class HansardSpeechExtractor:
         cleaned_string = self._clean_hansard(hansard_string)
         self.tree = ET.fromstring(cleaned_string)
         self.root = self.tree
+
         self.date = self.root.attrib.get('DATE', None)
 
     def _find_session_date(self):
@@ -95,6 +96,12 @@ class HansardSpeechExtractor:
         return date_elem.text.strip() if date_elem is not None and date_elem.text else None
 
     def _extract_elements(self):
+        check_elements = self.root.xpath('.//speech | .//question | .//answer | .//petition')
+
+        # If no relevant elements found, raise an exception
+        if not check_elements:
+            raise EmptyDocumentError()
+
         self.elements = []
         # Iterate over document to get all the items
         raw_elements = list(self.tree.iter())
@@ -177,29 +184,44 @@ class HansardSpeechExtractor:
         try:
             names = elem.xpath('.//name[@role="metadata"]/text()')
             unique_names = set(names)
-            name = list(unique_names)[0]
+            return list(unique_names)[0]
         except:
             pass
         try:
             names = elem.xpath('.//name[@role="display"]/text()')
             unique_names = set(names)
-            name = list(unique_names)[0]
+            return list(unique_names)[0]
         except:
             pass
         try:
             names = elem.xpath('.//name/text()')
             unique_names = set(names)
-            name = list(unique_names)[0]
+            return list(unique_names)[0]
         except:
             pass
 
         # Fallback: check attributes of the element itself
         if not name and "speaker" in elem.attrib:
-            name = elem.attrib.get("speaker", "")
+            return elem.attrib.get("speaker", "")
 
-        if not name:
-            raise  FailedTalkerExtractionException(elem)
-        return name
+        # The weird case when there is an item with just a para in it 
+        if len([x for x in elem]) == 1:
+            if [x for x in elem][0].tag in ['p', 'para']:
+                return ''
+        # the weird case when there are no children
+        if len([x for x in elem]) == 0:
+            return ''
+        # the weird case when all children are paras and quotes
+        if all(x.tag in ['p', 'para', 'quote','inline','list','item','debateinfo'] for x in elem):
+            return ''
+        try:
+            names = elem.xpath('.//name.id/text()')
+            unique_names = set(names)
+            return list(unique_names)[0]
+        except:
+            pass
+
+        raise  FailedTalkerExtractionException(elem)
 
 
     def _extract_text(self, elem):
