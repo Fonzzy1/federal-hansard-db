@@ -6,6 +6,7 @@ from tqdm import tqdm
 import lxml.etree as ET
 from lxml import html
 import re
+import datetime
 
 
 """
@@ -71,7 +72,7 @@ class HansardSpeechExtractor:
         
         return fixed_xml
 
-    def __init__(self, source, date=None from_file=True):
+    def __init__(self, source, date=None, from_file=True):
         """
         :param source: XML filename or string, depending on from_file.
         :param from_file: If True, treat source as filename. If False, treat as string.
@@ -155,6 +156,7 @@ class HansardSpeechExtractor:
                         'text': self._extract_text(elem['question']),
                         'date': self.date,
                         'answer': {
+                            'type'  :'answer',
                             'author': self._extract_talker(elem['answer']) if elem['answer'] else None,
                             'text': self._extract_text(elem['answer']) if elem['answer'] else None,
                             'date': self.date
@@ -307,7 +309,7 @@ async def main()
                     if document['type'] == 'question':
                         await db.document.create(data={
                             'text': document['text'],
-                            'date': document['date'],
+                            'date': datetime.datetime.strptime(document['date'],'%Y-%m-%d'),
                             'type': document['type'],
                             'author': {
                                 'connectOrCreate': {
@@ -321,7 +323,7 @@ async def main()
                             'citedBy': {
                                 'create': {
                                     'text': document['answer']['text'],
-                                    'date': document['answer']['date'],
+                                    'date':datetime.datetime.strptime(document['answer']['date'],'%Y-%m-%d'),
                                     'type': document['answer']['type'],
                                     'author': {
                                         'connectOrCreate': {
@@ -338,7 +340,7 @@ async def main()
                     else:
                         await db.document.create(data={
                             'text': document['text'],
-                            'date': document['date'],
+                            'date': datetime.datetime.strptime(document['date'],'%Y-%m-%d'),
                             'type': document['type'],
                             'author': {
                               'connectOrCreate': {
