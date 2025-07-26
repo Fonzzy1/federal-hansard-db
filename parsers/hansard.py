@@ -6,7 +6,6 @@ from tqdm import tqdm
 import lxml.etree as ET
 from lxml import html
 import re
-from lxml.etree import _Element
 
 
 """
@@ -72,7 +71,7 @@ class HansardSpeechExtractor:
         
         return fixed_xml
 
-    def __init__(self, source, from_file=True):
+    def __init__(self, source, date=None from_file=True):
         """
         :param source: XML filename or string, depending on from_file.
         :param from_file: If True, treat source as filename. If False, treat as string.
@@ -89,7 +88,11 @@ class HansardSpeechExtractor:
         self.tree = ET.fromstring(cleaned_string)
         self.root = self.tree
 
-        self.date = self.root.attrib.get('DATE', None)
+
+        if date:
+            self.date = date
+        else:
+            self.date= self.root.attrib.get('DATE', None)
 
     def _find_session_date(self):
         date_elem = self.root.find('.//session.header/date')
@@ -114,13 +117,13 @@ class HansardSpeechExtractor:
                 answer_ls = [child for child in parent if child is not el and child.tag.lower() == 'answer']
                 if len(answer_ls) != 0:
                     self.elements.append({
-                        "type": "question_answer",
+                        "type": "question",
                         "question": self._clean_element(el),
                         "answer": self._clean_element(answer_ls[0])
                         })
                 else:
                     self.elements.append({
-                        "type": "question_answer",
+                        "type": "question",
                         "question": self._clean_element(el),
                         "answer": None
                         })
@@ -144,15 +147,18 @@ class HansardSpeechExtractor:
 
         results = []
         for elem in self.elements:
-            if elem['type'] == 'question_answer':
+            if elem['type'] == 'question':
 
                 entry = {
-                        'type'  :'question_answer',
-                        'question_speaker': self._extract_talker(elem['question']),
-                        'answer_speaker': self._extract_talker(elem['answer']) if elem['answer'] else None,
-                        'question': self._extract_text(elem['question']),
-                        'answer': self._extract_text(elem['answer']) if elem['answer'] else None,
-                        'date': self.date
+                        'type'  :'question',
+                        'author': self._extract_talker(elem['question']),
+                        'text': self._extract_text(elem['question']),
+                        'date': self.date,
+                        'answer': {
+                            'author': self._extract_talker(elem['answer']) if elem['answer'] else None,
+                            'text': self._extract_text(elem['answer']) if elem['answer'] else None,
+                            'date': self.date
+                            }
                         }
 
                 results.append(entry)
@@ -160,7 +166,7 @@ class HansardSpeechExtractor:
             else:
                 entry = {
                         'type': elem['type'],
-                        'talker': self._extract_talker(elem['element']),
+                        'author': self._extract_talker(elem['element']),
                         'text':self._extract_text(elem['element']),
                         'date':self.date
                         }
@@ -247,47 +253,113 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
         
 
+async def main()
+    db = Prisma()
 
-# db = Prisma()
+    await db.connect()
 
-# await db.connect()
+    groups = {'House of Reps Hansard':None, 'Senate Hansard':None, 'Hansard':None}
+    for group_name in groups.keys():
+        g = await db.sourcegroup.find_unique(where={'name': group_name})
+        if not g: 
+            g = await db.sourcegroup.create({'name': group_name})
+        groups[group_name] = g.id
 
-# groups = {'House of Reps Hansard':None, 'Senate Hansard':None, 'Hansard':None}
-# for group_name in groups.keys():
-#     g = await db.sourcegroup.find_unique(where={'name': group_name})
-#     if not existing:
-#         g = await db.sourcegroup.create({'name': group_name})
-#     groups[group_name] = g.id
+    base_path = './scrapers/raw_sources/hansard'
+    folders = ['senate', 'hofreps']
 
-base_path = './scrapers/raw_sources/hansard'
-folders = ['senate', 'hofreps']
+    all_files = []
+    for folder in folders:
+        folder_path = os.path.join(base_path, folder)
+        if os.path.exists(folder_path):
+            files = os.listdir(folder_path)
+            # Optionally, join folder name for full paths:
+            files = [os.path.join(folder_path, f) for f in files]
+            all_files.extend(files)
 
-all_files = []
-for folder in folders:
-    folder_path = os.path.join(base_path, folder)
-    if os.path.exists(folder_path):
-        files = os.listdir(folder_path)
-        # Optionally, join folder name for full paths:
-        files = [os.path.join(folder_path, f) for f in files]
-        all_files.extend(files)
+    all_files = sorted(all_files)
 
-all_files = sorted(all_files,reverse=True)
+    for filename in tqdm(all_files, total = len(all_files)):
+        ## Generate the filenames
+        names = filename.split('/')
+        source_name =f'{"Senate" if names[-2] == "senate" else "House of Representatives"} {names[-1][:10]}'
 
-for filename in tqdm(all_files, total = len(all_files)):
-    try:
-        self = HansardSpeechExtractor(filename)
-        results = self.extract()
-    except EmptyDocumentError:
-        pass
-    if len(results)==0:
-        raise Exception(f'{filename} failed to parse')
+        ## Either grab the source, or create the source
+        ## We are going to assume if the source exists then we are done.
+        source = await db.source.find_unique(where={'name': source_name})
+        if not source:
+            source = await db.source.create(data = {'name': source_name,
+                                             'script': 'parser/hansard.py',
+                                             'file':filename,
+                                             'groups': {
+                                                 'connect':
+                                                 [
+                                                     {'id':groups['Hansard']},
+                                                     {'id':groups['Senate Hansard'] if 'Senate' in source_name else groups['House of Reps Hansard']}
+                                                 ]
+                                                 }
+                                             })
+
+            try:
+                self = HansardSpeechExtractor(filename, date=names[-1][:10])
+                results = self.extract()
+                for document in results:
+                    if document['type'] == 'question':
+                        await db.document.create(data={
+                            'text': document['text'],
+                            'date': document['date'],
+                            'type': document['type'],
+                            'author': {
+                                'connectOrCreate': {
+                                    'where': {'name': document['author']},
+                                    'create': {'name': document['author']}
+                                }
+                            },
+                            'source': {
+                                'connect': {'id': source.id}
+                            },
+                            'citedBy': {
+                                'create': {
+                                    'text': document['answer']['text'],
+                                    'date': document['answer']['date'],
+                                    'type': document['answer']['type'],
+                                    'author': {
+                                        'connectOrCreate': {
+                                            'where': {'name': document['answer']['author']},
+                                            'create': {'name': document['answer']['author']}
+                                        }
+                                    },
+                                    'source': {
+                                        'connect': {'id': source.id}
+                                    }
+                                }
+                            }
+                            })
+                    else:
+                        await db.document.create(data={
+                            'text': document['text'],
+                            'date': document['date'],
+                            'type': document['type'],
+                            'author': {
+                              'connectOrCreate': {
+                                'where': { 'name': document['author'] },
+                                'create': { 'name': document['author'] }
+                              }
+                            },
+                            'source': {
+                                'connect': {'id': source.id}
+                            },
+                            })
+
+            except EmptyDocumentError:
+                pass
+            if len(results)==0:
+                raise Exception(f'{filename} failed to parse')
 
 
 
 
+if __name__=="__main__":
+    await main()
 
 
-
-
-
-    
