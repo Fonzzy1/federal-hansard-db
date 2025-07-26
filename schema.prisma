@@ -9,7 +9,7 @@ datasource db {
 
 model Source {
     id                Int                 @id @default(autoincrement())
-    name              String
+    name              String              @unique
     script            String
     file              String
     documents         Document[]
@@ -30,7 +30,7 @@ model SourceGroup {
 
 model Author {
     id              Int              @id @default(autoincrement())
-    name            String
+    name            String           @unique
     documents       Document[]
     parliamentarian Parliamentarian?
     dateAdded       DateTime         @default(now())
@@ -87,7 +87,6 @@ model Document {
     dateAdded       DateTime         @default(now())
     dateModified    DateTime         @updatedAt
     documentFilters DocumentFilter[]
-    documentId      Int?
 }
 
 model Filter {
