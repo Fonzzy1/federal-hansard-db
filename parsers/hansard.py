@@ -1,8 +1,8 @@
 from prisma import Prisma
 import asyncio
-import os 
+import os
 import xml.etree.ElementTree as ET
-from tqdm import tqdm 
+from tqdm import tqdm
 import lxml.etree as ET
 from lxml import html
 import re
@@ -20,23 +20,27 @@ All with interjections removed, and continues sliced together
 
 """
 
+
 class HansardNoElementsException(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
 
+
 class EmptyDocumentError(Exception):
     def __init__(self):
         super().__init__()
 
+
 class FailedTalkerExtractionException(Exception):
     def __init__(self, element):
-        self.message = str(ET.tostring(element,encoding='unicode'))
+        self.message = str(ET.tostring(element, encoding="unicode"))
         super().__init__(self.message)
+
 
 class FailedTextExtractionException(Exception):
     def __init__(self, element):
-        self.message = str(ET.tostring(element,encoding='unicode'))
+        self.message = str(ET.tostring(element, encoding="unicode"))
         super().__init__(self.message)
 
 
@@ -44,9 +48,9 @@ class HansardSpeechExtractor:
 
     def _clean_hansard(self, string):
         # Step 1: Strip problematic declarations
-        lines = string.split('\n')
-        if lines and ('DOCTYPE' in lines[0] or 'encoding' in lines[0]):
-            string = '\n'.join(lines[1:])
+        lines = string.split("\n")
+        if lines and ("DOCTYPE" in lines[0] or "encoding" in lines[0]):
+            string = "\n".join(lines[1:])
 
         # Step 2: Replace character entities
         char_map = {
@@ -58,18 +62,24 @@ class HansardSpeechExtractor:
 
         # Step 3: Remove unbound namespace-prefixed tags (mc:, v:, o:, w10:, etc.)
         # This prevents XML parser from failing
-        string = re.sub(r'<(/?)(mc|v|o|w10|w|o14|m):[^>]*>', '', string)
-        string = re.sub(r'\s(xmlns:[a-zA-Z0-9]+)="[^"]+"', '', string)  # remove xmlns decls
-        string = re.sub(r'\s[a-zA-Z0-9]+:[a-zA-Z0-9\-]+="[^"]*"', '', string)  # remove prefix:attr="..."
+        string = re.sub(r"<(/?)(mc|v|o|w10|w|o14|m):[^>]*>", "", string)
+        string = re.sub(
+            r'\s(xmlns:[a-zA-Z0-9]+)="[^"]+"', "", string
+        )  # remove xmlns decls
+        string = re.sub(
+            r'\s[a-zA-Z0-9]+:[a-zA-Z0-9\-]+="[^"]*"', "", string
+        )  # remove prefix:attr="..."
 
         # Step 4: Parse using forgiving HTML parser
         try:
             repaired = html.fromstring(string)
             ET.strip_tags(repaired, ET.Comment)
-            fixed_xml = html.tostring(repaired, method='xml').decode()
+            fixed_xml = html.tostring(repaired, method="xml").decode()
         except etree.XMLSyntaxError:
-            raise FailedTextExtractionException("XML could not be parsed even after cleaning.")
-        
+            raise FailedTextExtractionException(
+                "XML could not be parsed even after cleaning."
+            )
+
         return fixed_xml
 
     def __init__(self, source, date=None, from_file=True):
@@ -89,18 +99,23 @@ class HansardSpeechExtractor:
         self.tree = ET.fromstring(cleaned_string)
         self.root = self.tree
 
-
         if date:
             self.date = date
         else:
-            self.date= self.root.attrib.get('DATE', None)
+            self.date = self.root.attrib.get("DATE", None)
 
     def _find_session_date(self):
-        date_elem = self.root.find('.//session.header/date')
-        return date_elem.text.strip() if date_elem is not None and date_elem.text else None
+        date_elem = self.root.find(".//session.header/date")
+        return (
+            date_elem.text.strip()
+            if date_elem is not None and date_elem.text
+            else None
+        )
 
     def _extract_elements(self):
-        check_elements = self.root.xpath('.//speech | .//question | .//answer | .//petition')
+        check_elements = self.root.xpath(
+            ".//speech | .//question | .//answer | .//petition"
+        )
 
         # If no relevant elements found, raise an exception
         if not check_elements:
@@ -115,31 +130,37 @@ class HansardSpeechExtractor:
             tag = el.tag.lower()
             if tag == "question":
                 parent = el.getparent()
-                answer_ls = [child for child in parent if child is not el and child.tag.lower() == 'answer']
+                answer_ls = [
+                    child
+                    for child in parent
+                    if child is not el and child.tag.lower() == "answer"
+                ]
                 if len(answer_ls) != 0:
-                    self.elements.append({
-                        "type": "question",
-                        "question": self._clean_element(el),
-                        "answer": self._clean_element(answer_ls[0])
-                        })
+                    self.elements.append(
+                        {
+                            "type": "question",
+                            "question": self._clean_element(el),
+                            "answer": self._clean_element(answer_ls[0]),
+                        }
+                    )
                 ## Exception weh threre is no answer
                 else:
-                    self.elements.append({
-                        "type": "question",
-                        "element": self._clean_element(el),
-                        })
+                    self.elements.append(
+                        {
+                            "type": "question",
+                            "element": self._clean_element(el),
+                        }
+                    )
 
                 i += 1
             elif tag == "speech":
-                self.elements.append({
-                    "type": "speech",
-                    "element": self._clean_element(el)
-                })
+                self.elements.append(
+                    {"type": "speech", "element": self._clean_element(el)}
+                )
             elif tag == "petition":
-                self.elements.append({
-                    "type": "petition",
-                    "element": self._clean_element(el)
-                })
+                self.elements.append(
+                    {"type": "petition", "element": self._clean_element(el)}
+                )
 
             i += 1
 
@@ -148,57 +169,55 @@ class HansardSpeechExtractor:
 
         results = []
         for elem in self.elements:
-            if elem['type'] == 'question' and 'answer' in elem.keys():
+            if elem["type"] == "question" and "answer" in elem.keys():
                 # If there is a valid question
-                valid_question  = self._extract_text(elem['question'])
-                valid_answer = self._extract_text(elem['answer'])
+                valid_question = self._extract_text(elem["question"])
+                valid_answer = self._extract_text(elem["answer"])
                 if valid_question and valid_answer:
                     entry = {
-                            'type'  :'question',
-                            'author': self._extract_talker(elem['question']),
-                            'text': self._extract_text(elem['question']),
-                            'date': self.date,
-                            'answer': {
-                                'type'  :'answer',
-                                'author': self._extract_talker(elem['answer']),
-                                'text': self._extract_text(elem['answer']),
-                                'date': self.date
-                                }
-                            }
+                        "type": "question",
+                        "author": self._extract_talker(elem["question"]),
+                        "text": self._extract_text(elem["question"]),
+                        "date": self.date,
+                        "answer": {
+                            "type": "answer",
+                            "author": self._extract_talker(elem["answer"]),
+                            "text": self._extract_text(elem["answer"]),
+                            "date": self.date,
+                        },
+                    }
                     results.append(entry)
                 elif valid_answer and not valid_answer:
                     entry = {
-                            'type'  :'answer',
-                            'author': self._extract_talker(elem['answer']),
-                            'text': self._extract_text(elem['answer']),
-                            'date': self.date
-                            }
+                        "type": "answer",
+                        "author": self._extract_talker(elem["answer"]),
+                        "text": self._extract_text(elem["answer"]),
+                        "date": self.date,
+                    }
                     results.append(entry)
                 elif valid_question and not valid_answer:
                     entry = {
-                            'type'  :'question',
-                            'author': self._extract_talker(elem['question']),
-                            'text': self._extract_text(elem['question']),
-                            'date': self.date
-                            }
+                        "type": "question",
+                        "author": self._extract_talker(elem["question"]),
+                        "text": self._extract_text(elem["question"]),
+                        "date": self.date,
+                    }
                     results.append(entry)
 
             else:
-                if self._extract_text(elem['element']):
+                if self._extract_text(elem["element"]):
                     entry = {
-                            'type': elem['type'],
-                            'author': self._extract_talker(elem['element']),
-                            'text':self._extract_text(elem['element']),
-                            'date':self.date
-                            }
+                        "type": elem["type"],
+                        "author": self._extract_talker(elem["element"]),
+                        "text": self._extract_text(elem["element"]),
+                        "date": self.date,
+                    }
                     results.append(entry)
-
 
         return results
 
-
-    def _clean_element(self,el):
-        for interjection in el.xpath('.//interjection'):
+    def _clean_element(self, el):
+        for interjection in el.xpath(".//interjection"):
             parent = interjection.getparent()
             if parent is not None:
                 parent.remove(interjection)
@@ -219,7 +238,7 @@ class HansardSpeechExtractor:
         except:
             pass
         try:
-            names = elem.xpath('.//name/text()')
+            names = elem.xpath(".//name/text()")
             unique_names = set(names)
             return list(unique_names)[0]
         except:
@@ -229,63 +248,67 @@ class HansardSpeechExtractor:
         if not name and "speaker" in elem.attrib:
             return elem.attrib.get("speaker", "")
 
-        # The weird case when there is an item with just a para in it 
+        # The weird case when there is an item with just a para in it
         if len([x for x in elem]) == 1:
-            if [x for x in elem][0].tag in ['p', 'para']:
-                return ''
+            if [x for x in elem][0].tag in ["p", "para"]:
+                return ""
         # the weird case when there are no children
         if len([x for x in elem]) == 0:
-            return ''
+            return ""
         # the weird case when all children are paras and quotes
-        if all(x.tag in ['p', 'para', 'quote','inline','list','item','debateinfo'] for x in elem):
-            return ''
+        if all(
+            x.tag
+            in ["p", "para", "quote", "inline", "list", "item", "debateinfo"]
+            for x in elem
+        ):
+            return ""
         try:
-            names = elem.xpath('.//name.id/text()')
+            names = elem.xpath(".//name.id/text()")
             unique_names = set(names)
             return list(unique_names)[0]
         except:
             pass
 
-        raise  FailedTalkerExtractionException(elem)
-
+        raise FailedTalkerExtractionException(elem)
 
     def _extract_text(self, elem):
         texts = []
         # Extract all <para> or <p>
-        elements = elem.xpath('.//para | .//p')
+        elements = elem.xpath(".//para | .//p")
         for p in elements:
-            para_text = re.sub(r'\s+', ' ', ''.join(p.itertext())).strip()
+            para_text = re.sub(r"\s+", " ", "".join(p.itertext())).strip()
             if para_text:
                 texts.append(para_text)
 
         # If text was found in <para>/<p>, return it
         if texts:
-            return '\n'.join(texts)
-
+            return "\n".join(texts)
 
 
 def print_tag_tree(element, max_depth, indent=0):
     if indent >= max_depth:
         return
-    print('  ' * indent + f"{element.tag}")
+    print("  " * indent + f"{element.tag}")
     for child in element:
         print_tag_tree(child, max_depth, indent + 1)
-        
+
 
 async def main():
     db = Prisma()
-
     await db.connect()
-
-    groups = {'House of Reps Hansard':None, 'Senate Hansard':None, 'Hansard':None}
+    groups = {
+        "House of Reps Hansard": None,
+        "Senate Hansard": None,
+        "Hansard": None,
+    }
     for group_name in groups.keys():
-        g = await db.sourcegroup.find_unique(where={'name': group_name})
-        if not g: 
-            g = await db.sourcegroup.create({'name': group_name})
+        g = await db.sourcegroup.find_unique(where={"name": group_name})
+        if not g:
+            g = await db.sourcegroup.create({"name": group_name})
         groups[group_name] = g.id
 
-    base_path = './scrapers/raw_sources/hansard'
-    folders = ['senate', 'hofreps']
+    base_path = "./scrapers/raw_sources/hansard"
+    folders = ["senate", "hofreps"]
 
     all_files = []
     for folder in folders:
@@ -298,87 +321,109 @@ async def main():
 
     all_files = sorted(all_files)
 
-    for filename in tqdm(all_files, total = len(all_files)):
+    for filename in tqdm(all_files, total=len(all_files)):
         ## Generate the filenames
-        names = filename.split('/')
-        source_name =f'{"Senate" if names[-2] == "senate" else "House of Representatives"} {names[-1][:10]}'
+        names = filename.split("/")
+        source_name = f'{"Senate" if names[-2] == "senate" else "House of Representatives"} {names[-1][:10]}'
 
         ## Either grab the source, or create the source
         ## We are going to assume if the source exists then we are done.
-        source = await db.source.find_unique(where={'name': source_name})
+        source = await db.source.find_unique(where={"name": source_name})
         if not source:
-            source = await db.source.create(data = {'name': source_name,
-                                             'script': 'parser/hansard.py',
-                                             'file':filename,
-                                             'groups': {
-                                                 'connect':
-                                                 [
-                                                     {'id':groups['Hansard']},
-                                                     {'id':groups['Senate Hansard'] if 'Senate' in source_name else groups['House of Reps Hansard']}
-                                                 ]
-                                                 }
-                                             })
+            source = await db.source.create(
+                data={
+                    "name": source_name,
+                    "script": "parser/hansard.py",
+                    "file": filename,
+                    "groups": {
+                        "connect": [
+                            {"id": groups["Hansard"]},
+                            {
+                                "id": (
+                                    groups["Senate Hansard"]
+                                    if "Senate" in source_name
+                                    else groups["House of Reps Hansard"]
+                                )
+                            },
+                        ]
+                    },
+                }
+            )
 
             try:
                 self = HansardSpeechExtractor(filename, date=names[-1][:10])
                 results = self.extract()
                 for document in results:
-                    if document['type'] == 'question' and 'answer' in document.keys():
-                        await db.document.create(data={
-                            'text': document['text'],
-                            'date': datetime.datetime.strptime(document['date'],'%Y-%m-%d'),
-                            'type': document['type'],
-                            'author': {
-                                'connectOrCreate': {
-                                    'where': {'name': document['author']},
-                                    'create': {'name': document['author']}
-                                }
-                            },
-                            'source': {
-                                'connect': {'id': source.id}
-                            },
-                            'citedBy': {
-                                'create': {
-                                    'text': document['answer']['text'],
-                                    'date':datetime.datetime.strptime(document['answer']['date'],'%Y-%m-%d'),
-                                    'type': document['answer']['type'],
-                                    'author': {
-                                        'connectOrCreate': {
-                                            'where': {'name': document['answer']['author']},
-                                            'create': {'name': document['answer']['author']}
-                                        }
-                                    },
-                                    'source': {
-                                        'connect': {'id': source.id}
+                    if (
+                        document["type"] == "question"
+                        and "answer" in document.keys()
+                    ):
+                        await db.document.create(
+                            data={
+                                "text": document["text"],
+                                "date": datetime.datetime.strptime(
+                                    document["date"], "%Y-%m-%d"
+                                ),
+                                "type": document["type"],
+                                "author": {
+                                    "connectOrCreate": {
+                                        "where": {"name": document["author"]},
+                                        "create": {"name": document["author"]},
                                     }
-                                }
+                                },
+                                "source": {"connect": {"id": source.id}},
+                                "citedBy": {
+                                    "create": {
+                                        "text": document["answer"]["text"],
+                                        "date": datetime.datetime.strptime(
+                                            document["answer"]["date"],
+                                            "%Y-%m-%d",
+                                        ),
+                                        "type": document["answer"]["type"],
+                                        "author": {
+                                            "connectOrCreate": {
+                                                "where": {
+                                                    "name": document["answer"][
+                                                        "author"
+                                                    ]
+                                                },
+                                                "create": {
+                                                    "name": document["answer"][
+                                                        "author"
+                                                    ]
+                                                },
+                                            }
+                                        },
+                                        "source": {
+                                            "connect": {"id": source.id}
+                                        },
+                                    }
+                                },
                             }
-                            })
+                        )
                     else:
-                        await db.document.create(data={
-                            'text': document['text'],
-                            'date': datetime.datetime.strptime(document['date'],'%Y-%m-%d'),
-                            'type': document['type'],
-                            'author': {
-                              'connectOrCreate': {
-                                'where': { 'name': document['author'] },
-                                'create': { 'name': document['author'] }
-                              }
-                            },
-                            'source': {
-                                'connect': {'id': source.id}
-                            },
-                            })
+                        await db.document.create(
+                            data={
+                                "text": document["text"],
+                                "date": datetime.datetime.strptime(
+                                    document["date"], "%Y-%m-%d"
+                                ),
+                                "type": document["type"],
+                                "author": {
+                                    "connectOrCreate": {
+                                        "where": {"name": document["author"]},
+                                        "create": {"name": document["author"]},
+                                    }
+                                },
+                                "source": {"connect": {"id": source.id}},
+                            }
+                        )
 
             except EmptyDocumentError:
                 pass
-            if len(results)==0:
-                raise Exception(f'{filename} failed to parse')
+            if len(results) == 0:
+                raise Exception(f"{filename} failed to parse")
 
 
-
-
-if __name__=="__main__":
-    await main()
-
-
+if __name__ == "__main__":
+    asyncio.run(main())
