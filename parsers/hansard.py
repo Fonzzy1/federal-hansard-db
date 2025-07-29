@@ -122,11 +122,11 @@ class HansardSpeechExtractor:
                         "question": self._clean_element(el),
                         "answer": self._clean_element(answer_ls[0])
                         })
+                ## Exception weh threre is no answer
                 else:
                     self.elements.append({
                         "type": "question",
-                        "question": self._clean_element(el),
-                        "answer": None
+                        "element": self._clean_element(el),
                         })
 
                 i += 1
@@ -148,35 +148,52 @@ class HansardSpeechExtractor:
 
         results = []
         for elem in self.elements:
-            if elem['type'] == 'question':
-
-                entry = {
-                        'type'  :'question',
-                        'author': self._extract_talker(elem['question']),
-                        'text': self._extract_text(elem['question']),
-                        'date': self.date,
-                        'answer': {
+            if elem['type'] == 'question' and 'answer' in elem.keys():
+                # If there is a valid question
+                valid_question  = self._extract_text(elem['question'])
+                valid_answer = self._extract_text(elem['answer'])
+                if valid_question and valid_answer:
+                    entry = {
+                            'type'  :'question',
+                            'author': self._extract_talker(elem['question']),
+                            'text': self._extract_text(elem['question']),
+                            'date': self.date,
+                            'answer': {
+                                'type'  :'answer',
+                                'author': self._extract_talker(elem['answer']),
+                                'text': self._extract_text(elem['answer']),
+                                'date': self.date
+                                }
+                            }
+                    results.append(entry)
+                elif valid_answer and not valid_answer:
+                    entry = {
                             'type'  :'answer',
-                            'author': self._extract_talker(elem['answer']) if elem['answer'] else None,
-                            'text': self._extract_text(elem['answer']) if elem['answer'] else None,
+                            'author': self._extract_talker(elem['answer']),
+                            'text': self._extract_text(elem['answer']),
                             'date': self.date
                             }
-                        }
-
-                results.append(entry)
+                    results.append(entry)
+                elif valid_question and not valid_answer:
+                    entry = {
+                            'type'  :'question',
+                            'author': self._extract_talker(elem['question']),
+                            'text': self._extract_text(elem['question']),
+                            'date': self.date
+                            }
+                    results.append(entry)
 
             else:
-                entry = {
-                        'type': elem['type'],
-                        'author': self._extract_talker(elem['element']),
-                        'text':self._extract_text(elem['element']),
-                        'date':self.date
-                        }
-                results.append(entry)
+                if self._extract_text(elem['element']):
+                    entry = {
+                            'type': elem['type'],
+                            'author': self._extract_talker(elem['element']),
+                            'text':self._extract_text(elem['element']),
+                            'date':self.date
+                            }
+                    results.append(entry)
 
 
-        if len(results) < len(self.elements):
-            raise Exception('Failed to parse elements')
         return results
 
 
@@ -255,7 +272,7 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
         
 
-async def main()
+async def main():
     db = Prisma()
 
     await db.connect()
@@ -306,7 +323,7 @@ async def main()
                 self = HansardSpeechExtractor(filename, date=names[-1][:10])
                 results = self.extract()
                 for document in results:
-                    if document['type'] == 'question':
+                    if document['type'] == 'question' and 'answer' in document.keys():
                         await db.document.create(data={
                             'text': document['text'],
                             'date': datetime.datetime.strptime(document['date'],'%Y-%m-%d'),
