@@ -367,8 +367,12 @@ async def main():
                                 "type": document["type"],
                                 "author": {
                                     "connectOrCreate": {
-                                        "where": {"name": document["author"]},
-                                        "create": {"name": document["author"]},
+                                        "where": {
+                                            "rawName": document["author"]
+                                        },
+                                        "create": {
+                                            "rawName": document["author"]
+                                        },
                                     }
                                 },
                                 "source": {"connect": {"id": source.id}},
@@ -383,14 +387,14 @@ async def main():
                                         "author": {
                                             "connectOrCreate": {
                                                 "where": {
-                                                    "name": document["answer"][
-                                                        "author"
-                                                    ]
+                                                    "rawName": document[
+                                                        "answer"
+                                                    ]["author"]
                                                 },
                                                 "create": {
-                                                    "name": document["answer"][
-                                                        "author"
-                                                    ]
+                                                    "rawName": document[
+                                                        "answer"
+                                                    ]["author"]
                                                 },
                                             }
                                         },
@@ -411,8 +415,12 @@ async def main():
                                 "type": document["type"],
                                 "author": {
                                     "connectOrCreate": {
-                                        "where": {"name": document["author"]},
-                                        "create": {"name": document["author"]},
+                                        "where": {
+                                            "rawName": document["author"]
+                                        },
+                                        "create": {
+                                            "rawName": document["author"]
+                                        },
                                     }
                                 },
                                 "source": {"connect": {"id": source.id}},

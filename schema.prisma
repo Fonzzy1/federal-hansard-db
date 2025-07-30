@@ -36,7 +36,7 @@ model SourceGroup {
 // will need to be joined cleverly to the parliamentarian class
 model Author {
     id                Int              @id @default(autoincrement())
-    raw_name          String
+    rawName          String
     documents         Document[]
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     dateAdded         DateTime         @default(now())
