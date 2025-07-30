@@ -7,6 +7,7 @@ datasource db {
     url      = "file:/Data/dev.db"
 }
 
+// Sources have a list of documents
 model Source {
     id                Int                 @id @default(autoincrement())
     name              String              @unique
@@ -19,6 +20,7 @@ model Source {
     dateModified      DateTime            @updatedAt
 }
 
+// Source groups have various Sources that can be accessed together
 model SourceGroup {
     id                Int                 @id @default(autoincrement())
     name              String              @unique
@@ -28,47 +30,68 @@ model SourceGroup {
     dateModified      DateTime            @updatedAt
 }
 
+// Authors have documents -- can be parliamentarians, but also open to them
+// being other things -- journalists etc
+// There is an expectation that the raw name will be messy AF, and therefore
+// will need to be joined cleverly to the parliamentarian class
 model Author {
-    id              Int              @id @default(autoincrement())
-    name            String           @unique
-    documents       Document[]
-    parliamentarian Parliamentarian?
-    dateAdded       DateTime         @default(now())
-    dateModified    DateTime         @updatedAt
+    id                Int              @id @default(autoincrement())
+    raw_name          String
+    documents         Document[]
+    parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
+    dateAdded         DateTime         @default(now())
+    dateModified      DateTime         @updatedAt
+    parliamentarianId Int?
 }
 
+// Single parliamentarian, joins together multiple authors
 model Parliamentarian {
-    id           Int                        @id
-    party        String
-    seat         String
-    author       Author                     @relation(fields: [id], references: [id])
-    dateAdded    DateTime                   @default(now())
-    dateModified DateTime                   @updatedAt
-    parlements   ParliamentarianParlement[]
+    id           Int       @id
+    authorIds    Author[]
+    services     Service[]
+    dateAdded    DateTime  @default(now())
+    dateModified DateTime  @updatedAt
+}
+
+// The model to show  a parliamentarian associated with a party and a seat,
+// moved away from parliamentarian class since a single member could link to
+// multiple parties or seats
+model Service {
+    id                Int             @id @default(autoincrement())
+    party             Party           @relation(fields: [partyId], references: [id])
+    startDate         DateTime
+    endDate           DateTime
+    isSenate          Boolean
+    seat              String?
+    state             String
+    parliament        Parliament      @relation(fields: [parliamentId], references: [id])
+    dateAdded         DateTime        @default(now())
+    dateModified      DateTime        @updatedAt
+    parliamentarianId Int
+    Parliamentarian   Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+    parliamentId      Int
+    partyId           Int
+}
+
+model Party {
+    id          Int          @id @default(autoincrement())
+    name        String
+    Service     Service[]
+    governments Parliament[] @relation("GovernmentParty")
+    oppositions Parliament[] @relation("OppositionParty")
 }
 
 model Parliament {
-    id               Int                        @id
-    governmentParty  String
-    firstDate        DateTime
-    lastDate         DateTime
-    dateAdded        DateTime                   @default(now())
-    dateModified     DateTime                   @updatedAt
-    Parliamentarians ParliamentarianParlement[]
-}
-
-model ParliamentarianParlement {
-    parliamentarianId Int
-    parliamentId      Int
-
-    parliamentarian Parliamentarian @relation(fields: [parliamentarianId], references: [id])
-    parliament      Parliament      @relation(fields: [parliamentId], references: [id])
-
-    // Optionally add extra fields, e.g.:
-    // from DateTime
-    // to DateTime
-
-    @@id([parliamentarianId, parliamentId])
+    id                Int       @id @default(autoincrement())
+    governmentPartyId Int
+    oppositionPartyId Int
+    governmentParty   Party     @relation("GovernmentParty", fields: [governmentPartyId], references: [id])
+    oppositionParty   Party     @relation("OppositionParty", fields: [oppositionPartyId], references: [id])
+    firstDate         DateTime
+    lastDate          DateTime
+    dateAdded         DateTime  @default(now())
+    dateModified      DateTime  @updatedAt
+    Services          Service[]
 }
 
 model Document {
