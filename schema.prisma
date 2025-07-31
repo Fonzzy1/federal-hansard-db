@@ -36,7 +36,7 @@ model SourceGroup {
 // will need to be joined cleverly to the parliamentarian class
 model Author {
     id                Int              @id @default(autoincrement())
-    rawName          String
+    rawName           String
     documents         Document[]
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     dateAdded         DateTime         @default(now())
@@ -47,6 +47,12 @@ model Author {
 // Single parliamentarian, joins together multiple authors
 model Parliamentarian {
     id           Int       @id
+    firstName    String
+    lastName     String
+    firstNations Boolean
+    image        String
+    gender       Int
+    dob          DateTime
     authorIds    Author[]
     services     Service[]
     dateAdded    DateTime  @default(now())
