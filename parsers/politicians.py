@@ -1,5 +1,10 @@
 import json
 import datetime
+import prisma
+import asyncio
+
+
+
 def overlaps(service_start, service_end, parliament_start, parliament_end):
     return service_start < parliament_end and parliament_start < service_end
 
@@ -23,11 +28,41 @@ def parse_dates(data, start_key, end_key):
             parsed.append((start, end, d))
     return parsed
 
+
+
+async def upload_parties(db):
+    party_dict = {}
+    with open("scrapers/raw_sources/parliaments.json", "r") as f:
+        parliaments = json.load(f)['value']
+    parties = set([x['Name'] for y in parliaments for x in y['PartiesByParliament']])
+    for party in parties:
+        p = await db.party.find_unique(where={"name": party})
+        if not p:
+            p = await db.party.create({"name": party})
+        party_dict[party] = p.id
+    return party_dict
+
+async def upload_parliaments(db):
+    with open("scrapers/raw_sources/parliaments.json", "r") as f:
+        parliaments = json.load(f)['value']
+    parliament_intervals = parse_dates(parliaments, "DateElection", "ParliamentEnd")
+
+    parliament_dict = {}
+    for parliaments in parliaments:
+        db.parliaments.upsert(where = 
+                              update = 
+                              create = )
+
+
+
+    return parliament_dict, parliament_intervals 
+
+
+
+
 with open("scrapers/raw_sources/politicians.json", "r") as f:
     data  = json.load(f)
-with open("scrapers/raw_sources/parliaments.json", "r") as f:
-    parliaments = json.load(f)['value']
-    parliament_intervals = parse_dates(parliaments, "DateElection", "ParliamentEnd")
+
 
 for politician in data['value']:
     format_dict = {
@@ -106,10 +141,25 @@ for politician in data['value']:
                     "party": party["party"],
                     "Parliament": [parliament["PID"]]
                 })
+    format_dict['services'] = services
 
-    #print(services)
 
-        # `results` now contains the unified service periods
+    
+if __name__ == "__main__":
+
+db = prisma.Client()
+await db.connect()
+# First, upload all the parties  
+party_dict = asyncio.run(upload_parties(db))
+# Next, upload all the parliaments  
+parliament_dict, parliament_intervals = asyncio.run(upload_parliaments(db))
+# Politicians, which are linked to parties and parliaments
+politicians = upload_politicians(party_dict, parliament_dict, parliament_intervals)  
+# Finaly, do some silly links to the raw authors
+join_politicians_to_raw_authors(db)
+
+
+
 
 
 
@@ -119,8 +169,6 @@ for politician in data['value']:
 
 
         
-
-
 
 
 

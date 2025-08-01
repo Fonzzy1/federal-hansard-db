@@ -80,24 +80,24 @@ model Service {
 }
 
 model Party {
-    id          Int          @id @default(autoincrement())
-    name        String
-    Service     Service[]
-    governments Parliament[] @relation("GovernmentParty")
-    oppositions Parliament[] @relation("OppositionParty")
+    id       Int       @id @default(autoincrement())
+    name     String    @unique
+    services Service[]
+    // governments Parliament[] @relation("GovernmentParty")
+    // oppositions Parliament[] @relation("OppositionParty")
 }
 
 model Parliament {
-    id                Int       @id @default(autoincrement())
-    governmentPartyId Int
-    oppositionPartyId Int
-    governmentParty   Party     @relation("GovernmentParty", fields: [governmentPartyId], references: [id])
-    oppositionParty   Party     @relation("OppositionParty", fields: [oppositionPartyId], references: [id])
-    firstDate         DateTime
-    lastDate          DateTime
-    dateAdded         DateTime  @default(now())
-    dateModified      DateTime  @updatedAt
-    Services          Service[]
+    id           Int       @id @default(autoincrement())
+    // governmentPartyId Int
+    // oppositionPartyId Int
+    // governmentParty   Party     @relation("GovernmentParty", fields: [governmentPartyId], references: [id])
+    // oppositionParty   Party     @relation("OppositionParty", fields: [oppositionPartyId], references: [id])
+    firstDate    DateTime
+    lastDate     DateTime
+    dateAdded    DateTime  @default(now())
+    dateModified DateTime  @updatedAt
+    services     Service[]
 }
 
 model Document {
