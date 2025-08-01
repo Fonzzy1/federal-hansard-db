@@ -36,7 +36,7 @@ model SourceGroup {
 // will need to be joined cleverly to the parliamentarian class
 model Author {
     id                Int              @id @default(autoincrement())
-    rawName           String
+    rawName           String           @unique
     documents         Document[]
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     dateAdded         DateTime         @default(now())
@@ -46,13 +46,13 @@ model Author {
 
 // Single parliamentarian, joins together multiple authors
 model Parliamentarian {
-    id           Int       @id
+    id           Int       @id @default(autoincrement())
     firstName    String
     lastName     String
     firstNations Boolean
     image        String
     gender       Int
-    dob          DateTime
+    dob          DateTime?
     authorIds    Author[]
     services     Service[]
     dateAdded    DateTime  @default(now())
@@ -66,7 +66,7 @@ model Service {
     id                Int             @id @default(autoincrement())
     party             Party           @relation(fields: [partyId], references: [id])
     startDate         DateTime
-    endDate           DateTime
+    endDate           DateTime?
     isSenate          Boolean
     seat              String?
     state             String
@@ -88,13 +88,14 @@ model Party {
 }
 
 model Parliament {
-    id           Int       @id @default(autoincrement())
+    id           Int       @id
     // governmentPartyId Int
     // oppositionPartyId Int
     // governmentParty   Party     @relation("GovernmentParty", fields: [governmentPartyId], references: [id])
     // oppositionParty   Party     @relation("OppositionParty", fields: [oppositionPartyId], references: [id])
     firstDate    DateTime
-    lastDate     DateTime
+    // Can be optional for non-ended parliament
+    lastDate     DateTime?
     dateAdded    DateTime  @default(now())
     dateModified DateTime  @updatedAt
     services     Service[]

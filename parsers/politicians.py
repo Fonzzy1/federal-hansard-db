@@ -34,130 +34,226 @@ async def upload_parties(db):
     party_dict = {}
     with open("scrapers/raw_sources/parliaments.json", "r") as f:
         parliaments = json.load(f)['value']
-    parties = set([x['Name'] for y in parliaments for x in y['PartiesByParliament']])
+    parties = set(x['Name'] for y in parliaments for x in
+                  y['PartiesByParliament'])
     for party in parties:
-        p = await db.party.find_unique(where={"name": party})
-        if not p:
-            p = await db.party.create({"name": party})
+        p = await db.party.upsert(
+                where={'name': party},
+            data={
+                'create': {'name': party},
+                'update': {}
+            }
+        )
         party_dict[party] = p.id
     return party_dict
 
 async def upload_parliaments(db):
     with open("scrapers/raw_sources/parliaments.json", "r") as f:
         parliaments = json.load(f)['value']
-    parliament_intervals = parse_dates(parliaments, "DateElection", "ParliamentEnd")
+    parliament_intervals = parse_dates(parliaments, "DateOpening",
+                                       "DateDissolution")
 
-    parliament_dict = {}
-    for parliaments in parliaments:
-        db.parliaments.upsert(where = 
-                              update = 
-                              create = )
+    for parliament in parliaments:
+        _ =  await db.parliament.upsert(
+                where={'id': parliament['PID']},
+                data = {
+                    'create':{
+                        'id': parliament['PID'],
+                        'firstDate':datetime.datetime.strptime(parliament['DateOpening'],
+                                                               '%Y-%m-%d'),
+                        'lastDate':datetime.datetime.strptime(parliament['DateDissolution'],
+                                                              '%Y-%m-%d') if
+                        parliament['ParliamentEnd'] else None
+                    },
+                    'update':{}
+                    }
+            )
+    return  parliament_intervals 
 
 
 
-    return parliament_dict, parliament_intervals 
+def format_politicians(party_dict, parliament_intervals):
+    results = []
 
+    with open("scrapers/raw_sources/politicians.json", "r") as f:
+        data  = json.load(f)
 
+    for politician in data['value']:
+        format_dict = {
+                'firstName': politician['PreferredName'][1:-1] if politician['PreferredName'] else politician['GivenName'],
+                'lastName':politician['FamilyName'],
+                'firstNations':politician['FirstNations'],
+                'image':politician['Image'],
+                'gender': 1 if politician['Gender'] == 'Male' else 2 if politician['Gender'] == 'Female' else 9,
+                'services': [],
+                'dob':datetime.datetime.strptime(politician['DateOfBirth'],"%Y-%m-%d")
+                if len(politician['DateOfBirth'])==10 else None
+                }
 
-
-with open("scrapers/raw_sources/politicians.json", "r") as f:
-    data  = json.load(f)
-
-
-for politician in data['value']:
-    format_dict = {
-            'firstName': politician['PreferredName'][1:-1] if politician['PreferredName'] else politician['GivenName'],
-            'lastName':politician['FamilyName'],
-            'firstNations':politician['FirstNations'],
-            'image':politician['Image'],
-            'gender':politician['Gender'],
-            # 'dob':datetime.datetime.strptime(politician['DateOfBirth'],"%Y-%m-%d")
-            }
-    isSenate = politician['SenateState'] != ''
-    if isSenate:
-        services = []
-        raw_services = politician['PartyParliamentaryService']
-        for service in raw_services:
-            # Stupid exception
-            try:
-                service_start = datetime.datetime.strptime(service['DateStart'], "%Y-%m-%d")
-            except ValueError:
-                print(service['DateStart'])
-                service_start = datetime.datetime.strptime(f"{service['DateStart'][:-1]}{int(service['DateStart'][-1]) - 1}", "%Y-%m-%d")
-
-            service_end_str = service.get('DateEnd')
-            try:
-                service_end = datetime.datetime.strptime(service_end_str, "%Y-%m-%d") if service_end_str else datetime.datetime(2099, 1, 1)
-            except ValueError:
-                service_end = datetime.datetime.strptime(f"{service_end_str[:-1]}{int(service_end_str[-1]) - 1}", "%Y-%m-%d")
-
-            matching_parliaments = [
-                d["PID"] for s, e, d in parliament_intervals
-                if overlaps(service_start, service_end, s, e)
-                    ]
-            services.append({
-                'party':extract_party(service),
-                'startDate':service['DateStart'], 
-                'endDate': service['DateEnd'],
-                'isSenate': isSenate,
-                'seat': None,
-                'state': politician['SenateState'],
-                'parliament': matching_parliaments
-                })
-
-    else:
-        raw_party_service = [{
-            'party': extract_party(x),
-            'startDate': x['DateStart'],
-            'endDate': x['DateEnd']
-            } for x in politician['PartyParliamentaryService']]
+        # service (in raw form) will span 1 election or one change of allegiace to a specific party.
         raw_seat_service =  politician['ElectorateService']
-        
         seat_intervals = parse_dates(raw_seat_service, "ServiceStart", "ServiceEnd")
-        party_intervals = parse_dates(raw_party_service, "startDate", "endDate")
+        for service in politician['PartyParliamentaryService']:
+            if len(service['SecondaryService']):
+                # Stupid exception for a one off date that didn't work
+                try:
+                    service_start = datetime.datetime.strptime(service['DateStart'], "%Y-%m-%d")
+                except ValueError:
+                    service_start = datetime.datetime.strptime(f"{service['DateStart'][:-1]}{int(service['DateStart'][-1]) - 1}", "%Y-%m-%d")
+                try:
+                    service_end = datetime.datetime.strptime(service.get('DateEnd'), "%Y-%m-%d") if service.get('DateEnd') else datetime.datetime(2099, 1, 1)
+                except ValueError:
+                    service_end = datetime.datetime.strptime(f"{service.get('DateEnd')[:-1]}{int(service.get('DateEnd')[-1]) - 1}", "%Y-%m-%d")
 
-        # Get all unique date boundaries
-        all_dates = set()
-        for start, end, _ in seat_intervals + party_intervals + parliament_intervals:
-            all_dates.update([start, end])
-        sorted_dates = sorted(all_dates)
+                matching_parliaments = [
+                    d for s, e, d in parliament_intervals
+                    if overlaps(service_start, service_end, s, e)
+                        ]
 
-        # Create atomic intervals from consecutive dates
-        atomic_intervals = [(sorted_dates[i], sorted_dates[i+1]) for i in range(len(sorted_dates)-1)]
+                # For the sake of this database, a service is tied to only on
+                # parliment ever...
+                for parliament in matching_parliaments:
+                    # We now need to see if there is a corresponding Seat
+                    # Service, else they are in the Senate.
+                    # In the case where they are serving in a seat, this will
+                    # work with the overall service date as there should be only
+                    # one matching parliament
+                    seat = [
+                        d for s, e, d in seat_intervals
+                        if overlaps(service_start, service_end, s, e)
+                            ]
+                    isSenate = len(seat) == 0
+                    if isSenate:
+                        # This is the workaround for the fact that senators
+                        # don't line up with parliaments
+                        start_date = max(datetime.datetime.strptime(parliament['DateOpening'], "%Y-%m-%d"), service_start)
+                        end_date = min( service_end,
+                                       datetime.datetime.strptime(parliament.get('DateDissolution'),
+                                                                  "%Y-%m-%d") if
+                                       service.get('DateDissolution') else
+                                       datetime.datetime(2099, 1, 1))
+                        format_dict['services'].append({
+                            "endDate": start_date,
+                            "startDate": end_date,
+                            "isSenate":isSenate,
+                            "seat": None,
+                            "state": politician["SenateState"],
+                            "party": {'connect':
+                                      {'id':party_dict[extract_party(service)]}},
+                            "parliament": {'connect': {'id':parliament["PID"]}}})
+                    else:
+                        format_dict['services'].append({
+                            "endDate": service['DateStart'],
+                            "startDate": service['DateEnd'],
+                            "isSenate":isSenate,
+                            "seat": seat[0]['Electorate'],
+                            "state": seat[0]['State'],
+                            "party": {'connect':
+                                      {'id':party_dict[extract_party(service)]}},
+                            "parliament": {'connect': {'id':parliament["PID"]}}})
 
-        # For each atomic interval, find matching seat, party, and parliament
-        services = []
-        for start, end in atomic_intervals:
-            seat = next((d for s, e, d in seat_intervals if s <= start < e), None)
-            party = next((d for s, e, d in party_intervals if s <= start < e), None)
-            parliament = next((d for s, e, d in parliament_intervals if s <= start < e), None)
+        results.append(format_dict)
+
+    return results
+
+
+
+
+        # if isSenate:
+        #     services = []
+        #     raw_services = politician['PartyParliamentaryService']
+        #     for service in raw_services:
+        #         # Stupid exception
+        #         try:
+        #             service_start = datetime.datetime.strptime(service['DateStart'], "%Y-%m-%d")
+        #         except ValueError:
+        #             print(service['DateStart'])
+        #             service_start = datetime.datetime.strptime(f"{service['DateStart'][:-1]}{int(service['DateStart'][-1]) - 1}", "%Y-%m-%d")
+
+        #         service_end_str = service.get('DateEnd')
+        #         try:
+        #             service_end = datetime.datetime.strptime(service_end_str, "%Y-%m-%d") if service_end_str else datetime.datetime(2099, 1, 1)
+        #         except ValueError:
+        #             service_end = datetime.datetime.strptime(f"{service_end_str[:-1]}{int(service_end_str[-1]) - 1}", "%Y-%m-%d")
+
+        #         matching_parliaments = [
+        #             d for s, e, d in parliament_intervals
+        #             if overlaps(service_start, service_end, s, e)
+        #                 ]
+
+        #         for parliament in matching_parliaments:
+        #             start_date = max(datetime.datetime.strptime(parliament['DateElection'], "%Y-%m-%d"), service_start)
+        #             end_date = min(datetime.datetime.strptime(parliament['ParliamentEnd'], "%Y-%m-%d"), service_end)
+
+        #             services.append({
+        #                 "ServiceStart": start_date,
+        #                 "ServiceEnd": end_date,
+        #                 "Electorate": None,
+        #                 "State": service["State"],
+        #                 "party": {'connect':
+        #                           {'id':party_dict[extract_party(service)]}},
+        #                 "Parliament": {'connect': {'id':parliament["PID"]}}})
+        # else:
+        #     raw_party_service = [{
+        #         'party': extract_party(x),
+        #         'startDate': x['DateStart'],
+        #         'endDate': x['DateEnd']
+        #         } for x in politician['PartyParliamentaryService']]
+        #     raw_seat_service =  politician['ElectorateService']
             
-            if seat and party and parliament:
-                services.append({
-                    "ServiceStart": start.strftime("%Y-%m-%d"),
-                    "ServiceEnd": end.strftime("%Y-%m-%d"),
-                    "Electorate": seat["Electorate"],
-                    "State": seat["State"],
-                    "party": party["party"],
-                    "Parliament": [parliament["PID"]]
-                })
-    format_dict['services'] = services
+        #     seat_intervals = parse_dates(raw_seat_service, "ServiceStart", "ServiceEnd")
+        #     party_intervals = parse_dates(raw_party_service, "startDate", "endDate")
 
+        #     # Get all unique date boundaries
+        #     all_dates = set()
+        #     for start, end, _ in seat_intervals + party_intervals + parliament_intervals:
+        #         all_dates.update([start, end])
+        #     sorted_dates = sorted(all_dates)
 
+        #     # Create atomic intervals from consecutive dates
+        #     atomic_intervals = [(sorted_dates[i], sorted_dates[i+1]) for i in range(len(sorted_dates)-1)]
+
+        #     # For each atomic interval, find matching seat, party, and parliament
+        #     services = []
+        #     for start, end in atomic_intervals:
+        #         seat = next((d for s, e, d in seat_intervals if s <= start < e), None)
+        #         party = next((d for s, e, d in party_intervals if s <= start < e), None)
+        #         parliament = next((d for s, e, d in parliament_intervals if s <= start < e), None)
+                
+        #         if seat and party and parliament:
+        #             services.append({
+        #                 "ServiceStart": start.strftime("%Y-%m-%d"),
+        #                 "ServiceEnd": end.strftime("%Y-%m-%d"),
+        #                 "Electorate": seat["Electorate"],
+        #                 "State": seat["State"],
+        #                 "party": {'connect': {'id':party_dict[party['party']]}},
+        #                 "Parliament": {'connect': {'id':parliament["PID"]}}
+        #             })
+        # format_dict['services'] = services
+
+async def join_politicians_to_raw_authors(db):
+    return
     
+
+async def upload_politician(db, politician):
+    await db.parliamentarian.create(politician)
+
+async def main():
+    db = prisma.Client()
+    await db.connect()
+    party_dict = await upload_parties(db)
+    parliament_intervals = await upload_parliaments(db)
+    politicians = format_politicians(party_dict, parliament_intervals)
+    for politician in politicians:
+        break
+        _ = await upload_politician(db, politician)
+        
+    await join_politicians_to_raw_authors(db)
+    await db.disconnect()
+
+
 if __name__ == "__main__":
-
-db = prisma.Client()
-await db.connect()
-# First, upload all the parties  
-party_dict = asyncio.run(upload_parties(db))
-# Next, upload all the parliaments  
-parliament_dict, parliament_intervals = asyncio.run(upload_parliaments(db))
-# Politicians, which are linked to parties and parliaments
-politicians = upload_politicians(party_dict, parliament_dict, parliament_intervals)  
-# Finaly, do some silly links to the raw authors
-join_politicians_to_raw_authors(db)
-
+    asyncio.run(main())
 
 
 
@@ -169,8 +265,6 @@ join_politicians_to_raw_authors(db)
 
 
         
-
-
 
 
 
