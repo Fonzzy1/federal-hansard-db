@@ -1,253 +1,250 @@
 generator client {
-    provider = "prisma-client-py"
+  provider        = "prisma-client-py"
+  previewFeatures = ["views"]
 }
 
 datasource db {
-    provider = "sqlite"
-    url      = "file:/Data/dev.db"
+  provider = "sqlite"
+  url      = "file:/Data/dev.db"
 }
 
-// Sources have a list of documents
 model Source {
-    id                Int                 @id @default(autoincrement())
-    name              String              @unique
-    script            String
-    file              String
-    documents         Document[]
-    groups            SourceGroup[]       @relation("SourceToSourceGroup")
-    SourceGroupSource SourceGroupSource[]
-    dateAdded         DateTime            @default(now())
-    dateModified      DateTime            @updatedAt
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  script            String
+  file              String
+  dateAdded         DateTime            @default(now())
+  dateModified      DateTime            @updatedAt
+  documents         Document[]
+  SourceGroupSource SourceGroupSource[]
+  groups            SourceGroup[]       @relation("SourceToSourceGroup")
 }
 
-// Source groups have various Sources that can be accessed together
 model SourceGroup {
-    id                Int                 @id @default(autoincrement())
-    name              String              @unique
-    sources           Source[]            @relation("SourceToSourceGroup")
-    SourceGroupSource SourceGroupSource[]
-    dateAdded         DateTime            @default(now())
-    dateModified      DateTime            @updatedAt
+  id                Int                 @id @default(autoincrement())
+  name              String              @unique
+  dateAdded         DateTime            @default(now())
+  dateModified      DateTime            @updatedAt
+  SourceGroupSource SourceGroupSource[]
+  sources           Source[]            @relation("SourceToSourceGroup")
 }
 
-// Authors have documents -- can be parliamentarians, but also open to them
-// being other things -- journalists etc
-// There is an expectation that the raw name will be messy AF, and therefore
-// will need to be joined cleverly to the parliamentarian class
 model Author {
-    id                Int              @id @default(autoincrement())
-    rawName           String           @unique
-    documents         Document[]
-    parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
-    dateAdded         DateTime         @default(now())
-    dateModified      DateTime         @updatedAt
-    parliamentarianId Int?
+  id                Int              @id @default(autoincrement())
+  rawName           String           @unique
+  dateAdded         DateTime         @default(now())
+  dateModified      DateTime         @updatedAt
+  parliamentarianId Int?
+  parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
+  documents         Document[]
 }
 
-// Single parliamentarian, joins together multiple authors
 model Parliamentarian {
-    id           Int       @id @default(autoincrement())
-    firstName    String
-    lastName     String
-    firstNations Boolean
-    image        String
-    gender       Int
-    dob          DateTime?
-    authorIds    Author[]
-    services     Service[]
-    dateAdded    DateTime  @default(now())
-    dateModified DateTime  @updatedAt
+  id           Int       @id @default(autoincrement())
+  firstName    String
+  lastName     String
+  firstNations Boolean
+  image        String
+  gender       Int
+  dob          DateTime?
+  dateAdded    DateTime  @default(now())
+  dateModified DateTime  @updatedAt
+  authorIds    Author[]
+  services     Service[]
 }
 
-// The model to show  a parliamentarian associated with a party and a seat,
-// moved away from parliamentarian class since a single member could link to
-// multiple parties or seats
 model Service {
-    id                Int             @id @default(autoincrement())
-    party             Party           @relation(fields: [partyId], references: [id])
-    startDate         DateTime
-    endDate           DateTime?
-    isSenate          Boolean
-    seat              String?
-    state             String
-    parliament        Parliament      @relation(fields: [parliamentId], references: [id])
-    dateAdded         DateTime        @default(now())
-    dateModified      DateTime        @updatedAt
-    parliamentarianId Int
-    Parliamentarian   Parliamentarian @relation(fields: [parliamentarianId], references: [id])
-    parliamentId      Int
-    partyId           Int
+  id                Int             @id @default(autoincrement())
+  startDate         DateTime
+  endDate           DateTime?
+  isSenate          Boolean
+  seat              String?
+  state             String
+  dateAdded         DateTime        @default(now())
+  dateModified      DateTime        @updatedAt
+  parliamentarianId Int
+  parliamentId      Int
+  partyId           Int
+  Parliamentarian   Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+  parliament        Parliament      @relation(fields: [parliamentId], references: [id])
+  party             Party           @relation(fields: [partyId], references: [id])
 }
 
 model Party {
-    id       Int       @id @default(autoincrement())
-    name     String    @unique
-    services Service[]
-    // governments Parliament[] @relation("GovernmentParty")
-    // oppositions Parliament[] @relation("OppositionParty")
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  services Service[]
 }
 
 model Parliament {
-    id           Int       @id
-    // governmentPartyId Int
-    // oppositionPartyId Int
-    // governmentParty   Party     @relation("GovernmentParty", fields: [governmentPartyId], references: [id])
-    // oppositionParty   Party     @relation("OppositionParty", fields: [oppositionPartyId], references: [id])
-    firstDate    DateTime
-    // Can be optional for non-ended parliament
-    lastDate     DateTime?
-    dateAdded    DateTime  @default(now())
-    dateModified DateTime  @updatedAt
-    services     Service[]
+  id           Int       @id @default(autoincrement())
+  firstDate    DateTime
+  lastDate     DateTime?
+  dateAdded    DateTime  @default(now())
+  dateModified DateTime  @updatedAt
+  services     Service[]
 }
 
 model Document {
-    id              Int              @id @default(autoincrement())
-    text            String
-    date            DateTime
-    url             String?
-    type            String
-    author          Author           @relation(fields: [authorId], references: [id])
-    authorId        Int
-    citedBy         Document[]       @relation("RelatedDocuments")
-    references      Document[]       @relation("RelatedDocuments")
-    source          Source           @relation(fields: [sourceId], references: [id])
-    sourceId        Int
-    claims          Claim[]
-    dateAdded       DateTime         @default(now())
-    dateModified    DateTime         @updatedAt
-    documentFilters DocumentFilter[]
+  id              Int              @id @default(autoincrement())
+  text            String
+  date            DateTime
+  url             String?
+  type            String
+  authorId        Int
+  sourceId        Int
+  dateAdded       DateTime         @default(now())
+  dateModified    DateTime         @updatedAt
+  claims          Claim[]
+  source          Source           @relation(fields: [sourceId], references: [id])
+  author          Author           @relation(fields: [authorId], references: [id])
+  documentFilters DocumentFilter[]
+  Document_A      Document[]       @relation("RelatedDocuments")
+  Document_B      Document[]       @relation("RelatedDocuments")
 }
 
 model Filter {
-    id       Int             @id @default(autoincrement())
-    name     String // e.g. "LengthFilter", "IsEnglish"
-    versions FilterVersion[]
+  id       Int             @id @default(autoincrement())
+  name     String
+  versions FilterVersion[]
 }
 
 model FilterVersion {
-    id              Int              @id @default(autoincrement())
-    filter          Filter           @relation(fields: [filterId], references: [id])
-    filterId        Int
-    version         String? // e.g. "v1.2", commit hash
-    summary         String?
-    createdAt       DateTime         @default(now())
-    documentFilters DocumentFilter[]
+  id              Int              @id @default(autoincrement())
+  filterId        Int
+  version         String?
+  summary         String?
+  createdAt       DateTime         @default(now())
+  documentFilters DocumentFilter[]
+  filter          Filter           @relation(fields: [filterId], references: [id])
 }
 
 model DocumentFilter {
-    id              Int           @id @default(autoincrement())
-    document        Document      @relation(fields: [documentId], references: [id])
-    documentId      Int
-    filterVersion   FilterVersion @relation(fields: [filterVersionId], references: [id])
-    filterVersionId Int
-    passed          Boolean
-    checkedAt       DateTime      @default(now())
+  id              Int           @id @default(autoincrement())
+  documentId      Int
+  filterVersionId Int
+  passed          Boolean
+  checkedAt       DateTime      @default(now())
+  filterVersion   FilterVersion @relation(fields: [filterVersionId], references: [id])
+  document        Document      @relation(fields: [documentId], references: [id])
 
-    @@unique([documentId, filterVersionId])
+  @@unique([documentId, filterVersionId])
 }
 
 model Issue {
-    id           Int       @id @default(autoincrement())
-    name         String
-    dimension    Dimension @relation(fields: [dimensionid], references: [id])
-    dimensionid  Int
-    dateAdded    DateTime  @default(now())
-    dateModified DateTime  @updatedAt
+  id           Int       @id @default(autoincrement())
+  name         String
+  dimensionid  Int
+  dateAdded    DateTime  @default(now())
+  dateModified DateTime  @updatedAt
+  dimension    Dimension @relation(fields: [dimensionid], references: [id])
 }
 
 model Dimension {
-    id              Int              @id @default(autoincrement())
-    name            String           @unique
-    issues          Issue[]
-    deconstructions Deconstruction[]
-    dateAdded       DateTime         @default(now())
-    dateModified    DateTime         @updatedAt
+  id              Int              @id @default(autoincrement())
+  name            String           @unique
+  dateAdded       DateTime         @default(now())
+  dateModified    DateTime         @updatedAt
+  deconstructions Deconstruction[]
+  issues          Issue[]
 }
 
 model Infrastructure {
-    id                                  Int                                   @id @default(autoincrement())
-    name                                String                                @unique
-    deconstructions                     Deconstruction[]
-    groups                              InfrastructureGroup[]                 @relation("InfraToInfraGroup")
-    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
-    dateAdded                           DateTime                              @default(now())
-    dateModified                        DateTime                              @updatedAt
+  id                                  Int                                   @id @default(autoincrement())
+  name                                String                                @unique
+  dateAdded                           DateTime                              @default(now())
+  dateModified                        DateTime                              @updatedAt
+  deconstructions                     Deconstruction[]
+  InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
+  groups                              InfrastructureGroup[]                 @relation("InfraToInfraGroup")
 }
 
 model InfrastructureGroup {
-    id                                  Int                                   @id @default(autoincrement())
-    name                                String                                @unique
-    infrastructures                     Infrastructure[]                      @relation("InfraToInfraGroup")
-    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
-    dateAdded                           DateTime                              @default(now())
-    dateModified                        DateTime                              @updatedAt
+  id                                  Int                                   @id @default(autoincrement())
+  name                                String                                @unique
+  dateAdded                           DateTime                              @default(now())
+  dateModified                        DateTime                              @updatedAt
+  InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
+  infrastructures                     Infrastructure[]                      @relation("InfraToInfraGroup")
 }
 
-// For join tables, typically no dateAdded/modified fields are needed unless
-// required
 model SourceGroupSource {
-    sourceId      Int
-    sourceGroupId Int
-    source        Source      @relation(fields: [sourceId], references: [id])
-    sourceGroup   SourceGroup @relation(fields: [sourceGroupId], references: [id])
+  sourceId      Int
+  sourceGroupId Int
+  sourceGroup   SourceGroup @relation(fields: [sourceGroupId], references: [id])
+  source        Source      @relation(fields: [sourceId], references: [id])
 
-    @@id([sourceId, sourceGroupId])
+  @@id([sourceId, sourceGroupId])
 }
 
 model InfrastructureGroupOnInfrastructure {
-    infrastructureId      Int
-    infrastructureGroupId Int
-    infrastructure        Infrastructure      @relation(fields: [infrastructureId], references: [id])
-    infrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
+  infrastructureId      Int
+  infrastructureGroupId Int
+  infrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
+  infrastructure        Infrastructure      @relation(fields: [infrastructureId], references: [id])
 
-    @@id([infrastructureId, infrastructureGroupId])
+  @@id([infrastructureId, infrastructureGroupId])
 }
 
 model Extractor {
-    id      Int     @id @default(autoincrement())
-    name    String
-    details String?
-    claims  Claim[]
+  id      Int     @id @default(autoincrement())
+  name    String
+  details String?
+  claims  Claim[]
 }
 
 model Deconstructor {
-    id              Int              @id @default(autoincrement())
-    name            String
-    details         String?
-    deconstructions Deconstruction[]
+  id              Int              @id @default(autoincrement())
+  name            String
+  details         String?
+  deconstructions Deconstruction[]
 }
 
 model Claim {
-    id             Int              @id @default(autoincrement())
-    text           String
-    document       Document         @relation(fields: [documentid], references: [id])
-    documentid     Int
-    deconstruction Deconstruction[]
-
-    extractor    Extractor @relation(fields: [extractor_id], references: [id])
-    extractor_id Int
-
-    dateAdded    DateTime @default(now())
-    dateModified DateTime @updatedAt
+  id             Int              @id @default(autoincrement())
+  text           String
+  documentid     Int
+  extractorId    Int
+  dateAdded      DateTime         @default(now())
+  dateModified   DateTime         @updatedAt
+  extractor      Extractor        @relation(fields: [extractorId], references: [id])
+  document       Document         @relation(fields: [documentid], references: [id])
+  deconstruction Deconstruction[]
 }
 
 model Deconstruction {
-    id               Int            @id @default(autoincrement())
-    claim            Claim          @relation(fields: [claimId], references: [id])
-    claimId          Int
-    infrastructure   Infrastructure @relation(fields: [infrastructureId], references: [id])
-    infrastructureId Int
+  id               Int            @id @default(autoincrement())
+  claimId          Int
+  infrastructureId Int
+  valence          Int
+  dimensionId      Int?
+  deconstructorId  Int
+  dateAdded        DateTime       @default(now())
+  dateModified     DateTime       @updatedAt
+  deconstructor    Deconstructor  @relation(fields: [deconstructorId], references: [id])
+  Dimension        Dimension?     @relation(fields: [dimensionId], references: [id])
+  infrastructure   Infrastructure @relation(fields: [infrastructureId], references: [id])
+  claim            Claim          @relation(fields: [claimId], references: [id])
 
-    valence     Int
-    Dimension   Dimension? @relation(fields: [dimensionId], references: [id])
-    dimensionId Int?
+  @@unique([claimId, deconstructorId])
+}
 
-    deconstructor    Deconstructor @relation(fields: [deconstructor_id], references: [id])
-    deconstructor_id Int
-
-    dateAdded    DateTime @default(now())
-    dateModified DateTime @updatedAt
-
-    @@unique([claimId, deconstructor_id])
+view DocumentServiceFilterView {
+  documentId           Int @unique
+  documentDate         DateTime
+  serviceId            Int
+  parliamentId         Int
+  parliamentFirstDate  DateTime
+  parliamentLastDate   DateTime?
+  partyId              Int
+  partyName            String
+  seat                 String?
+  state                String
+  isSenate             Boolean
+  parliamentarianId    Int
+  firstName            String
+  lastName             String
+  firstNations         Boolean
+  gender               Int
+  dob                  DateTime?
 }
