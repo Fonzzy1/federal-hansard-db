@@ -228,7 +228,41 @@ def format_politicians(party_dict, parliament_intervals):
 
 
 async def join_politicians_to_raw_authors(db):
-    return
+    # Loop through the parliaments
+    all_parliaments = await db.parliament.find_many(
+        include={
+            'services': {
+                'include': {
+                    'Parliamentarian': True
+                }
+            }
+        }
+    )
+    for parliament in all_parliaments:
+        # Grab the authors and the parliamentarians that are part of this
+        # parliament
+        documents = await db.document.find_many(
+            where={
+                'date': {
+                    'gt': parliament.firstDate,
+                    'lt': parliament.lastDate
+                }
+            },
+            include={
+                'author': True
+            }
+        )
+        unique_authors = {doc.author.id: doc.author for doc in documents}
+        unique_politicians = {service.Parliamentarian.id: service.Parliamentarian
+                           for service in parliament.services}
+
+        await db.author.update(where= {'id':author.id}, data = {'parliamentarian':
+                                                          {'connect':{'id':parliamentarian_map[author.rawName]}}})
+
+        
+        
+
+
 
 
 async def upload_politician(db, politician):

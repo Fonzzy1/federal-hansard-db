@@ -1,4 +1,6 @@
 from prisma import Prisma
+
+
 import asyncio
 import os
 import xml.etree.ElementTree as ET
@@ -384,6 +386,9 @@ async def main():
                                             "%Y-%m-%d",
                                         ),
                                         "type": document["answer"]["type"],
+                                        "source": {
+                                            "connect": {"id": source.id}
+                                        },
                                         "author": {
                                             "connectOrCreate": {
                                                 "where": {
@@ -396,12 +401,9 @@ async def main():
                                                         "answer"
                                                     ]["author"]
                                                 },
-                                            }
+                                            },
                                         },
-                                        "source": {
-                                            "connect": {"id": source.id}
-                                        },
-                                    }
+                                    },
                                 },
                             }
                         )
