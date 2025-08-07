@@ -94,6 +94,23 @@ async def upload_parliaments(db):
 
 
 def format_politicians(party_dict, parliament_intervals):
+
+    """
+    95% of politicians are going to be for lifers in one house, representing the
+    same seat or state and representing one party
+
+    We start by seeing if this is true, and then go harder later
+
+
+    Exceptions
+
+    Switching Party
+    Switching House
+    Switching Electorate
+    Gaps in Electoral Service
+    """
+
+
     results = []
 
     with open("scrapers/raw_sources/politicians.json", "r") as f:
@@ -102,7 +119,8 @@ def format_politicians(party_dict, parliament_intervals):
     fetch_date = data['fetchDate']
 
     for politician in data["value"]:
-        # if politician["FamilyName"]=="DARMANIN":
+        # if politician["FamilyName"]=="BANKS":
+        #     politician
         #     break
         format_dict = {
             'id': politician['PHID'],
@@ -128,6 +146,82 @@ def format_politicians(party_dict, parliament_intervals):
                 else None
             ),
         }
+
+        isSenate = politician['ElectedSenatorNo'] > 0
+        isHOR =  politician['ElectedMemberNo'] > 0
+        parties = politician['RepresentedParties']
+        state = politician['State']
+        electorate = politician['RepresentedElectorates']
+        parliaments = politician['RepresentedParliaments']
+        start =  datetime.datetime.strptime(politician['ServiceHistory_Start'],
+                                            "%Y-%m-%d")
+        if politician['ServiceHistory_Start'] == fetch_date:
+            end = None
+        else:
+            end =  datetime.datetime.strptime(politician['ServiceHistory_Start'],
+                                                "%Y-%m-%d")
+
+        # Standard Case
+        if isSenate != isHOR and len(parties) == 1  and len(electorate) <2:
+            for s, e, p in parliament_intervals:
+                if int(p['PID']) in parliaments:
+                    true_start = max(start, s)
+                    if end and e:
+                        true_end = max(end, e)
+                    elif end and not e:
+                        true_end = end
+                    else:
+                        true_end = None
+                    format_dict["services"]["create"].append(
+                        {
+                            "startDate": true_start ,
+                            "endDate": true_end,
+                            "isSenate": isSenate,
+                            "seat": electorate[0] if len(electorate) else None,
+                            "state": state,
+                            "party": {
+                                "connect": {
+                                    "id": party_dict[parties[0]]
+                                }
+                            },
+                            "parliament": {
+                                "connect": {"id": p["PID"]}
+                            },
+                        }
+                    )
+        else:
+            break
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         # service (in raw form) will span 1 election or one change of allegiace to a specific party.
         raw_seat_service = politician["ElectorateService"]
@@ -261,7 +355,7 @@ async def join_politicians_to_raw_authors(db):
         # parliament
         documents = await db.document.find_many(
             where={
-                "date": {"gte": parliament.firstDate, "lte":
+                "date": {"gtf": parliament.firstDate, "lte":
                          parliament.lastDate if parliament.lastDate else
                          datetime.datetime(2099,1,1)},
                 'author': {'parliamentarian':None}
@@ -334,8 +428,8 @@ async def main():
     politicians = format_politicians(party_dict, parliament_intervals)
     for politician in tqdm_asyncio(politicians, desc="Uploading politicians"):
         _ = await upload_politician(db, politician)
-    # print("Joining politicians to raw authors...")
-    # await join_politicians_to_raw_authors(db)
+    print("Joining politicians to raw authors...")
+    await join_politicians_to_raw_authors(db)
     print("Disconnecting from database...")
     await db.disconnect()
     print("Done.")
