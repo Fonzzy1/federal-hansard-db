@@ -34,13 +34,13 @@ model Author {
     rawName           String           @unique
     dateAdded         DateTime         @default(now())
     dateModified      DateTime         @updatedAt
-    parliamentarianId Int?
+    parliamentarianId String?
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     documents         Document[]
 }
 
 model Parliamentarian {
-    id           Int       @id @default(autoincrement())
+    id           String    @id
     firstName    String
     lastName     String
     firstNations Boolean
@@ -62,7 +62,7 @@ model Service {
     state             String
     dateAdded         DateTime        @default(now())
     dateModified      DateTime        @updatedAt
-    parliamentarianId Int
+    parliamentarianId String
     parliamentId      Int
     partyId           Int
     Parliamentarian   Parliamentarian @relation(fields: [parliamentarianId], references: [id])
@@ -229,22 +229,3 @@ model Deconstruction {
     @@unique([claimId, deconstructorId])
 }
 
-view DocumentServiceFilterView {
-    documentId          Int       @unique
-    documentDate        DateTime
-    serviceId           Int
-    parliamentId        Int
-    parliamentFirstDate DateTime
-    parliamentLastDate  DateTime?
-    partyId             Int
-    partyName           String
-    seat                String?
-    state               String
-    isSenate            Boolean
-    parliamentarianId   Int
-    firstName           String
-    lastName            String
-    firstNations        Boolean
-    gender              Int
-    dob                 DateTime?
-}

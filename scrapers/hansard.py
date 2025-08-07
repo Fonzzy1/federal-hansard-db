@@ -51,7 +51,7 @@ def download_files(file_urls, dest_dir, rename_map=None):
             dest_file = file_name
         dest = os.path.join(dest_dir, dest_file)
         # Avoid redownloading
-        if os.path.exists(dest):
+        if os.path.exists(dest) or dest.endswith("None.xml"):
             continue
         try:
             with requests.get(url, stream=True, timeout=30) as r:
@@ -123,3 +123,7 @@ if __name__ == "__main__":
     # Download OpenAustralia files (names unchanged)
     download_files(reps_urls, "scrapers/raw_sources/hansard/hofreps")
     download_files(senate_urls, "scrapers/raw_sources/hansard/senate")
+
+    # Clean Up
+    base_path = "./scrapers/raw_sources/hansard"
+    folders = ["senate", "hofreps"]
