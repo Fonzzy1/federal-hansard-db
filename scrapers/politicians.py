@@ -113,7 +113,6 @@ def main():
         term_end=data["fetchDate"],
         party_name="Liberal Party of Australia",
     )
-
     with open("scrapers/raw_sources/politicians.json", "w") as f:
         json.dump(data, f, indent=2)
 

@@ -4,19 +4,79 @@ import prisma
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
 
+def string_to_date(str, fetch_date_str):
+    if str == fetch_date_str or str == '' or len(str) != 10 or str == '1900-01-01':
+            return None
+    return datetime.datetime.strptime(str, "%Y-%m-%d")
 
-def overlaps(service_start, service_end, parliament_start, parliament_end):
-    if parliament_end == None:
-        return service_start <= parliament_start and service_end == parliament_end
-    ## Case for the 2nd last parliament in a 2 term senate seat
-    elif service_end == None and parliament_end != None:
-        return service_start <= parliament_start 
-    else:
-        return service_start < parliament_end and parliament_start < service_end
 
-def extract_party(service):
-    party = service["Value"] if service["ROSTypeID"] == 0 else None
-    return party
+## These functiuons deal with nulls in the max and min
+def null_max(a, b):
+    if a is None or b is None:
+        return None
+    return max(a, b)
+
+def null_min(a, b):
+    if a is None and b is None:
+        return None
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return min(a, b)
+
+
+def overlaps(service_list, start, end, fetch_date_str):
+    overlaping = []
+    for start_string, end_string, service in service_list:
+        service_start = string_to_date(start_string, fetch_date_str)
+        service_end = string_to_date(end_string, fetch_date_str)
+        # both haven't ended, then always include
+        if end == None and  service_end == None:
+            sub_service_start = null_max(service_start, start)
+            sub_service_end = null_min(service_end, end)
+            overlaping.append([sub_service_start,sub_service_end, service])
+        elif end == None and service_end != None:
+            if service_end > start:
+                sub_service_start = null_max(service_start, start)
+                sub_service_end = null_min(service_end, end)
+                overlaping.append([sub_service_start,sub_service_end, service])
+        elif end != None and service_end == None:
+            if end > service_start:
+                sub_service_start = null_max(service_start, start)
+                sub_service_end = null_min(service_end, end)
+                overlaping.append([sub_service_start,sub_service_end, service])
+        ## The most normal condition
+        elif end != None and service_end != None:
+            if service_start < end and service_end > start:
+                sub_service_start = null_max(service_start, start)
+                sub_service_end = null_min(service_end, end)
+                overlaping.append([sub_service_start,sub_service_end, service])
+    return overlaping
+            
+
+def extract_seat(politician):
+    raw_services = {}
+    for service in politician['ElectorateService']:
+        electorate, start, end = (service['Electorate'],
+                             service['ServiceStart'],
+                             service['ServiceEnd'])
+        raw_services[start] = [end, electorate]
+    return [(s,e,electorate) for s, (e,electorate) in raw_services.items()]
+
+
+def extract_party(politician):
+    raw_services = {}
+    for service in politician['PartyParliamentaryService']:
+        secondary_service = service['SecondaryService']
+        for party_service in secondary_service:
+            party, start, end = (party_service['Value'],
+                                 party_service['DateStart'],
+                                 party_service['DateEnd'])
+            raw_services[start] = [end, party]
+    return [(s,e,party) for s, (e,party) in raw_services.items()]
+
+    
 
 
 def parse_dates(data, start_key, end_key):
@@ -119,7 +179,7 @@ def format_politicians(party_dict, parliament_intervals):
     fetch_date = data['fetchDate']
 
     for politician in data["value"]:
-        # if politician["FamilyName"]=="BANKS":
+        # if politician["PHID"]=="276714":
         #     politician
         #     break
         format_dict = {
@@ -138,13 +198,7 @@ def format_politicians(party_dict, parliament_intervals):
                 else 2 if politician["Gender"] == "Female" else 9
             ),
             "services": {"create": []},
-            "dob": (
-                datetime.datetime.strptime(
-                    politician["DateOfBirth"], "%Y-%m-%d"
-                )
-                if len(politician["DateOfBirth"]) == 10
-                else None
-            ),
+            "dob": string_to_date(politician["DateOfBirth"], fetch_date)
         }
 
         isSenate = politician['ElectedSenatorNo'] > 0
@@ -153,25 +207,15 @@ def format_politicians(party_dict, parliament_intervals):
         state = politician['State']
         electorate = politician['RepresentedElectorates']
         parliaments = politician['RepresentedParliaments']
-        start =  datetime.datetime.strptime(politician['ServiceHistory_Start'],
-                                            "%Y-%m-%d")
-        if politician['ServiceHistory_Start'] == fetch_date:
-            end = None
-        else:
-            end =  datetime.datetime.strptime(politician['ServiceHistory_Start'],
-                                                "%Y-%m-%d")
+        start =  string_to_date(politician['ServiceHistory_Start'], fetch_date)
+        end =  string_to_date(politician['ServiceHistory_End'], fetch_date)
 
         # Standard Case
         if isSenate != isHOR and len(parties) == 1  and len(electorate) <2:
             for s, e, p in parliament_intervals:
                 if int(p['PID']) in parliaments:
-                    true_start = max(start, s)
-                    if end and e:
-                        true_end = max(end, e)
-                    elif end and not e:
-                        true_end = end
-                    else:
-                        true_end = None
+                    true_start = null_max(start, s)
+                    true_end = null_min(end, e)
                     format_dict["services"]["create"].append(
                         {
                             "startDate": true_start ,
@@ -189,159 +233,57 @@ def format_politicians(party_dict, parliament_intervals):
                             },
                         }
                     )
+        # The special Case where they rep various parties, seats or both senate
+        # and 
+        # Avoid becuse the data is really unclean and needs various fixes
         else:
-            break
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        # service (in raw form) will span 1 election or one change of allegiace to a specific party.
-        raw_seat_service = politician["ElectorateService"]
-        seat_intervals = parse_dates(
-            raw_seat_service, "ServiceStart", "ServiceEnd"
-        )
-        for primary_service in politician["PartyParliamentaryService"]:
-            for service in primary_service['SecondaryService']:
-                if service["DateEnd"] < service["DateStart"]:
-                    continue
-                else:
-                    start_string = max(primary_service['DateStart'],service['DateStart'])
-                    end_string = min(primary_service['DateEnd'], service['DateEnd'])
-                    # Stupid exception for a one off date that didn't work
-                    try:
-                        service_start = datetime.datetime.strptime(
-                            start_string, "%Y-%m-%d"
-                        )
-                    except ValueError:
-                        service_start = datetime.datetime.strptime(
-                            f"{start_string[:-1]}{int(start_string[-1]) - 1}",
-                            "%Y-%m-%d",
-                        )
-                    try:
-                        if end_string == fetch_date:
-                            service_end = None
-                        else:
-                            service_end = datetime.datetime.strptime( end_string, "%Y-%m-%d") if end_string else None
-                    except ValueError:
-                        service_end = datetime.datetime.strptime(
-                            f"{end_string[:-1]}{int(end_string[-1]) - 1}",
-                            "%Y-%m-%d",
-                        )
-
-                    matching_parliaments = [
-                        d
-                        for s, e, d in parliament_intervals
-                        if overlaps(service_start, service_end, s, e)
-                    ]
-
-                    # For the sake of this database, a service is tied to only on
-                    # parliament ever...
-                    for parliament in matching_parliaments:
-                        # We now need to see if there is a corresponding Seat
-                        # Service, else they are in the Senate.
-                        # In the case where they are serving in a seat, this will
-                        # work with the overall service date as there should be only
-                        # one matching parliament
-                        
-                        seat = [
-                            d
-                            for s, e, d in seat_intervals
-                            if overlaps(service_start, service_end, s, e)
-                        ]
-                        isSenate = len(seat) == 0
-                        if isSenate:
-                            # This is the workaround for the fact that senators
-                            # don't line up with parliaments
-                            start_date = max(
-                                datetime.datetime.strptime(
-                                    parliament["DateOpening"], "%Y-%m-%d"
-                                ),
-                                service_start,
-                            )
-                            if service_end == None:
-                                end_date = None
-                            else:
-                                end_date = min(
-                                    service_end,
-                                    (
-                                        datetime.datetime.strptime(
-                                            parliament.get("DateDissolution"),
-                                            "%Y-%m-%d",
-                                        )
-                                        if service.get("DateDissolution")
-                                        else datetime.datetime(2099, 1, 1)
-                                    ),
+            party_intervals = extract_party(politician)
+            seat_intervals = extract_seat(politician)
+            for s, e, p in parliament_intervals:
+                if int(p['PID']) in parliaments:
+                    overlapping_party = overlaps(party_intervals,s,e,fetch_date)
+                    for ps, pe, party in overlapping_party:
+                        overlappping_seat = overlaps(seat_intervals,ps,pe, fetch_date)
+                        # There is a seat
+                        if len(overlappping_seat):
+                            for ss, se, seat in overlappping_seat:
+                                format_dict["services"]["create"].append(
+                                    {
+                                        "startDate": ss,
+                                        "endDate": se,
+                                        "isSenate": False,
+                                        "seat": seat,
+                                        "state": state,
+                                        "party": {
+                                            "connect": {
+                                                "id": party_dict[party]
+                                            }
+                                        },
+                                        "parliament": {
+                                            "connect": {"id": p["PID"]}
+                                        },
+                                    }
                                 )
-                            format_dict["services"]["create"].append(
-                                {
-                                    "startDate": start_date,
-                                    "endDate": end_date,
-                                    "isSenate": isSenate,
-                                    "seat": None,
-                                    "state": politician["SenateState"],
-                                    "party": {
-                                        "connect": {
-                                            "id": party_dict[extract_party(service)]
-                                        }
-                                    },
-                                    "parliament": {
-                                        "connect": {"id": parliament["PID"]}
-                                    },
-                                }
-                            )
+                        # If no seat then its a senate seat
                         else:
                             format_dict["services"]["create"].append(
                                 {
-                                    "startDate": datetime.datetime.strptime(
-                                        start_string, "%Y-%m-%d"
-                                    )  ,
-                                    "endDate": datetime.datetime.strptime(
-                                        end_string, "%Y-%m-%d"
-                                    ) if service_end != None else None,
-                                    "isSenate": isSenate,
-                                    "seat": seat[0]["Electorate"],
-                                    "state": seat[0]["State"],
+                                    "startDate": ps,
+                                    "endDate": pe,
+                                    "isSenate": True,
+                                    "seat": None,
+                                    "state": state,
                                     "party": {
                                         "connect": {
-                                            "id": party_dict[extract_party(service)]
+                                            "id": party_dict[party]
                                         }
                                     },
                                     "parliament": {
-                                        "connect": {"id": parliament["PID"]}
+                                        "connect": {"id": p["PID"]}
                                     },
                                 }
                             )
-
         results.append(format_dict)
-
     return results
 
 
