@@ -1,10 +1,15 @@
 import json
+import re
 import datetime
 import prisma
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
 import string
-translator = str.maketrans('', '', string.punctuation)
+import re
+import datetime
+import re
+import string
+from fuzzywuzzy import process, fuzz  # or from rapidfuzz import process, fuzz
 
 
 def string_to_date(str, fetch_date_str):
@@ -209,10 +214,12 @@ def format_politicians(party_dict, parliament_intervals):
                 else politician["GivenName"]
             ),
             "lastName": politician["FamilyName"],
-            "altName": 
+            "middleNames": politician["MiddleNames"], 
+            "altName": (
                 politician["GivenName"].rstrip()
                 if politician["PreferredName"]
-                else None,
+                else None
+            ),
             "firstNations": politician["FirstNations"],
             "image": politician["Image"],
             "gender": (
@@ -303,27 +310,90 @@ def format_politicians(party_dict, parliament_intervals):
         results.append(format_dict)
     return results
 
-def normalize(text):
-    return text.lower().translate(translator) if text else ''
 
-async def join_politicians_to_raw_authors(db):
-    # Loop through the parliaments
+TITLES = [
+    "president",
+    "deputy president",
+    "acting deputy president",
+    "chairman",
+    "temporary chairman",
+    "chair",
+    "temporary chair",
+    "speaker",
+    "deputy",
+    "acting",
+    "speaker",
+    "clerk",
+    "chairman",
+    "chairman",
+    "mp",
+    "honourable",
+    "senator",
+    "mr",
+    "dr",
+    "the",
+    "madam",
+    "and",
+    "sen",
+    "temporary",
+    "of",
+    "committees",
+    "senators",
+    "leader",
+    "government",
+    "in",
+    "senate",
+    "manager",
+    "business",
+    "hon",
+    "presdient"
+]
+
+
+def normalize(text):
+    if not text:
+        return ""
+    return re.sub(rf"[{re.escape(string.punctuation)}]", "", text).lower()
+
+
+def remove_titles(name):
+    if not name:
+        return ""
+    # Lowercase and remove punctuation first
+    name_clean = name.lower()
+    name_clean = re.sub(rf"[{re.escape(string.punctuation)}]", " ", name_clean)
+    # Remove titles as whole words, surrounded by spaces
+    for title in TITLES:
+        pattern = rf"\b{re.escape(title)}\b"
+        name_clean = re.sub(pattern, "", name_clean)
+    # Collapse multiple spaces to one and strip
+    return re.sub(r"\s+", " ", name_clean).strip()
+
+
+def clean_name(name):
+    no_titles = remove_titles(name)
+    return normalize(no_titles)
+
+strategies = [
+    lambda p: f"{p.lastName}",
+    lambda p: f"{p.lastName} {p.altName or ''}",
+    lambda p: f"{p.lastName} {p.firstName or ''}",
+    lambda p: f"{p.firstName or ''} {p.middleNames or ''} {p.lastName}",
+    lambda p: f"{p.firstName or ''} {p.altName or ''} {p.middleNames or ''} {p.lastName}",
+]
+
+
+async def join_politicians_to_raw_authors(db, threshold=15):
     all_parliaments = await db.parliament.find_many(
         include={"services": {"include": {"Parliamentarian": True}}}
     )
 
     for parliament in all_parliaments:
-        # Grab the authors and the parliamentarians that are part of this
-        # parliament
         documents = await db.document.find_many(
             where={
                 "date": {
                     "gte": parliament.firstDate,
-                    "lte": (
-                        parliament.lastDate
-                        if parliament.lastDate
-                        else datetime.datetime(2099, 1, 1)
-                    ),
+                    "lte": parliament.lastDate or datetime.datetime(2099, 1, 1),
                 },
                 "author": {"parliamentarian": None},
             },
@@ -344,37 +414,45 @@ async def join_politicians_to_raw_authors(db):
             }
 
             for auth in authors.values():
-                names = [normalize(x) for x in auth.rawName]
+                auth_name_clean = clean_name(auth.rawName)
 
-
-                # Just Last Name
-                potential_matches = [
-                    x for x in politicians.values()
-                    if normalize(x.lastName) in names
-                ]
-
-                if len(potential_matches) == 1:
-                    await db.author.update(
-                        where={"id": auth.id},
-                        data={"parliamentarian": {"connect": {"id": potential_matches[0].id}}}
-                    )
-                    continue
-                # Step 2: Narrow down using firstName or altName
-                refined_matches = [
-                    x for x in potential_matches
-                    if (normalize(x.firstName) in names if x.firstName else False)
-                    or (normalize(x.altName) in names if x.altName else False)
-                ]
-
-                if len(refined_matches) == 1:
-                    await db.author.update(
-                        where={"id": auth.id},
-                        data={"parliamentarian": {"connect": {"id": refined_matches[0].id}}}
+                # Skip if cleaned rawName is empty
+                if auth_name_clean == "":
+                    print(
+                        f"Skipping author with empty cleaned name: '{auth.rawName}'"
                     )
                     continue
 
-                print("Ambiguous match:", auth.rawName, [f"{x.firstName} {x.altName} {x.lastName}" for x in potential_matches])
 
+                matched = False
+
+                for strategy in strategies:
+                    scores = {}
+
+                    for pid, pol in politicians.items():
+                        name_form = strategy(pol)
+                        pol_name_clean = clean_name(name_form)
+                        score = fuzz.token_set_ratio(pol_name_clean, auth_name_clean)
+                        scores[pid] = score
+
+                    # Sort scores descending
+                    top_two = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+                    
+                    if len(top_two) < 2:
+                        continue  # Not enough matches to compare
+
+                    first_id, first_score = top_two[0]
+                    second_id, second_score = top_two[1]
+
+                    if first_score - second_score >= threshold:
+                        await db.author.update(
+                            where={"id": auth.id},
+                            data={"parliamentarian": {"connect": {"id": first_id}}},
+                        )
+                        matched = True
+                        break  # Stop after first successful strategy
+                if not matched:
+                    print(f"No confident match for author '{auth.rawName}' ({auth_name_clean}) after all strategies")
 
 async def upload_politician(db, politician):
     await db.parliamentarian.upsert(

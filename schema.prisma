@@ -44,6 +44,7 @@ model Parliamentarian {
     firstName    String
     lastName     String
     altName      String?
+    middleNames  String?
     firstNations Boolean
     image        String
     gender       Int
