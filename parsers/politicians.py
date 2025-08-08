@@ -3,10 +3,18 @@ import datetime
 import prisma
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
+import string
+translator = str.maketrans('', '', string.punctuation)
+
 
 def string_to_date(str, fetch_date_str):
-    if str == fetch_date_str or str == '' or len(str) != 10 or str == '1900-01-01':
-            return None
+    if (
+        str == fetch_date_str
+        or str == ""
+        or len(str) != 10
+        or str == "1900-01-01"
+    ):
+        return None
     return datetime.datetime.strptime(str, "%Y-%m-%d")
 
 
@@ -15,6 +23,7 @@ def null_max(a, b):
     if a is None or b is None:
         return None
     return max(a, b)
+
 
 def null_min(a, b):
     if a is None and b is None:
@@ -27,56 +36,64 @@ def null_min(a, b):
 
 
 def overlaps(service_list, start, end, fetch_date_str):
-    overlaping = []
+    overlapping = []
     for start_string, end_string, service in service_list:
         service_start = string_to_date(start_string, fetch_date_str)
         service_end = string_to_date(end_string, fetch_date_str)
         # both haven't ended, then always include
-        if end == None and  service_end == None:
+        if end == None and service_end == None:
             sub_service_start = null_max(service_start, start)
             sub_service_end = null_min(service_end, end)
-            overlaping.append([sub_service_start,sub_service_end, service])
+            overlapping.append([sub_service_start, sub_service_end, service])
         elif end == None and service_end != None:
             if service_end > start:
                 sub_service_start = null_max(service_start, start)
                 sub_service_end = null_min(service_end, end)
-                overlaping.append([sub_service_start,sub_service_end, service])
+                overlapping.append(
+                    [sub_service_start, sub_service_end, service]
+                )
         elif end != None and service_end == None:
             if end > service_start:
                 sub_service_start = null_max(service_start, start)
                 sub_service_end = null_min(service_end, end)
-                overlaping.append([sub_service_start,sub_service_end, service])
+                overlapping.append(
+                    [sub_service_start, sub_service_end, service]
+                )
         ## The most normal condition
         elif end != None and service_end != None:
             if service_start < end and service_end > start:
                 sub_service_start = null_max(service_start, start)
                 sub_service_end = null_min(service_end, end)
-                overlaping.append([sub_service_start,sub_service_end, service])
-    return overlaping
-            
+                overlapping.append(
+                    [sub_service_start, sub_service_end, service]
+                )
+    return overlapping
+
 
 def extract_seat(politician):
     raw_services = {}
-    for service in politician['ElectorateService']:
-        electorate, start, end = (service['Electorate'],
-                             service['ServiceStart'],
-                             service['ServiceEnd'])
+    for service in politician["ElectorateService"]:
+        electorate, start, end = (
+            service["Electorate"],
+            service["ServiceStart"],
+            service["ServiceEnd"],
+        )
         raw_services[start] = [end, electorate]
-    return [(s,e,electorate) for s, (e,electorate) in raw_services.items()]
+    return [(s, e, electorate) for s, (e, electorate) in raw_services.items()]
 
 
 def extract_party(politician):
     raw_services = {}
-    for service in politician['PartyParliamentaryService']:
-        secondary_service = service['SecondaryService']
+    for service in politician["PartyParliamentaryService"]:
+        secondary_service = service["SecondaryService"]
         for party_service in secondary_service:
-            party, start, end = (party_service['Value'],
-                                 party_service['DateStart'],
-                                 party_service['DateEnd'])
+            party, start, end = (
+                party_service["Value"],
+                party_service["DateStart"],
+                party_service["DateEnd"],
+            )
             raw_services[start] = [end, party]
-    return [(s,e,party) for s, (e,party) in raw_services.items()]
-
-    
+    return [(s, e, party) for s, (e, party) in raw_services.items()]
 
 
 def parse_dates(data, start_key, end_key):
@@ -86,7 +103,11 @@ def parse_dates(data, start_key, end_key):
         end_str = d.get(end_key, "")
         try:
             start = datetime.datetime.strptime(start_str, "%Y-%m-%d")
-            end = datetime.datetime.strptime(end_str, "%Y-%m-%d") if end_str!='1900-01-01' else None
+            end = (
+                datetime.datetime.strptime(end_str, "%Y-%m-%d")
+                if end_str != "1900-01-01"
+                else None
+            )
             parsed.append((start, end, d))
         except (ValueError, TypeError):
             start = datetime.datetime.strptime(start_str, "%Y-%m-%d")
@@ -154,7 +175,6 @@ async def upload_parliaments(db):
 
 
 def format_politicians(party_dict, parliament_intervals):
-
     """
     95% of politicians are going to be for lifers in one house, representing the
     same seat or state and representing one party
@@ -170,26 +190,29 @@ def format_politicians(party_dict, parliament_intervals):
     Gaps in Electoral Service
     """
 
-
     results = []
 
     with open("scrapers/raw_sources/politicians.json", "r") as f:
         data = json.load(f)
 
-    fetch_date = data['fetchDate']
+    fetch_date = data["fetchDate"]
 
     for politician in data["value"]:
         # if politician["PHID"]=="276714":
         #     politician
         #     break
         format_dict = {
-            'id': politician['PHID'],
+            "id": politician["PHID"],
             "firstName": (
                 politician["PreferredName"][1:-1]
                 if politician["PreferredName"]
                 else politician["GivenName"]
             ),
             "lastName": politician["FamilyName"],
+            "altName": 
+                politician["GivenName"].rstrip()
+                if politician["PreferredName"]
+                else None,
             "firstNations": politician["FirstNations"],
             "image": politician["Image"],
             "gender": (
@@ -198,52 +221,52 @@ def format_politicians(party_dict, parliament_intervals):
                 else 2 if politician["Gender"] == "Female" else 9
             ),
             "services": {"create": []},
-            "dob": string_to_date(politician["DateOfBirth"], fetch_date)
+            "dob": string_to_date(politician["DateOfBirth"], fetch_date),
         }
 
-        isSenate = politician['ElectedSenatorNo'] > 0
-        isHOR =  politician['ElectedMemberNo'] > 0
-        parties = politician['RepresentedParties']
-        state = politician['State']
-        electorate = politician['RepresentedElectorates']
-        parliaments = politician['RepresentedParliaments']
-        start =  string_to_date(politician['ServiceHistory_Start'], fetch_date)
-        end =  string_to_date(politician['ServiceHistory_End'], fetch_date)
+        isSenate = politician["ElectedSenatorNo"] > 0
+        isHOR = politician["ElectedMemberNo"] > 0
+        parties = politician["RepresentedParties"]
+        state = politician["State"]
+        electorate = politician["RepresentedElectorates"]
+        parliaments = politician["RepresentedParliaments"]
+        start = string_to_date(politician["ServiceHistory_Start"], fetch_date)
+        end = string_to_date(politician["ServiceHistory_End"], fetch_date)
 
         # Standard Case
-        if isSenate != isHOR and len(parties) == 1  and len(electorate) <2:
+        if isSenate != isHOR and len(parties) == 1 and len(electorate) < 2:
             for s, e, p in parliament_intervals:
-                if int(p['PID']) in parliaments:
+                if int(p["PID"]) in parliaments:
                     true_start = null_max(start, s)
                     true_end = null_min(end, e)
                     format_dict["services"]["create"].append(
                         {
-                            "startDate": true_start ,
+                            "startDate": true_start,
                             "endDate": true_end,
                             "isSenate": isSenate,
                             "seat": electorate[0] if len(electorate) else None,
                             "state": state,
                             "party": {
-                                "connect": {
-                                    "id": party_dict[parties[0]]
-                                }
+                                "connect": {"id": party_dict[parties[0]]}
                             },
-                            "parliament": {
-                                "connect": {"id": p["PID"]}
-                            },
+                            "parliament": {"connect": {"id": p["PID"]}},
                         }
                     )
         # The special Case where they rep various parties, seats or both senate
-        # and 
-        # Avoid becuse the data is really unclean and needs various fixes
+        # and
+        # Avoid because the data is really unclean and needs various fixes
         else:
             party_intervals = extract_party(politician)
             seat_intervals = extract_seat(politician)
             for s, e, p in parliament_intervals:
-                if int(p['PID']) in parliaments:
-                    overlapping_party = overlaps(party_intervals,s,e,fetch_date)
+                if int(p["PID"]) in parliaments:
+                    overlapping_party = overlaps(
+                        party_intervals, s, e, fetch_date
+                    )
                     for ps, pe, party in overlapping_party:
-                        overlappping_seat = overlaps(seat_intervals,ps,pe, fetch_date)
+                        overlappping_seat = overlaps(
+                            seat_intervals, ps, pe, fetch_date
+                        )
                         # There is a seat
                         if len(overlappping_seat):
                             for ss, se, seat in overlappping_seat:
@@ -255,9 +278,7 @@ def format_politicians(party_dict, parliament_intervals):
                                         "seat": seat,
                                         "state": state,
                                         "party": {
-                                            "connect": {
-                                                "id": party_dict[party]
-                                            }
+                                            "connect": {"id": party_dict[party]}
                                         },
                                         "parliament": {
                                             "connect": {"id": p["PID"]}
@@ -274,80 +295,100 @@ def format_politicians(party_dict, parliament_intervals):
                                     "seat": None,
                                     "state": state,
                                     "party": {
-                                        "connect": {
-                                            "id": party_dict[party]
-                                        }
+                                        "connect": {"id": party_dict[party]}
                                     },
-                                    "parliament": {
-                                        "connect": {"id": p["PID"]}
-                                    },
+                                    "parliament": {"connect": {"id": p["PID"]}},
                                 }
                             )
         results.append(format_dict)
     return results
 
+def normalize(text):
+    return text.lower().translate(translator) if text else ''
 
 async def join_politicians_to_raw_authors(db):
     # Loop through the parliaments
     all_parliaments = await db.parliament.find_many(
         include={"services": {"include": {"Parliamentarian": True}}}
     )
+
     for parliament in all_parliaments:
         # Grab the authors and the parliamentarians that are part of this
         # parliament
         documents = await db.document.find_many(
             where={
-                "date": {"gtf": parliament.firstDate, "lte":
-                         parliament.lastDate if parliament.lastDate else
-                         datetime.datetime(2099,1,1)},
-                'author': {'parliamentarian':None}
+                "date": {
+                    "gte": parliament.firstDate,
+                    "lte": (
+                        parliament.lastDate
+                        if parliament.lastDate
+                        else datetime.datetime(2099, 1, 1)
+                    ),
+                },
+                "author": {"parliamentarian": None},
             },
-            include={"author": True, 'source':True},
-            )
+            include={"author": True, "source": True},
+        )
 
-        for house in ['House of Representatives', 'Senate']:
-            print(house,parliament.id)
-            authors = {doc.author.id: doc.author for doc in
-                                          documents if house in
-                                          doc.source.name }
-            politicians = { service.Parliamentarian.id: service.Parliamentarian
-                for service in parliament.services if service.isSenate == (house == 'Senate')
-               }
+        for house in ["House of Representatives", "Senate"]:
+            print(house, parliament.id)
+            authors = {
+                doc.author.id: doc.author
+                for doc in documents
+                if house in doc.source.name
+            }
+            politicians = {
+                service.Parliamentarian.id: service.Parliamentarian
+                for service in parliament.services
+                if service.isSenate == (house == "Senate")
+            }
 
             for auth in authors.values():
-                potential_matches = [ x for x in politicians.values() if
-                                     x.lastName.lower() in auth.rawName.lower()]
-                if len(potential_matches) == 0:
-                    print(auth.rawName)
+                names = [normalize(x) for x in auth.rawName]
 
 
-#         await db.author.update(
-#             where={"id": author.id},
-#             data={
-#                 "parliamentarian": {
-#                     "connect": {"id": parliamentarian_map[author.rawName]}
-#                 }
-#             },
-#         )
+                # Just Last Name
+                potential_matches = [
+                    x for x in politicians.values()
+                    if normalize(x.lastName) in names
+                ]
+
+                if len(potential_matches) == 1:
+                    await db.author.update(
+                        where={"id": auth.id},
+                        data={"parliamentarian": {"connect": {"id": potential_matches[0].id}}}
+                    )
+                    continue
+                # Step 2: Narrow down using firstName or altName
+                refined_matches = [
+                    x for x in potential_matches
+                    if (normalize(x.firstName) in names if x.firstName else False)
+                    or (normalize(x.altName) in names if x.altName else False)
+                ]
+
+                if len(refined_matches) == 1:
+                    await db.author.update(
+                        where={"id": auth.id},
+                        data={"parliamentarian": {"connect": {"id": refined_matches[0].id}}}
+                    )
+                    continue
+
+                print("Ambiguous match:", auth.rawName, [f"{x.firstName} {x.altName} {x.lastName}" for x in potential_matches])
 
 
 async def upload_politician(db, politician):
     await db.parliamentarian.upsert(
-            where={'id': politician["id"]},
-        data={
-            'create': politician,
-            'update': politician
-        }
-        )
+        where={"id": politician["id"]},
+        data={"create": politician, "update": politician},
+    )
+
 
 async def clean(db):
     await db.author.update_many(
-        where={
-            'parliamentarianId': {'not': None}
-        },
+        where={"parliamentarianId": {"not": None}},
         data={
-            'parliamentarianId': None,
-        }
+            "parliamentarianId": None,
+        },
     )
     await db.service.delete_many()
     await db.parliament.delete_many()

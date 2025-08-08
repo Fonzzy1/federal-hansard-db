@@ -355,6 +355,8 @@ async def main():
             try:
                 self = HansardSpeechExtractor(filename, date=names[-1][:10])
                 results = self.extract()
+                if len(results) == 0:
+                    raise Exception(f"{filename} failed to parse")
                 for document in results:
                     if (
                         document["type"] == "question"
@@ -431,8 +433,6 @@ async def main():
 
             except EmptyDocumentError:
                 pass
-            if len(results) == 0:
-                raise Exception(f"{filename} failed to parse")
 
 
 if __name__ == "__main__":

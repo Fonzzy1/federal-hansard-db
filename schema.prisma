@@ -43,6 +43,7 @@ model Parliamentarian {
     id           String    @id
     firstName    String
     lastName     String
+    altName      String?
     firstNations Boolean
     image        String
     gender       Int
@@ -228,4 +229,3 @@ model Deconstruction {
 
     @@unique([claimId, deconstructorId])
 }
-
