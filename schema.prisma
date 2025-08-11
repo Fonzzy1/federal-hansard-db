@@ -31,12 +31,16 @@ model SourceGroup {
 
 model Author {
     id                Int              @id @default(autoincrement())
-    rawName           String           @unique
+    rawName           String
+    year              Int
+    month             Int
     dateAdded         DateTime         @default(now())
     dateModified      DateTime         @updatedAt
     parliamentarianId String?
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     documents         Document[]
+
+    @@unique([rawName, year, month])
 }
 
 model Parliamentarian {

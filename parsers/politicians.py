@@ -2,6 +2,7 @@ import json
 import re
 import datetime
 import prisma
+import calendar
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
 import string
@@ -214,7 +215,7 @@ def format_politicians(party_dict, parliament_intervals):
                 else politician["GivenName"]
             ),
             "lastName": politician["FamilyName"],
-            "middleNames": politician["MiddleNames"], 
+            "middleNames": politician["MiddleNames"],
             "altName": (
                 politician["GivenName"].rstrip()
                 if politician["PreferredName"]
@@ -346,7 +347,8 @@ TITLES = [
     "manager",
     "business",
     "hon",
-    "presdient"
+    "presdient",
+    "cvo",
 ]
 
 
@@ -374,85 +376,117 @@ def clean_name(name):
     no_titles = remove_titles(name)
     return normalize(no_titles)
 
+
 strategies = [
+    lambda p: f"{p.id}",
     lambda p: f"{p.lastName}",
     lambda p: f"{p.lastName} {p.altName or ''}",
     lambda p: f"{p.lastName} {p.firstName or ''}",
     lambda p: f"{p.firstName or ''} {p.middleNames or ''} {p.lastName}",
     lambda p: f"{p.firstName or ''} {p.altName or ''} {p.middleNames or ''} {p.lastName}",
+    lambda p: f"{p.firstName[0] or ''} {p.lastName}",
+    lambda p: f"{p.firstName[0] or ''} {p.middleNames or ''} {p.lastName}",
 ]
 
 
 async def join_politicians_to_raw_authors(db, threshold=15):
-    all_parliaments = await db.parliament.find_many(
-        include={"services": {"include": {"Parliamentarian": True}}}
-    )
+    year = 2025
+    month = 7
+    year_month = await db.author.group_by(['year', 'month'])
+    all_services = await db.service.find_many(include={'Parliamentarian': True})
+    for year, month in [list(x.values()) for x in year_month]:
+        target_start = datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc)
+        # Last day of the month
+        last_day = calendar.monthrange(year, month)[1]
+        target_end = datetime.datetime(year, month, last_day, 23, 59, 59, tzinfo=datetime.timezone.utc)
+        politicians = {
+            s.Parliamentarian.id: s.Parliamentarian
+            for s in all_services
+            if s.startDate <= target_end and (s.endDate is None or s.endDate >= target_start)
+        }
 
-    for parliament in all_parliaments:
-        documents = await db.document.find_many(
+        authors = {k.id : k for k in await db.author.find_many(
             where={
-                "date": {
-                    "gte": parliament.firstDate,
-                    "lte": parliament.lastDate or datetime.datetime(2099, 1, 1),
-                },
+                "month": month,
+                "year": year,
                 "author": {"parliamentarian": None},
             },
-            include={"author": True, "source": True},
-        )
+        )}
 
-        for house in ["House of Representatives", "Senate"]:
-            print(house, parliament.id)
-            authors = {
-                doc.author.id: doc.author
-                for doc in documents
-                if house in doc.source.name
-            }
-            politicians = {
-                service.Parliamentarian.id: service.Parliamentarian
-                for service in parliament.services
-                if service.isSenate == (house == "Senate")
-            }
+        for auth in authors.values():
+            auth_name_clean = clean_name(auth.rawName)
 
-            for auth in authors.values():
-                auth_name_clean = clean_name(auth.rawName)
+            # Skip if cleaned rawName is empty
+            if auth_name_clean == "":
+                # print(
+                #     f"Skipping author with empty cleaned name: '{auth.rawName}'"
+                # )
+                continue
 
-                # Skip if cleaned rawName is empty
-                if auth_name_clean == "":
-                    print(
-                        f"Skipping author with empty cleaned name: '{auth.rawName}'"
+            matched = False
+
+            for strategy in strategies:
+                scores = {}
+
+                for pid, pol in politicians.items():
+                    name_form = strategy(pol)
+                    pol_name_clean = clean_name(name_form)
+                    score = fuzz.token_set_ratio(
+                        pol_name_clean, auth_name_clean
                     )
-                    continue
+                    scores[pid] = score
 
+                # Sort scores descending
+                top_two = sorted(
+                    scores.items(), key=lambda x: x[1], reverse=True
+                )
 
-                matched = False
+                if len(top_two) < 2:
+                    continue  # Not enough matches to compare
 
-                for strategy in strategies:
-                    scores = {}
+                first_id, first_score = top_two[0]
+                second_id, second_score = top_two[1]
 
-                    for pid, pol in politicians.items():
-                        name_form = strategy(pol)
-                        pol_name_clean = clean_name(name_form)
-                        score = fuzz.token_set_ratio(pol_name_clean, auth_name_clean)
-                        scores[pid] = score
+                if first_score - second_score >= threshold:
+                    await db.author.update(
+                        where={"id": auth.id},
+                        data={
+                            "parliamentarian": {"connect": {"id": first_id}}
+                        },
+                    )
+                    matched = True
+                    break  # Stop after first successful strategy
+            if not matched:
+                # Stupid gender exception for tony burke (I hate this)
+                if (
+                    "mr" in auth.rawName.lower()
+                    and politicians[first_id].gender
+                    != politicians[second_id].gender
+                ):
+                    matched_id = [
+                        p.PID
+                        for p in [
+                            politicians[first_id],
+                            politicians[second_id],
+                        ]
+                        if p.gender == 1
+                    ][0]
+                    await db.author.update(
+                        where={"id": auth.id},
+                        data={
+                            "parliamentarian": {
+                                "connect": {"id": matched_id}
+                            }
+                        },
+                    )
+                    matched = True
+            if not matched:
+                print(
+                    f"No confident match for author '{auth.rawName}' ({auth_name_clean}) after all strategies"
+                )
+                print(politicians[first_id])
+                print(politicians[second_id])
 
-                    # Sort scores descending
-                    top_two = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-                    
-                    if len(top_two) < 2:
-                        continue  # Not enough matches to compare
-
-                    first_id, first_score = top_two[0]
-                    second_id, second_score = top_two[1]
-
-                    if first_score - second_score >= threshold:
-                        await db.author.update(
-                            where={"id": auth.id},
-                            data={"parliamentarian": {"connect": {"id": first_id}}},
-                        )
-                        matched = True
-                        break  # Stop after first successful strategy
-                if not matched:
-                    print(f"No confident match for author '{auth.rawName}' ({auth_name_clean}) after all strategies")
 
 async def upload_politician(db, politician):
     await db.parliamentarian.upsert(

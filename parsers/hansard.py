@@ -105,6 +105,9 @@ class HansardSpeechExtractor:
             self.date = date
         else:
             self.date = self.root.attrib.get("DATE", None)
+        full_date = datetime.datetime.strptime(self.date, "%Y-%m-%d")
+        self.month = full_date.month
+        self.year = full_date.year
 
     def _find_session_date(self):
         date_elem = self.root.find(".//session.header/date")
@@ -177,6 +180,8 @@ class HansardSpeechExtractor:
                 valid_answer = self._extract_text(elem["answer"])
                 if valid_question and valid_answer:
                     entry = {
+                        "year": self.year,
+                        "month": self.month,
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
@@ -191,6 +196,8 @@ class HansardSpeechExtractor:
                     results.append(entry)
                 elif valid_answer and not valid_answer:
                     entry = {
+                        "year": self.year,
+                        "month": self.month,
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
                         "text": self._extract_text(elem["answer"]),
@@ -199,6 +206,8 @@ class HansardSpeechExtractor:
                     results.append(entry)
                 elif valid_question and not valid_answer:
                     entry = {
+                        "year": self.year,
+                        "month": self.month,
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
@@ -209,6 +218,8 @@ class HansardSpeechExtractor:
             else:
                 if self._extract_text(elem["element"]):
                     entry = {
+                        "year": self.year,
+                        "month": self.month,
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
                         "text": self._extract_text(elem["element"]),
@@ -372,10 +383,14 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
-                                            "rawName": document["author"]
+                                            "rawName": document["author"],
+                                            "year": document["year"],
+                                            "month": document["month"],
                                         },
                                         "create": {
-                                            "rawName": document["author"]
+                                            "rawName": document["author"],
+                                            "year": document["year"],
+                                            "month": document["month"],
                                         },
                                     }
                                 },
@@ -396,12 +411,16 @@ async def main():
                                                 "where": {
                                                     "rawName": document[
                                                         "answer"
-                                                    ]["author"]
+                                                    ]["author"],
+                                                    "year": document["year"],
+                                                    "month": document["month"],
                                                 },
                                                 "create": {
                                                     "rawName": document[
                                                         "answer"
-                                                    ]["author"]
+                                                    ]["author"],
+                                                    "year": document["year"],
+                                                    "month": document["month"],
                                                 },
                                             },
                                         },
@@ -420,10 +439,14 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
-                                            "rawName": document["author"]
+                                            "rawName": document["author"],
+                                            "year": document["year"],
+                                            "month": document["month"],
                                         },
                                         "create": {
-                                            "rawName": document["author"]
+                                            "rawName": document["author"],
+                                            "year": document["year"],
+                                            "month": document["month"],
                                         },
                                     }
                                 },

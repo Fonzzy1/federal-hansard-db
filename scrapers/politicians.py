@@ -17,12 +17,16 @@ def update_personal_info(data, phid, updates):
         if person.get("PHID") == phid:
             for key, value in updates.items():
                 if key in person:
-                    print(f"🔁 Updating {key} from '{person[key]}' to '{value}'")
+                    print(
+                        f"🔁 Updating {key} from '{person[key]}' to '{value}'"
+                    )
                 else:
                     print(f"➕ Adding new field {key} = '{value}'")
                 person[key] = value
             return
     print(f"❌ PHID {phid} not found in dataset")
+
+
 def add_party_affiliation(
     data,
     phid,
@@ -113,6 +117,13 @@ def main():
         term_end=data["fetchDate"],
         party_name="Liberal Party of Australia",
     )
+    update_personal_info(data, "5U4", {"PreferredName": "(Jim)"})
+    update_personal_info(data, "JWX", {"PreferredName": "(Jim)"})
+    update_personal_info(data, "ZG4", {"PreferredName": "(Ted)"})
+    update_personal_info(data, "K9M", {"PreferredName": "(Les)"})
+    update_personal_info(data, "K0O", {"PreferredName": "(Rex)"})
+    update_personal_info(data, "BU4", {"PreferredName": "(Doug)"})
+
     with open("scrapers/raw_sources/politicians.json", "w") as f:
         json.dump(data, f, indent=2)
 
