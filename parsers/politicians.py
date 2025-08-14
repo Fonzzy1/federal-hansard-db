@@ -5,6 +5,7 @@ import prisma
 import calendar
 import asyncio
 from tqdm.asyncio import tqdm_asyncio
+from tqdm import tqdm
 import string
 import re
 import datetime
@@ -390,11 +391,9 @@ strategies = [
 
 
 async def join_politicians_to_raw_authors(db, threshold=15):
-    year = 2025
-    month = 7
     year_month = await db.author.group_by(['year', 'month'])
     all_services = await db.service.find_many(include={'Parliamentarian': True})
-    for year, month in [list(x.values()) for x in year_month]:
+    for year, month in tqdm([list(x.values()) for x in year_month],total=len(year_month)):
         target_start = datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc)
         # Last day of the month
         last_day = calendar.monthrange(year, month)[1]
@@ -409,8 +408,7 @@ async def join_politicians_to_raw_authors(db, threshold=15):
             where={
                 "month": month,
                 "year": year,
-                "author": {"parliamentarian": None},
-            },
+                "parliamentarian": None},
         )}
 
         for auth in authors.values():
@@ -464,7 +462,7 @@ async def join_politicians_to_raw_authors(db, threshold=15):
                     != politicians[second_id].gender
                 ):
                     matched_id = [
-                        p.PID
+                        p.id
                         for p in [
                             politicians[first_id],
                             politicians[second_id],

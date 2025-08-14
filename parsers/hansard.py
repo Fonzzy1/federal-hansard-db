@@ -383,10 +383,11 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
+                                            "dateName":{
                                             "rawName": document["author"],
                                             "year": document["year"],
                                             "month": document["month"],
-                                        },
+                                        }},
                                         "create": {
                                             "rawName": document["author"],
                                             "year": document["year"],
@@ -409,12 +410,13 @@ async def main():
                                         "author": {
                                             "connectOrCreate": {
                                                 "where": {
+                                            "dateName":{
                                                     "rawName": document[
                                                         "answer"
                                                     ]["author"],
                                                     "year": document["year"],
                                                     "month": document["month"],
-                                                },
+                                                }},
                                                 "create": {
                                                     "rawName": document[
                                                         "answer"
@@ -439,10 +441,11 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
+                                            "dateName":{
                                             "rawName": document["author"],
                                             "year": document["year"],
                                             "month": document["month"],
-                                        },
+                                        }},
                                         "create": {
                                             "rawName": document["author"],
                                             "year": document["year"],

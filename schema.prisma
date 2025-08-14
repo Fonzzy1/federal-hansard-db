@@ -40,7 +40,7 @@ model Author {
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     documents         Document[]
 
-    @@unique([rawName, year, month])
+    @@unique([rawName, year, month], name: "dateName")
 }
 
 model Parliamentarian {
