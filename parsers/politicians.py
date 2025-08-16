@@ -391,25 +391,32 @@ strategies = [
 
 
 async def join_politicians_to_raw_authors(db, threshold=15):
-    year_month = await db.author.group_by(['year', 'month'])
-    all_services = await db.service.find_many(include={'Parliamentarian': True})
-    for year, month in tqdm([list(x.values()) for x in year_month],total=len(year_month)):
-        target_start = datetime.datetime(year, month, 1, tzinfo=datetime.timezone.utc)
+    year_month = await db.author.group_by(["year", "month"])
+    all_services = await db.service.find_many(include={"Parliamentarian": True})
+    for year, month in tqdm(
+        [list(x.values()) for x in year_month], total=len(year_month)
+    ):
+        target_start = datetime.datetime(
+            year, month, 1, tzinfo=datetime.timezone.utc
+        )
         # Last day of the month
         last_day = calendar.monthrange(year, month)[1]
-        target_end = datetime.datetime(year, month, last_day, 23, 59, 59, tzinfo=datetime.timezone.utc)
+        target_end = datetime.datetime(
+            year, month, last_day, 23, 59, 59, tzinfo=datetime.timezone.utc
+        )
         politicians = {
             s.Parliamentarian.id: s.Parliamentarian
             for s in all_services
-            if s.startDate <= target_end and (s.endDate is None or s.endDate >= target_start)
+            if s.startDate <= target_end
+            and (s.endDate is None or s.endDate >= target_start)
         }
 
-        authors = {k.id : k for k in await db.author.find_many(
-            where={
-                "month": month,
-                "year": year,
-                "parliamentarian": None},
-        )}
+        authors = {
+            k.id: k
+            for k in await db.author.find_many(
+                where={"month": month, "year": year, "parliamentarian": None},
+            )
+        }
 
         for auth in authors.values():
             auth_name_clean = clean_name(auth.rawName)
@@ -448,9 +455,7 @@ async def join_politicians_to_raw_authors(db, threshold=15):
                 if first_score - second_score >= threshold:
                     await db.author.update(
                         where={"id": auth.id},
-                        data={
-                            "parliamentarian": {"connect": {"id": first_id}}
-                        },
+                        data={"parliamentarian": {"connect": {"id": first_id}}},
                     )
                     matched = True
                     break  # Stop after first successful strategy
@@ -472,9 +477,7 @@ async def join_politicians_to_raw_authors(db, threshold=15):
                     await db.author.update(
                         where={"id": auth.id},
                         data={
-                            "parliamentarian": {
-                                "connect": {"id": matched_id}
-                            }
+                            "parliamentarian": {"connect": {"id": matched_id}}
                         },
                     )
                     matched = True
@@ -482,8 +485,8 @@ async def join_politicians_to_raw_authors(db, threshold=15):
                 print(
                     f"No confident match for author '{auth.rawName}' ({auth_name_clean}) after all strategies"
                 )
-                print(politicians[first_id])
-                print(politicians[second_id])
+                # print(politicians[first_id])
+                # print(politicians[second_id])
 
 
 async def upload_politician(db, politician):
