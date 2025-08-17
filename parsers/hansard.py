@@ -1,6 +1,5 @@
 from prisma import Prisma
 
-
 import asyncio
 import os
 import xml.etree.ElementTree as ET
@@ -106,8 +105,6 @@ class HansardSpeechExtractor:
         else:
             self.date = self.root.attrib.get("DATE", None)
         full_date = datetime.datetime.strptime(self.date, "%Y-%m-%d")
-        self.month = full_date.month
-        self.year = full_date.year
 
     def _find_session_date(self):
         date_elem = self.root.find(".//session.header/date")
@@ -171,7 +168,6 @@ class HansardSpeechExtractor:
 
     def extract(self):
         self._extract_elements()
-
         results = []
         for elem in self.elements:
             if elem["type"] == "question" and "answer" in elem.keys():
@@ -180,8 +176,6 @@ class HansardSpeechExtractor:
                 valid_answer = self._extract_text(elem["answer"])
                 if valid_question and valid_answer:
                     entry = {
-                        "year": self.year,
-                        "month": self.month,
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
@@ -196,8 +190,6 @@ class HansardSpeechExtractor:
                     results.append(entry)
                 elif valid_answer and not valid_answer:
                     entry = {
-                        "year": self.year,
-                        "month": self.month,
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
                         "text": self._extract_text(elem["answer"]),
@@ -206,8 +198,6 @@ class HansardSpeechExtractor:
                     results.append(entry)
                 elif valid_question and not valid_answer:
                     entry = {
-                        "year": self.year,
-                        "month": self.month,
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
@@ -218,8 +208,6 @@ class HansardSpeechExtractor:
             else:
                 if self._extract_text(elem["element"]):
                     entry = {
-                        "year": self.year,
-                        "month": self.month,
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
                         "text": self._extract_text(elem["element"]),
@@ -237,50 +225,60 @@ class HansardSpeechExtractor:
         return el
 
     def _extract_talker(self, elem):
-        name = ""
-        try:
-            names = elem.xpath('.//name[@role="metadata"]/text()')
-            unique_names = set(names)
-            return list(unique_names)[0]
-        except:
-            pass
-        try:
-            names = elem.xpath('.//name[@role="display"]/text()')
-            unique_names = set(names)
-            return list(unique_names)[0]
-        except:
-            pass
-        try:
-            names = elem.xpath(".//name/text()")
-            unique_names = set(names)
-            return list(unique_names)[0]
-        except:
-            pass
-
-        # Fallback: check attributes of the element itself
-        if not name and "speaker" in elem.attrib:
-            return elem.attrib.get("speaker", "")
-
-        # The weird case when there is an item with just a para in it
-        if len([x for x in elem]) == 1:
-            if [x for x in elem][0].tag in ["p", "para"]:
-                return ""
-        # the weird case when there are no children
-        if len([x for x in elem]) == 0:
-            return ""
-        # the weird case when all children are paras and quotes
-        if all(
-            x.tag
-            in ["p", "para", "quote", "inline", "list", "item", "debateinfo"]
-            for x in elem
-        ):
-            return ""
         try:
             names = elem.xpath(".//name.id/text()")
             unique_names = set(names)
             return list(unique_names)[0]
         except:
             pass
+        try:
+            nameids = elem.xpath(".//NAME/@NAMEID")
+            unique_nameids = set(nameids)
+            return list(unique_nameids)[0]
+        except:
+            pass
+        try:
+            nameids = elem.xpath(".//@nameid")
+            unique_nameids = set(nameids)
+            return list(unique_nameids)[0]
+        except:
+            pass
+
+        # try:
+        #     names = elem.xpath('.//name[@role="metadata"]/text()')
+        #     unique_names = set(names)
+        #     return list(unique_names)[0]
+        # except:
+        #     pass
+        # try:
+        #     names = elem.xpath('.//name[@role="display"]/text()')
+        #     unique_names = set(names)
+        #     return list(unique_names)[0]
+        # except:
+        #     pass
+        # try:
+        #     names = elem.xpath(".//name/text()")
+        #     unique_names = set(names)
+        #     return list(unique_names)[0]
+        # except:
+        #     pass
+
+        # if "speaker" in elem.attrib:
+        #     return elem.attrib.get("speaker", "")
+
+        # if len([x for x in elem]) == 1:
+        #     if [x for x in elem][0].tag in ["p", "para"]:
+        #         return ""
+        # if len([x for x in elem]) == 0:
+        #     return ""
+        # if all(
+        #     x.tag
+        #     in ["p", "para", "quote", "inline", "list", "item", "debateinfo"]
+        #     for x in elem
+        # ):
+        #     return ""
+        print(str(ET.tostring(elem, encoding="unicode")))
+        return ""
 
         raise FailedTalkerExtractionException(elem)
 
@@ -383,15 +381,10 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
-                                            "dateName":{
                                             "rawName": document["author"],
-                                            "year": document["year"],
-                                            "month": document["month"],
-                                        }},
+                                        },
                                         "create": {
                                             "rawName": document["author"],
-                                            "year": document["year"],
-                                            "month": document["month"],
                                         },
                                     }
                                 },
@@ -410,19 +403,14 @@ async def main():
                                         "author": {
                                             "connectOrCreate": {
                                                 "where": {
-                                            "dateName":{
                                                     "rawName": document[
                                                         "answer"
                                                     ]["author"],
-                                                    "year": document["year"],
-                                                    "month": document["month"],
-                                                }},
+                                                },
                                                 "create": {
                                                     "rawName": document[
                                                         "answer"
                                                     ]["author"],
-                                                    "year": document["year"],
-                                                    "month": document["month"],
                                                 },
                                             },
                                         },
@@ -441,15 +429,10 @@ async def main():
                                 "author": {
                                     "connectOrCreate": {
                                         "where": {
-                                            "dateName":{
                                             "rawName": document["author"],
-                                            "year": document["year"],
-                                            "month": document["month"],
-                                        }},
+                                        },
                                         "create": {
                                             "rawName": document["author"],
-                                            "year": document["year"],
-                                            "month": document["month"],
                                         },
                                     }
                                 },

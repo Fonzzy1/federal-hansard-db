@@ -210,6 +210,7 @@ def format_politicians(party_dict, parliament_intervals):
         #     break
         format_dict = {
             "id": politician["PHID"],
+            "altId": politician.get("alt_id", None),
             "firstName": (
                 politician["PreferredName"][1:-1]
                 if politician["PreferredName"]
@@ -313,180 +314,40 @@ def format_politicians(party_dict, parliament_intervals):
     return results
 
 
-TITLES = [
-    "president",
-    "deputy president",
-    "acting deputy president",
-    "chairman",
-    "temporary chairman",
-    "chair",
-    "temporary chair",
-    "speaker",
-    "deputy",
-    "acting",
-    "speaker",
-    "clerk",
-    "chairman",
-    "chairman",
-    "mp",
-    "honourable",
-    "senator",
-    "mr",
-    "dr",
-    "the",
-    "madam",
-    "and",
-    "sen",
-    "temporary",
-    "of",
-    "committees",
-    "senators",
-    "leader",
-    "government",
-    "in",
-    "senate",
-    "manager",
-    "business",
-    "hon",
-    "presdient",
-    "cvo",
-]
-
-
 def normalize(text):
     if not text:
         return ""
-    return re.sub(rf"[{re.escape(string.punctuation)}]", "", text).lower()
+    return re.sub(rf"[{re.escape(string.punctuation)}\s]", "", text).lower()
 
 
-def remove_titles(name):
-    if not name:
-        return ""
-    # Lowercase and remove punctuation first
-    name_clean = name.lower()
-    name_clean = re.sub(rf"[{re.escape(string.punctuation)}]", " ", name_clean)
-    # Remove titles as whole words, surrounded by spaces
-    for title in TITLES:
-        pattern = rf"\b{re.escape(title)}\b"
-        name_clean = re.sub(pattern, "", name_clean)
-    # Collapse multiple spaces to one and strip
-    return re.sub(r"\s+", " ", name_clean).strip()
+async def join_politicians_to_raw_authors(db):
+    all_services = await db.parliamentarian.find_many()
+    politicians = {normalize(p.id): p for p in all_services}
+    politicians.update(
+        {normalize(p.altId): p for p in all_services if hasattr(p, "altId")}
+    )
 
-
-def clean_name(name):
-    no_titles = remove_titles(name)
-    return normalize(no_titles)
-
-
-strategies = [
-    lambda p: f"{p.id}",
-    lambda p: f"{p.lastName}",
-    lambda p: f"{p.lastName} {p.altName or ''}",
-    lambda p: f"{p.lastName} {p.firstName or ''}",
-    lambda p: f"{p.firstName or ''} {p.middleNames or ''} {p.lastName}",
-    lambda p: f"{p.firstName or ''} {p.altName or ''} {p.middleNames or ''} {p.lastName}",
-    lambda p: f"{p.firstName[0] or ''} {p.lastName}",
-    lambda p: f"{p.firstName[0] or ''} {p.middleNames or ''} {p.lastName}",
-]
-
-
-async def join_politicians_to_raw_authors(db, threshold=15):
-    year_month = await db.author.group_by(["year", "month"])
-    all_services = await db.service.find_many(include={"Parliamentarian": True})
-    for year, month in tqdm(
-        [list(x.values()) for x in year_month], total=len(year_month)
-    ):
-        target_start = datetime.datetime(
-            year, month, 1, tzinfo=datetime.timezone.utc
+    authors = {
+        k.id: k
+        for k in await db.author.find_many(
+            where={"parliamentarian": None},
         )
-        # Last day of the month
-        last_day = calendar.monthrange(year, month)[1]
-        target_end = datetime.datetime(
-            year, month, last_day, 23, 59, 59, tzinfo=datetime.timezone.utc
-        )
-        politicians = {
-            s.Parliamentarian.id: s.Parliamentarian
-            for s in all_services
-            if s.startDate <= target_end
-            and (s.endDate is None or s.endDate >= target_start)
-        }
+    }
 
-        authors = {
-            k.id: k
-            for k in await db.author.find_many(
-                where={"month": month, "year": year, "parliamentarian": None},
+    for auth in authors.values():
+        auth_name_clean = normalize(auth.rawName)
+
+        # Skip if cleaned rawName is empty
+        if auth_name_clean == "":
+            continue
+        elif auth_name_clean in politicians.keys():
+            matched_id = politicians[auth_name_clean].id
+            await db.author.update(
+                where={"id": auth.id},
+                data={"parliamentarian": {"connect": {"id": matched_id}}},
             )
-        }
-
-        for auth in authors.values():
-            auth_name_clean = clean_name(auth.rawName)
-
-            # Skip if cleaned rawName is empty
-            if auth_name_clean == "":
-                # print(
-                #     f"Skipping author with empty cleaned name: '{auth.rawName}'"
-                # )
-                continue
-
-            matched = False
-
-            for strategy in strategies:
-                scores = {}
-
-                for pid, pol in politicians.items():
-                    name_form = strategy(pol)
-                    pol_name_clean = clean_name(name_form)
-                    score = fuzz.token_set_ratio(
-                        pol_name_clean, auth_name_clean
-                    )
-                    scores[pid] = score
-
-                # Sort scores descending
-                top_two = sorted(
-                    scores.items(), key=lambda x: x[1], reverse=True
-                )
-
-                if len(top_two) < 2:
-                    continue  # Not enough matches to compare
-
-                first_id, first_score = top_two[0]
-                second_id, second_score = top_two[1]
-
-                if first_score - second_score >= threshold:
-                    await db.author.update(
-                        where={"id": auth.id},
-                        data={"parliamentarian": {"connect": {"id": first_id}}},
-                    )
-                    matched = True
-                    break  # Stop after first successful strategy
-            if not matched:
-                # Stupid gender exception for tony burke (I hate this)
-                if (
-                    "mr" in auth.rawName.lower()
-                    and politicians[first_id].gender
-                    != politicians[second_id].gender
-                ):
-                    matched_id = [
-                        p.id
-                        for p in [
-                            politicians[first_id],
-                            politicians[second_id],
-                        ]
-                        if p.gender == 1
-                    ][0]
-                    await db.author.update(
-                        where={"id": auth.id},
-                        data={
-                            "parliamentarian": {"connect": {"id": matched_id}}
-                        },
-                    )
-                    matched = True
-            if not matched:
-                print(
-                    f"No confident match for author '{auth.rawName}' ({auth_name_clean}) after all strategies"
-                )
-                # print(politicians[first_id])
-                # print(politicians[second_id])
+        else:
+            print(f"{auth.rawName} is an alt_name")
 
 
 async def upload_politician(db, politician):
