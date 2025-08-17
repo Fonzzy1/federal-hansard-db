@@ -1,0 +1,4 @@
+prisma  
+lxml  
+wget  
+fuzzywuzzy

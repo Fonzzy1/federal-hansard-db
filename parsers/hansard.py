@@ -1,5 +1,5 @@
 from prisma import Prisma
-
+import argparse
 import asyncio
 import os
 import xml.etree.ElementTree as ET
@@ -304,145 +304,112 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
 
 
-async def main():
+async def main(source):
     db = Prisma()
     await db.connect()
-    groups = {
-        "House of Reps Hansard": None,
-        "Senate Hansard": None,
-        "Hansard": None,
-    }
-    for group_name in groups.keys():
-        g = await db.sourcegroup.find_unique(where={"name": group_name})
-        if not g:
-            g = await db.sourcegroup.create({"name": group_name})
-        groups[group_name] = g.id
-
-    base_path = "./scrapers/raw_sources/hansard"
-    folders = ["senate", "hofreps"]
 
     all_files = []
-    for folder in folders:
-        folder_path = os.path.join(base_path, folder)
-        if os.path.exists(folder_path):
-            files = os.listdir(folder_path)
-            # Optionally, join folder name for full paths:
-            files = [os.path.join(folder_path, f) for f in files]
-            all_files.extend(files)
+    folder_path = source
+    if os.path.exists(folder_path):
+        files = os.listdir(folder_path)
+        # Optionally, join folder name for full paths:
+        files = [os.path.join(folder_path, f) for f in files]
+        all_files.extend(files)
 
     all_files = sorted(all_files)
+    source_name = (
+        "Senate Hansard" if "senate" in source else "House of Reps Hansard"
+    )
 
     for filename in tqdm(all_files, total=len(all_files)):
         ## Generate the filenames
         names = filename.split("/")
-        source_name = f'{"Senate" if names[-2] == "senate" else "House of Representatives"} {names[-1][:10]}'
-
-        ## Either grab the source, or create the source
-        ## We are going to assume if the source exists then we are done.
-        source = await db.source.find_unique(where={"name": source_name})
-        if not source:
-            source = await db.source.create(
-                data={
-                    "name": source_name,
-                    "script": "parser/hansard.py",
-                    "file": filename,
-                    "groups": {
-                        "connect": [
-                            {"id": groups["Hansard"]},
-                            {
-                                "id": (
-                                    groups["Senate Hansard"]
-                                    if "Senate" in source_name
-                                    else groups["House of Reps Hansard"]
-                                )
-                            },
-                        ]
-                    },
-                }
-            )
-
-            try:
-                self = HansardSpeechExtractor(filename, date=names[-1][:10])
-                results = self.extract()
-                if len(results) == 0:
-                    raise Exception(f"{filename} failed to parse")
-                for document in results:
-                    if (
-                        document["type"] == "question"
-                        and "answer" in document.keys()
-                    ):
-                        await db.document.create(
-                            data={
-                                "text": document["text"],
-                                "date": datetime.datetime.strptime(
-                                    document["date"], "%Y-%m-%d"
-                                ),
-                                "type": document["type"],
-                                "author": {
-                                    "connectOrCreate": {
-                                        "where": {
-                                            "rawName": document["author"],
-                                        },
-                                        "create": {
-                                            "rawName": document["author"],
-                                        },
-                                    }
-                                },
-                                "source": {"connect": {"id": source.id}},
-                                "citedBy": {
+        try:
+            self = HansardSpeechExtractor(filename, date=names[-1][:10])
+            results = self.extract()
+            if len(results) == 0:
+                raise Exception(f"{filename} failed to parse")
+            for document in results:
+                if (
+                    document["type"] == "question"
+                    and "answer" in document.keys()
+                ):
+                    await db.document.create(
+                        data={
+                            "text": document["text"],
+                            "date": datetime.datetime.strptime(
+                                document["date"], "%Y-%m-%d"
+                            ),
+                            "type": document["type"],
+                            "author": {
+                                "connectOrCreate": {
+                                    "where": {
+                                        "rawName": document["author"],
+                                    },
                                     "create": {
-                                        "text": document["answer"]["text"],
-                                        "date": datetime.datetime.strptime(
-                                            document["answer"]["date"],
-                                            "%Y-%m-%d",
-                                        ),
-                                        "type": document["answer"]["type"],
-                                        "source": {
-                                            "connect": {"id": source.id}
-                                        },
-                                        "author": {
-                                            "connectOrCreate": {
-                                                "where": {
-                                                    "rawName": document[
-                                                        "answer"
-                                                    ]["author"],
-                                                },
-                                                "create": {
-                                                    "rawName": document[
-                                                        "answer"
-                                                    ]["author"],
-                                                },
+                                        "rawName": document["author"],
+                                    },
+                                }
+                            },
+                            "source": {"connect": {"name": source_name}},
+                            "citedBy": {
+                                "create": {
+                                    "text": document["answer"]["text"],
+                                    "date": datetime.datetime.strptime(
+                                        document["answer"]["date"],
+                                        "%Y-%m-%d",
+                                    ),
+                                    "type": document["answer"]["type"],
+                                    "source": {
+                                        "connect": {"name": source_name}
+                                    },
+                                    "author": {
+                                        "connectOrCreate": {
+                                            "where": {
+                                                "rawName": document["answer"][
+                                                    "author"
+                                                ],
+                                            },
+                                            "create": {
+                                                "rawName": document["answer"][
+                                                    "author"
+                                                ],
                                             },
                                         },
                                     },
                                 },
-                            }
-                        )
-                    else:
-                        await db.document.create(
-                            data={
-                                "text": document["text"],
-                                "date": datetime.datetime.strptime(
-                                    document["date"], "%Y-%m-%d"
-                                ),
-                                "type": document["type"],
-                                "author": {
-                                    "connectOrCreate": {
-                                        "where": {
-                                            "rawName": document["author"],
-                                        },
-                                        "create": {
-                                            "rawName": document["author"],
-                                        },
-                                    }
-                                },
-                                "source": {"connect": {"id": source.id}},
-                            }
-                        )
+                            },
+                        }
+                    )
+                else:
+                    await db.document.create(
+                        data={
+                            "text": document["text"],
+                            "date": datetime.datetime.strptime(
+                                document["date"], "%Y-%m-%d"
+                            ),
+                            "type": document["type"],
+                            "author": {
+                                "connectOrCreate": {
+                                    "where": {
+                                        "rawName": document["author"],
+                                    },
+                                    "create": {
+                                        "rawName": document["author"],
+                                    },
+                                }
+                            },
+                            "source": {"connect": {"name": source_name}},
+                        }
+                    )
 
-            except EmptyDocumentError:
-                pass
+        except EmptyDocumentError:
+            pass
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser()
+    # Positional (non-named) argument(s)
+    parser.add_argument("source", help="The source name to scrape")
+    args = parser.parse_args()
+    asyncio.run(main(args.source))
