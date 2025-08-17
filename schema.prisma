@@ -8,11 +8,17 @@ datasource db {
     url      = "file:/Data/dev.db"
 }
 
+///  Sources 
+// To get the data - run the the scrape script with the inFile to produce the
+// outFile. Then use the script file with the argyment of the outFile to get it
+// into the database. 
 model Source {
     id                Int                 @id @default(autoincrement())
     name              String              @unique
     script            String
-    file              String
+    scrape            String
+    outFile           String
+    inFile            String?
     dateAdded         DateTime            @default(now())
     dateModified      DateTime            @updatedAt
     documents         Document[]
