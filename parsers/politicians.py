@@ -11,7 +11,6 @@ import re
 import datetime
 import re
 import string
-from fuzzywuzzy import process, fuzz  # or from rapidfuzz import process, fuzz
 
 
 def string_to_date(str, fetch_date_str):

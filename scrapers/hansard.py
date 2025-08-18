@@ -1,129 +1,100 @@
 import os
-import requests
+import asyncio
+import aiohttp
+import pandas as pd
 from bs4 import BeautifulSoup
-from tqdm import tqdm
-import re
-import wget
-import zipfile
-from datetime import datetime
-import shutil
 import argparse
+from tqdm.asyncio import tqdm_asyncio
 
+# ---- Helper functions ----
 
-def grab_and_format_yyyymmdd(s):
-    # Grab all digits in order
-    digits = re.findall(r"\d", s)
-    if len(digits) < 8:
-        return None  # Not enough digits
-    # Take the first 8 digits and join them
-    yyyymmdd = "".join(digits[:8])
-    try:
-        date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
-        return date_obj.strftime("%Y-%m-%d")
-    except ValueError:
-        print(f"failed for {s}")
-
-
-def ensure_dir(dir_path):
-    os.makedirs(dir_path, exist_ok=True)
-
+def ensure_dir(path):
+    os.makedirs(path, exist_ok=True)
 
 def list_xml_files_from_html(url):
+    """Return list of XML URLs from an OpenAustralia page."""
+    import requests
     r = requests.get(url)
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "html.parser")
     files = []
-    for l in soup.find_all("a", href=True):
-        href = l.get("href")
-        if href.endswith(".xml"):
-            file_url = requests.compat.urljoin(url, href)
-            files.append(file_url)
+    for a in soup.find_all("a", href=True):
+        if a['href'].endswith(".xml"):
+            files.append(requests.compat.urljoin(url, a['href']))
     return files
 
+# ---- Async download ----
 
-def download_files(file_urls, dest_dir, rename_map=None):
-    ensure_dir(dest_dir)
-    for url in tqdm(file_urls, desc=f"Downloading to {dest_dir}"):
-        file_name = os.path.basename(url)
-        if rename_map and file_name in rename_map:
-            dest_file = rename_map[file_name]
-        else:
-            dest_file = file_name
-        dest = os.path.join(dest_dir, dest_file)
-        # Avoid redownloading
-        if os.path.exists(dest) or dest.endswith("None.xml"):
-            continue
+async def download_file(session, url, outpath, retries=3):
+    """Download a single file, skipping if it already exists, with retries."""
+    if os.path.exists(outpath):
+        return "skipped"
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36'
+    }
+
+    for attempt in range(1, retries+1):
         try:
-            with requests.get(url, stream=True, timeout=30) as r:
-                r.raise_for_status()
-                with open(dest, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
+            async with session.get(url, headers=headers, timeout=60) as resp:
+                resp.raise_for_status()
+                content = await resp.read()
+                with open(outpath, 'wb') as f:
+                    f.write(content)
+            return "downloaded"
         except Exception as e:
-            print(f"Error downloading {url}: {e}")
+            if attempt < retries:
+                await asyncio.sleep(2 ** attempt)  # exponential backoff
+            else:
+                return f"failed: {e}"
 
+async def main(download_list, max_concurrent=20):
+    if not download_list:
+        print("No files to download.")
+        return
 
-def my_bar(current, total, width=80):
-    progress_message = f"\rDownloading: {current / 1024 / 1024:.2f}/{total / 1024 / 1024:.2f} MB"
-    print(progress_message, end="")
+    ensure_dir(os.path.dirname(download_list[0][1]))
+    connector = aiohttp.TCPConnector(limit_per_host=max_concurrent)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        tasks = [download_file(session, url, path) for url, path in download_list]
+        # Use tqdm to track progress
+        for f in tqdm_asyncio.as_completed(tasks, total=len(tasks), desc="Downloading"):
+            result = await f
+            # Optionally, you can log result somewhere if needed
+            # print(result)
 
+# ---- Main ----
 
-### MAIN
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="Hansard Scraper",
-        description="Fetches the hansard from various sources",
-    )
-    parser.add_argument("--historical", action="store_true")
+    parser = argparse.ArgumentParser(description="Async Hansard Scraper")
+    parser.add_argument("--is-senate", action="store_true")
+    parser.add_argument("outfile", help="Output folder for downloaded XMLs")
     args = parser.parse_args()
 
-    if args.historical:
-        # Set download and extraction path
-        download_path = "/tmp/master.zip"
-        extract_path = "/tmp"
+    house = "senate" if args.is_senate else "hofreps"
+    ensure_dir(args.outfile)
 
-        # Download the zip
-        filename = wget.download(
-            "https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip",
-            out=download_path,
-            bar=my_bar,
-        )
+    # 1. Load historical CSV
+    df = pd.read_csv("https://raw.githubusercontent.com/wragge/hansard-xml/refs/heads/master/all-sitting-days.csv")
+    df = df[df['house'] == house]
+    base_url = "http://parlinfo.aph.gov.au"
 
-        # Unzip
-        with zipfile.ZipFile(filename, "r") as zip_ref:
-            zip_ref.extractall(extract_path)
-        # Move the files
+    download_list = []
 
-        for house in ["hofreps", "senate"]:
-            for year in os.listdir(
-                f"{extract_path}/hansard-xml-master/{house}"
-            ):
-                for file in os.listdir(
-                    f"{extract_path}/hansard-xml-master/{house}/{year}"
-                ):
-                    shutil.move(
-                        f"{extract_path}/hansard-xml-master/{house}/{year}/{file}",
-                        f"./scrapers/raw_sources/hansard/{house}/{grab_and_format_yyyymmdd(file)}.xml",
-                    )
-            # Clean
-            if os.path.exists(
-                f"./scrapers/raw_sources/hansard/{house}/None.xml"
-            ):
-                os.remove(f"./scrapers/raw_sources/hansard/{house}/None.xml")
+    # Add Hansard XMLs from CSV
+    for _, row in df.iterrows():
+        outpath = os.path.join(args.outfile, f'{row.date}.xml')
+        download_list.append((f'{base_url}{row.url}', outpath))
 
-    # OpenAustralia URLs (these are already in YYYY-mm-dd.xml)
-    reps_urls = list_xml_files_from_html(
-        "http://data.openaustralia.org.au/origxml/representatives_debates/"
-    )
-    senate_urls = list_xml_files_from_html(
-        "http://data.openaustralia.org.au/origxml/senate_debates/"
-    )
+    # Add OpenAustralia XMLs
+    open_url = ("http://data.openaustralia.org.au/origxml/senate_debates/"
+                if house == "senate"
+                else "http://data.openaustralia.org.au/origxml/representatives_debates/")
+    open_urls = list_xml_files_from_html(open_url)
+    for url in open_urls:
+        filename = os.path.basename(url)
+        outpath = os.path.join(args.outfile, filename)
+        download_list.append((url, outpath))
 
-    # Download OpenAustralia files (names unchanged)
-    download_files(reps_urls, "scrapers/raw_sources/hansard/hofreps")
-    download_files(senate_urls, "scrapers/raw_sources/hansard/senate")
-
-    # Clean Up
-    base_path = "./scrapers/raw_sources/hansard"
-    folders = ["senate", "hofreps"]
+    # Run async downloader
+    asyncio.run(main(download_list, max_concurrent=20))

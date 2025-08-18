@@ -113,8 +113,14 @@ def add_party_affiliation(
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("outfile")
+    args = parser.parse_args()
+
+    parliaments_data = requests.get(
+        "https://handbookapi.aph.gov.au/api/parliaments"
+    ).json()
     data = requests.get("https://handbookapi.aph.gov.au/api/individuals").json()
-    data["fetchDate"] = datetime.today().strftime("%Y-%m-%d")
 
     add_party_affiliation(
         data,
@@ -138,26 +144,26 @@ def main():
     update_personal_info(data, "BU4", {"PreferredName": "(Doug)"})
 
     add_alt_id(data, "KIM", "YI7")
-    add_alt_id(data,"009MA", "EL7")
-    add_alt_id(data,"00ATA", "TE7")
+    add_alt_id(data, "009MA", "EL7")
+    add_alt_id(data, "00ATA", "TE7")
     add_alt_id(data, "JRD", "037")
     add_alt_id(data, "KCT", "Y87")
-    add_alt_id(data, "KSF", 'DL7')
-    add_alt_id(data,"JVD", "9M7")
-    add_alt_id(data,"JRU", "837")
-    add_alt_id(data,"KNK", "XD7" )
+    add_alt_id(data, "KSF", "DL7")
+    add_alt_id(data, "JVD", "9M7")
+    add_alt_id(data, "JRU", "837")
+    add_alt_id(data, "KNK", "XD7")
     add_alt_id(data, "KJA", "LF7")
-    add_alt_id(data,"K9M", '6G7')
-    add_alt_id(data,"KCE","B87" )
-    add_alt_id(data, "K5A", "AN7" )
-    add_alt_id(data,  "KVM", "FS7")
-    add_alt_id(data, 'KSJ', "014" )
+    add_alt_id(data, "K9M", "6G7")
+    add_alt_id(data, "KCE", "B87")
+    add_alt_id(data, "K5A", "AN7")
+    add_alt_id(data, "KVM", "FS7")
+    add_alt_id(data, "KSJ", "014")
     add_alt_id(data, "KVY", "ZS7")
-    add_alt_id(data, "KDP", 'V97')
+    add_alt_id(data, "KDP", "V97")
     add_alt_id(data, "JVV", "WM7")
     add_alt_id(data, "DRW", "XF7")
     add_alt_id(data, "009OD", "0N7")
-    add_alt_id(data, "JUS", "ML7")
+    add_alt_id(data, "JUST", "ML7")
     add_alt_id(data, "JM9", "Q07")
     add_alt_id(data, "KJU", "WF7")
     add_alt_id(data, "KEO", "6A7")
@@ -175,7 +181,7 @@ def main():
     add_alt_id(data, "KIK", "VI7")
     add_alt_id(data, "4I4", "BL7")
     add_alt_id(data, "DQF", "MR7")
-    add_alt_id(data,'JMI', "IT4")
+    add_alt_id(data, "JMI", "IT4")
     add_alt_id(data, "ZD4", "ZD7")
     add_alt_id(data, "KEI", "4H7")
     add_alt_id(data, "1B6", "DU7")
@@ -188,10 +194,10 @@ def main():
     # "G5F" Harper steven
     add_alt_id(data, "00APG", "APG")
     add_alt_id(data, "8IS", "81S")
-    #DVB president of indonesia
-    #"GYB" OBAMA
-    add_alt_id(data,'DYN', 'oneDYNDYN')
-    #"TO3" Chairman of committees
+    # DVB president of indonesia
+    # "GYB" OBAMA
+    add_alt_id(data, "DYN", "oneDYNDYN")
+    # "TO3" Chairman of committees
     add_alt_id(data, "KRE", "KEROSENE")
     add_alt_id(data, "K5H", "MQ7")
     add_alt_id(data, "KPV", "IH7")
@@ -239,13 +245,15 @@ def main():
     add_alt_id(data, "E68", "sE68")
     add_alt_id(data, "281558", "009FX")
     add_alt_id(data, "283585", "FRD")
-    with open("scrapers/raw_sources/politicians.json", "w") as f:
-        json.dump(data, f, indent=2)
 
-    data = requests.get("https://handbookapi.aph.gov.au/api/parliaments").json()
+    out = {
+        "fetchDate": datetime.today().strftime("%Y-%m-%d"),
+        "parliaments": parliaments_data,
+        "politicians": data,
+    }
 
-    with open("scrapers/raw_sources/parliaments.json", "w") as f:
-        json.dump(data, f, indent=2)
+    with open(args.outfile, "w") as f:
+        json.dump(out, f, indent=2)
 
 
 if __name__ == "__main__":

@@ -304,108 +304,92 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
 
 
+
 async def main(source):
     db = Prisma()
     await db.connect()
 
+    # Step 1: Gather all files
     all_files = []
     folder_path = source
     if os.path.exists(folder_path):
         files = os.listdir(folder_path)
-        # Optionally, join folder name for full paths:
         files = [os.path.join(folder_path, f) for f in files]
         all_files.extend(files)
 
     all_files = sorted(all_files)
-    source_name = (
-        "Senate Hansard" if "senate" in source else "House of Reps Hansard"
-    )
+    source_name = "Senate Hansard" if "senate" in source else "House of Reps Hansard"
 
-    for filename in tqdm(all_files, total=len(all_files)):
-        ## Generate the filenames
-        names = filename.split("/")
+    # Step 2: Parse everything first
+    all_documents = []
+    for filename in tqdm(all_files, desc="Parsing files"):
         try:
-            self = HansardSpeechExtractor(filename, date=names[-1][:10])
-            results = self.extract()
-            if len(results) == 0:
-                raise Exception(f"{filename} failed to parse")
-            for document in results:
-                if (
-                    document["type"] == "question"
-                    and "answer" in document.keys()
-                ):
-                    await db.document.create(
-                        data={
-                            "text": document["text"],
-                            "date": datetime.datetime.strptime(
-                                document["date"], "%Y-%m-%d"
-                            ),
-                            "type": document["type"],
-                            "author": {
-                                "connectOrCreate": {
-                                    "where": {
-                                        "rawName": document["author"],
-                                    },
-                                    "create": {
-                                        "rawName": document["author"],
-                                    },
-                                }
-                            },
-                            "source": {"connect": {"name": source_name}},
-                            "citedBy": {
-                                "create": {
-                                    "text": document["answer"]["text"],
-                                    "date": datetime.datetime.strptime(
-                                        document["answer"]["date"],
-                                        "%Y-%m-%d",
-                                    ),
-                                    "type": document["answer"]["type"],
-                                    "source": {
-                                        "connect": {"name": source_name}
-                                    },
-                                    "author": {
-                                        "connectOrCreate": {
-                                            "where": {
-                                                "rawName": document["answer"][
-                                                    "author"
-                                                ],
-                                            },
-                                            "create": {
-                                                "rawName": document["answer"][
-                                                    "author"
-                                                ],
-                                            },
-                                        },
-                                    },
-                                },
-                            },
-                        }
-                    )
-                else:
-                    await db.document.create(
-                        data={
-                            "text": document["text"],
-                            "date": datetime.datetime.strptime(
-                                document["date"], "%Y-%m-%d"
-                            ),
-                            "type": document["type"],
-                            "author": {
-                                "connectOrCreate": {
-                                    "where": {
-                                        "rawName": document["author"],
-                                    },
-                                    "create": {
-                                        "rawName": document["author"],
-                                    },
-                                }
-                            },
-                            "source": {"connect": {"name": source_name}},
-                        }
-                    )
-
+            names = filename.split("/")
+            extractor = HansardSpeechExtractor(filename, date=names[-1][:10])
+            results = extractor.extract()
+            if results:
+                all_documents.extend(results)
         except EmptyDocumentError:
-            pass
+            continue
 
+    print(f"Parsed {len(all_documents)} documents, ready for DB write.")
+
+    # Step 3: Prepare async DB tasks
+    tasks = []
+    for document in all_documents:
+        if document["type"] == "question" and "answer" in document:
+            task = db.document.create(
+                data={
+                    "text": document["text"],
+                    "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"),
+                    "type": document["type"],
+                    "author": {
+                        "connectOrCreate": {
+                            "where": {"rawName": document["author"]},
+                            "create": {"rawName": document["author"]},
+                        }
+                    },
+                    "source": {"connect": {"name": source_name}},
+                    "citedBy": {
+                        "create": {
+                            "text": document["answer"]["text"],
+                            "date": datetime.datetime.strptime(document["answer"]["date"], "%Y-%m-%d"),
+                            "type": document["answer"]["type"],
+                            "source": {"connect": {"name": source_name}},
+                            "author": {
+                                "connectOrCreate": {
+                                    "where": {"rawName": document["answer"]["author"]},
+                                    "create": {"rawName": document["answer"]["author"]},
+                                }
+                            },
+                        }
+                    },
+                }
+            )
+            tasks.append(task)
+        else:
+            task = db.document.create(
+                data={
+                    "text": document["text"],
+                    "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"),
+                    "type": document["type"],
+                    "author": {
+                        "connectOrCreate": {
+                            "where": {"rawName": document["author"]},
+                            "create": {"rawName": document["author"]},
+                        }
+                    },
+                    "source": {"connect": {"name": source_name}},
+                }
+            )
+            tasks.append(task)
+
+    # Step 4: Run DB writes asynchronously in batches
+    batch_size = 50
+    for i in tqdm(range(0, len(tasks), batch_size), desc="Writing to DB"):
+        await asyncio.gather(*tasks[i : i + batch_size])
+
+    await db.disconnect()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

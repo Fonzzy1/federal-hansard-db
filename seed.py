@@ -1,66 +1,68 @@
-import asyncio
 from prisma import Prisma
 
+db = Prisma()
 
 async def main():
-    db = Prisma()
     await db.connect()
 
-    # Example: add two sources
     await db.source.create(
-        data={
+        data = {
             "name": "House of Reps Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/hansard.py",
-            "outFile": "scrapers/raw_sources/hansard/hofreps",
-            "inFile": "",  # optional
+            "script": "parsers/hansard.js",
+            "scrape": "scrapers/hansard.js",
+            "outFile": "/Data/raw_sources/hansard/hofreps",
+            "inFile": "",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": {"name": "Hansard"},
-                        "create": {"name": "Hansard"},
-                    }
-                ]
-            },
-        }
-    )
-    await db.source.create(
-        data={
-            "name": "Senate Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/hansard.py",
-            "outFile": "scrapers/raw_sources/hansard/senate",
-            "inFile": "--is-senate",  # optional
-            "groups": {
-                "connectOrCreate": [
-                    {
-                        "where": {"name": "Hansard"},
-                        "create": {"name": "Hansard"},
-                    }
-                ]
+                        "where": { "name": "Hansard" },
+                        "create": { "name": "Hansard" },
+                    },
+                ],
             },
         }
     )
 
     await db.source.create(
-        data={
-            "name": "Politicians",
-            "script": "parsers/politicians.py",
-            "scrape": "scrapers/politicians.py",
-            "outFile": "scrapers/raw_sources/parliament_data.json",
+        data = {
+            "name": "Senate Hansard",
+            "script": "parsers/hansard.js",
+            "scrape": "scrapers/hansard.js",
+            "outFile": "/Data/raw_sources/hansard/senate",
+            "inFile": "--is-senate",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": {"name": "Metadata"},
-                        "create": {"name": "Metadata"},
-                    }
-                ]
+                        "where": { "name": "Hansard" },
+                        "create": { "name": "Hansard" },
+                    },
+                ],
+            },
+        }
+    )
+
+    await db.source.create(
+        data = {
+            "name": "Politicians",
+            "script": "parsers/politicians.js",
+            "scrape": "scrapers/politicians.js",
+            "outFile": "/Data/raw_sources/parliament_data.json",
+            "groups": {
+                "connectOrCreate": [
+                    {
+                        "where": { "name": "Metadata" },
+                        "create": { "name": "Metadata" },
+                    },
+                ],
             },
         }
     )
 
     await db.disconnect()
 
-
-if __name__ == "__main__":
+import asyncio
+try:
     asyncio.run(main())
+except Exception as e:
+    print(e)
+    asyncio.run(db.disconnect())
