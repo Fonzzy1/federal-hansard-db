@@ -2,12 +2,12 @@ from prisma import Prisma
 import argparse
 import asyncio
 import os
-import xml.etree.ElementTree as ET
+from concurrent.futures import ProcessPoolExecutor
 from tqdm import tqdm
-import lxml.etree as ET
-from lxml import html
-import re
 import datetime
+import re
+from lxml import html
+import lxml.etree as ET
 
 
 """
@@ -277,7 +277,7 @@ class HansardSpeechExtractor:
         #     for x in elem
         # ):
         #     return ""
-        print(str(ET.tostring(elem, encoding="unicode")))
+        #print(str(ET.tostring(elem, encoding="unicode")))
         return ""
 
         raise FailedTalkerExtractionException(elem)
@@ -305,95 +305,76 @@ def print_tag_tree(element, max_depth, indent=0):
 
 
 
-async def main(source):
+# --------------------------
+# Parsing function (CPU-bound)
+# --------------------------
+def parse_file_sync(filename):
+    try:
+        names = filename.split("/")
+        extractor = HansardSpeechExtractor(filename, date=names[-1][:10])
+        results = extractor.extract()
+    except Exception:
+        results = []
+    return results
+
+# --------------------------
+# Async DB insertion
+# --------------------------
+async def insert_documents(db, documents, source_name): 
+    for document in tqdm(documents,total=len(documents),desc="Inserting Documents"):
+        if document["type"] == "question" and "answer" in document: 
+            await db.document.create( data={ "text": document["text"], "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"), "type": document["type"], "author": { "connectOrCreate": { "where": {"rawName": document["author"]}, "create": {"rawName": document["author"]}, } }, "source": {"connect": {"name": source_name}}, "citedBy": { "create": { "text": document["answer"]["text"], "date": datetime.datetime.strptime(document["answer"]["date"], "%Y-%m-%d"), "type": document["answer"]["type"], "source": {"connect": {"name": source_name}}, "author": { "connectOrCreate": { "where": {"rawName": document["answer"]["author"]}, "create": {"rawName": document["answer"]["author"]}, } }, } }, } ) 
+        else: await db.document.create( data={ "text": document["text"], "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"), "type": document["type"], "author": { "connectOrCreate": { "where": {"rawName": document["author"]}, "create": {"rawName": document["author"]}, } }, "source": {"connect": {"name": source_name}}, } )
+
+# --------------------------
+# Main
+# --------------------------
+async def main(source_out_file):
     db = Prisma()
     await db.connect()
 
-    # Step 1: Gather all files
-    all_files = []
-    folder_path = source
-    if os.path.exists(folder_path):
-        files = os.listdir(folder_path)
-        files = [os.path.join(folder_path, f) for f in files]
-        all_files.extend(files)
+    # Find source name in DB
+    source_obj = await db.source.find_many(where={'outFile': source_out_file})
+    if not source_obj:
+        raise ValueError(f"No source found with outFile={source_out_file}")
+    source_name = source_obj[0].name
 
-    all_files = sorted(all_files)
-    source_name = "Senate Hansard" if "senate" in source else "House of Reps Hansard"
+    all_files = sorted([os.path.join(source_out_file, f) for f in os.listdir(source_out_file)])
 
-    # Step 2: Parse everything first
-    all_documents = []
-    for filename in tqdm(all_files, desc="Parsing files"):
+    # Step 1: get existing document dates
+    existing_docs = await db.document.find_many(
+        where={"source": {"name": source_name}},
+    )
+    existing_dates = {doc.date for doc in existing_docs}
+
+    files_to_parse = []
+    for f in all_files:
         try:
-            names = filename.split("/")
-            extractor = HansardSpeechExtractor(filename, date=names[-1][:10])
-            results = extractor.extract()
-            if results:
-                all_documents.extend(results)
-        except EmptyDocumentError:
-            continue
+            file_date = datetime.datetime.strptime(os.path.basename(f)[:10], "%Y-%m-%d").date()
+            if file_date not in existing_dates:
+                files_to_parse.append(f)
+        except Exception:
+            files_to_parse.append(f)
 
-    print(f"Parsed {len(all_documents)} documents, ready for DB write.")
+    loop = asyncio.get_running_loop()
+    results = []
 
-    # Step 3: Prepare async DB tasks
-    tasks = []
-    for document in all_documents:
-        if document["type"] == "question" and "answer" in document:
-            task = db.document.create(
-                data={
-                    "text": document["text"],
-                    "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"),
-                    "type": document["type"],
-                    "author": {
-                        "connectOrCreate": {
-                            "where": {"rawName": document["author"]},
-                            "create": {"rawName": document["author"]},
-                        }
-                    },
-                    "source": {"connect": {"name": source_name}},
-                    "citedBy": {
-                        "create": {
-                            "text": document["answer"]["text"],
-                            "date": datetime.datetime.strptime(document["answer"]["date"], "%Y-%m-%d"),
-                            "type": document["answer"]["type"],
-                            "source": {"connect": {"name": source_name}},
-                            "author": {
-                                "connectOrCreate": {
-                                    "where": {"rawName": document["answer"]["author"]},
-                                    "create": {"rawName": document["answer"]["author"]},
-                                }
-                            },
-                        }
-                    },
-                }
-            )
-            tasks.append(task)
-        else:
-            task = db.document.create(
-                data={
-                    "text": document["text"],
-                    "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"),
-                    "type": document["type"],
-                    "author": {
-                        "connectOrCreate": {
-                            "where": {"rawName": document["author"]},
-                            "create": {"rawName": document["author"]},
-                        }
-                    },
-                    "source": {"connect": {"name": source_name}},
-                }
-            )
-            tasks.append(task)
+    # CPU-bound parsing
+    with ProcessPoolExecutor() as executor:
+        tasks = [loop.run_in_executor(executor, parse_file_sync, f) for f in files_to_parse]
+        for f in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="Parsing files"):
+            results.extend(await f)
 
-    # Step 4: Run DB writes asynchronously in batches
-    batch_size = 50
-    for i in tqdm(range(0, len(tasks), batch_size), desc="Writing to DB"):
-        await asyncio.gather(*tasks[i : i + batch_size])
+    # Batch insert with tqdm
+    await insert_documents(db, results, source_name)
 
     await db.disconnect()
 
+# --------------------------
+# Entry point
+# --------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    # Positional (non-named) argument(s)
-    parser.add_argument("source", help="The source name to scrape")
+    parser.add_argument("source_out_file", help="Source outFile to lookup in DB")
     args = parser.parse_args()
-    asyncio.run(main(args.source))
+    asyncio.run(main(args.source_out_file))

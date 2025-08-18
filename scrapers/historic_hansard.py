@@ -43,8 +43,7 @@ if __name__ == "__main__":
             local_zip_path = os.path.join(tmpdir, "master.zip")
             
             # Download with progress bar
-            response =
-            requests.get('https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip', stream=True)
+            response = requests.get('https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip', stream=True)
             total_size = int(response.headers.get('content-length', 0))
             block_size = 1024
             
