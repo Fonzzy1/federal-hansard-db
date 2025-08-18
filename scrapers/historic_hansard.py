@@ -37,55 +37,50 @@ if __name__ == "__main__":
 
     house = "senate" if args.is_senate else "hofreps"
     ensure_dir(args.outfile)
-    # --- Settings ---
-    url = "https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip"
-    house = "commons"  # or "lords"
-    args_outfile = "output_folder"  # replace with your actual output folder
-
-    # --- Download to a temp directory ---
-    with tempfile.TemporaryDirectory() as tmpdir:
-        local_zip_path = os.path.join(tmpdir, "master.zip")
-        
-        # Download with progress bar
-        response = requests.get(url, stream=True)
-        total_size = int(response.headers.get('content-length', 0))
-        block_size = 1024
-        
-        with open(local_zip_path, 'wb') as f, tqdm(
-            desc="Downloading",
-            total=total_size,
-            unit='B',
-            unit_scale=True,
-            unit_divisor=1024
-        ) as bar:
-            for data in response.iter_content(block_size):
-                f.write(data)
-                bar.update(len(data))
-        
-        # --- Unzip in temp dir ---
-        with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-            zip_ref.extractall(tmpdir)
-        
-        extracted_folder = os.path.join(tmpdir, "hansard-xml-master", house)
-        
-
-        # --- Process files ---
-        all_files = []
-        for root, dirs, files in os.walk(extracted_folder):
-            for filename in files:
-                all_files.append((root, filename))
-
-        for root, filename in tqdm(all_files):
-            file_path = os.path.join(root, filename)
+    if not os.path.exists(os.path.join(args.outfile, '1901-05-09.xml')):
+        # --- Download to a temp directory ---
+        with tempfile.TemporaryDirectory() as tmpdir:
+            local_zip_path = os.path.join(tmpdir, "master.zip")
             
-            # Replace with your function
-            yyyymmdd = grab_and_format_yyyymmdd(filename)
+            # Download with progress bar
+            response =
+            requests.get('https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip', stream=True)
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 1024
             
-            # Prepare output path
-            os.makedirs(args.outfile, exist_ok=True)
-            output_file = os.path.join(args.outfile, f"{yyyymmdd}.xml")
+            with open(local_zip_path, 'wb') as f, tqdm(
+                desc="Downloading",
+                total=total_size,
+                unit='B',
+                unit_scale=True,
+                unit_divisor=1024
+            ) as bar:
+                for data in response.iter_content(block_size):
+                    f.write(data)
+                    bar.update(len(data))
             
-            # Move the file
-            shutil.move(file_path, output_file)
-        
-        print("All files processed.")
+            # --- Unzip in temp dir ---
+            with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(tmpdir)
+            
+            extracted_folder = os.path.join(tmpdir, "hansard-xml-master", house)
+            
+
+            # --- Process files ---
+            all_files = []
+            for root, dirs, files in os.walk(extracted_folder):
+                for filename in files:
+                    all_files.append((root, filename))
+
+            for root, filename in tqdm(all_files):
+                file_path = os.path.join(root, filename)
+                
+                # Replace with your function
+                yyyymmdd = grab_and_format_yyyymmdd(filename)
+                
+                output_file = os.path.join(args.outfile, f"{yyyymmdd}.xml")
+                
+                # Move the file
+                shutil.move(file_path, output_file)
+            
+            print("All files processed.")
