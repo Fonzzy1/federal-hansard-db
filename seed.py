@@ -92,22 +92,44 @@ async def main():
         }
     )
 
+
     await db.source.create(
         data = {
-            "name": "Politicians",
-            "script": "parsers/politicians.js",
-            "scrape": "scrapers/politicians.js",
-            "outFile": "/Data/raw_sources/parliament_data.json",
+            "name": "Historic House of Reps Hansard",
+            "script": "parsers/hansard.py",
+            "scrape": "scrapers/historic_hansard.py",
+            "outFile": "/Data/raw_sources/hansard/historic/hofreps",
+            "inFile": "",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": { "name": "Metadata" },
-                        "create": { "name": "Metadata" },
+                        "where": { "name": "Hansard" },
+                        "create": { "name": "Hansard" },
+                    },
+                    {
+                        "where": { "name": "House of Reps" },
+                        "create": { "name": "House of Reps" },
                     },
                 ],
             },
         }
     )
+
+    await db.infrastructuregroup.create(
+        data = {
+            "name": "Renewables",
+            "infrastructureTypes": {
+                "create": [
+                    {
+                        "name": "solar",
+                        "infrastructures": {
+                            "create": [{"name": "Rooftop Solar"}]
+                        }
+                    }
+                ]
+            }
+        
+        })
 
     await db.disconnect()
 

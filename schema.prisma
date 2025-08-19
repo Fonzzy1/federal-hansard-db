@@ -13,26 +13,24 @@ datasource db {
 // outFile. Then use the script file with the argyment of the outFile to get it
 // into the database. 
 model Source {
-    id                Int                 @id @default(autoincrement())
-    name              String              @unique
-    script            String
-    scrape            String
-    outFile           String
-    inFile            String?
-    dateAdded         DateTime            @default(now())
-    dateModified      DateTime            @updatedAt
-    documents         Document[]
-    SourceGroupSource SourceGroupSource[]
-    groups            SourceGroup[]       @relation("SourceToSourceGroup")
+    id           Int           @id @default(autoincrement())
+    name         String        @unique
+    script       String
+    scrape       String
+    outFile      String
+    inFile       String?
+    dateAdded    DateTime      @default(now())
+    dateModified DateTime      @updatedAt
+    documents    Document[]
+    groups       SourceGroup[] @relation("SourceToSourceGroup")
 }
 
 model SourceGroup {
-    id                Int                 @id @default(autoincrement())
-    name              String              @unique
-    dateAdded         DateTime            @default(now())
-    dateModified      DateTime            @updatedAt
-    SourceGroupSource SourceGroupSource[]
-    sources           Source[]            @relation("SourceToSourceGroup")
+    id           Int      @id @default(autoincrement())
+    name         String   @unique
+    dateAdded    DateTime @default(now())
+    dateModified DateTime @updatedAt
+    sources      Source[] @relation("SourceToSourceGroup")
 }
 
 model Author {
@@ -141,58 +139,72 @@ model DocumentFilter {
 }
 
 model Issue {
-    id           Int       @id @default(autoincrement())
-    name         String
-    dimensionid  Int
-    dateAdded    DateTime  @default(now())
-    dateModified DateTime  @updatedAt
-    dimension    Dimension @relation(fields: [dimensionid], references: [id])
-}
-
-model Dimension {
     id              Int              @id @default(autoincrement())
-    name            String           @unique
+    name            String
+    issueTypeId     Int
     dateAdded       DateTime         @default(now())
     dateModified    DateTime         @updatedAt
+    type            IssueType        @relation(fields: [issueTypeId], references: [id])
     deconstructions Deconstruction[]
-    issues          Issue[]
+}
+
+model IssueType {
+    id           Int      @id @default(autoincrement())
+    name         String   @unique
+    dateAdded    DateTime @default(now())
+    dateModified DateTime @updatedAt
+    issues       Issue[]
+}
+
+model Deconstruction {
+    id                    Int                 @id @default(autoincrement())
+    claimId               Int
+    valence               Int
+    issueId               Int
+    deconstructorId       Int
+    dateAdded             DateTime            @default(now())
+    dateModified          DateTime            @updatedAt
+    deconstructor         Deconstructor       @relation(fields: [deconstructorId], references: [id])
+    issue                 Issue               @relation(fields: [issueId], references: [id])
+    claim                 Claim               @relation(fields: [claimId], references: [id])
+    Infrastructure        Infrastructure?     @relation(fields: [infrastructureId], references: [id])
+    infrastructureId      Int?
+    InfrastructureType    InfrastructureType? @relation(fields: [infrastructureTypeId], references: [id])
+    infrastructureTypeId  Int?
+    InfrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
+    infrastructureGroupId Int
+
+    @@unique([claimId, deconstructorId])
 }
 
 model Infrastructure {
-    id                                  Int                                   @id @default(autoincrement())
-    name                                String                                @unique
-    dateAdded                           DateTime                              @default(now())
-    dateModified                        DateTime                              @updatedAt
-    deconstructions                     Deconstruction[]
-    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
-    groups                              InfrastructureGroup[]                 @relation("InfraToInfraGroup")
+    id                   Int                @id @default(autoincrement())
+    name                 String             @unique
+    dateAdded            DateTime           @default(now())
+    dateModified         DateTime           @updatedAt
+    deconstructions      Deconstruction[]
+    InfrastructureType   InfrastructureType @relation(fields: [infrastructureTypeId], references: [id])
+    infrastructureTypeId Int
+}
+
+model InfrastructureType {
+    id                    Int                 @id @default(autoincrement())
+    name                  String              @unique
+    dateAdded             DateTime            @default(now())
+    dateModified          DateTime            @updatedAt
+    deconstructions       Deconstruction[]
+    infrastructures       Infrastructure[] // <-- fixed spelling
+    InfrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
+    infrastructureGroupId Int
 }
 
 model InfrastructureGroup {
-    id                                  Int                                   @id @default(autoincrement())
-    name                                String                                @unique
-    dateAdded                           DateTime                              @default(now())
-    dateModified                        DateTime                              @updatedAt
-    InfrastructureGroupOnInfrastructure InfrastructureGroupOnInfrastructure[]
-    infrastructures                     Infrastructure[]                      @relation("InfraToInfraGroup")
-}
-
-model SourceGroupSource {
-    sourceId      Int
-    sourceGroupId Int
-    sourceGroup   SourceGroup @relation(fields: [sourceGroupId], references: [id])
-    source        Source      @relation(fields: [sourceId], references: [id])
-
-    @@id([sourceId, sourceGroupId])
-}
-
-model InfrastructureGroupOnInfrastructure {
-    infrastructureId      Int
-    infrastructureGroupId Int
-    infrastructureGroup   InfrastructureGroup @relation(fields: [infrastructureGroupId], references: [id])
-    infrastructure        Infrastructure      @relation(fields: [infrastructureId], references: [id])
-
-    @@id([infrastructureId, infrastructureGroupId])
+    id                  Int                  @id @default(autoincrement())
+    name                String               @unique
+    dateAdded           DateTime             @default(now())
+    dateModified        DateTime             @updatedAt
+    deconstructions     Deconstruction[]
+    infrastructureTypes InfrastructureType[]
 }
 
 model Extractor {
@@ -219,21 +231,4 @@ model Claim {
     extractor      Extractor        @relation(fields: [extractorId], references: [id])
     document       Document         @relation(fields: [documentid], references: [id])
     deconstruction Deconstruction[]
-}
-
-model Deconstruction {
-    id               Int            @id @default(autoincrement())
-    claimId          Int
-    infrastructureId Int
-    valence          Int
-    dimensionId      Int?
-    deconstructorId  Int
-    dateAdded        DateTime       @default(now())
-    dateModified     DateTime       @updatedAt
-    deconstructor    Deconstructor  @relation(fields: [deconstructorId], references: [id])
-    Dimension        Dimension?     @relation(fields: [dimensionId], references: [id])
-    infrastructure   Infrastructure @relation(fields: [infrastructureId], references: [id])
-    claim            Claim          @relation(fields: [claimId], references: [id])
-
-    @@unique([claimId, deconstructorId])
 }
