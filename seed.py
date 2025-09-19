@@ -2,24 +2,24 @@ from prisma import Prisma
 
 db = Prisma()
 
+
 async def main():
     await db.connect()
     await db.source.create(
-        data = {
+        data={
             "name": "Historic House of Reps Hansard",
             "script": "parsers/hansard.py",
             "scrape": "scrapers/historic_hansard.py",
-            "outFile": "/Data/raw_sources/hansard/historic/hofreps",
             "inFile": "",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": { "name": "Hansard" },
-                        "create": { "name": "Hansard" },
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
                     },
                     {
-                        "where": { "name": "House of Reps" },
-                        "create": { "name": "House of Reps" },
+                        "where": {"name": "House of Reps"},
+                        "create": {"name": "House of Reps"},
                     },
                 ],
             },
@@ -27,21 +27,20 @@ async def main():
     )
 
     await db.source.create(
-        data = {
+        data={
             "name": "Historic Senate Hansard",
             "script": "parsers/hansard.py",
             "scrape": "scrapers/historic_hansard.py",
-            "outFile": "/Data/raw_sources/hansard/historic/senate",
             "inFile": "--is-senate",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": { "name": "Hansard" },
-                        "create": { "name": "Hansard" },
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
                     },
                     {
-                        "where": { "name": "Senate" },
-                        "create": { "name": "Senate" },
+                        "where": {"name": "Senate"},
+                        "create": {"name": "Senate"},
                     },
                 ],
             },
@@ -49,21 +48,20 @@ async def main():
     )
 
     await db.source.create(
-        data = {
+        data={
             "name": "Modern House of Reps Hansard",
             "script": "parsers/hansard.py",
             "scrape": "scrapers/hansard.py",
-            "outFile": "/Data/raw_sources/hansard/modern/hofreps",
             "inFile": "",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": { "name": "Hansard" },
-                        "create": { "name": "Hansard" },
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
                     },
                     {
-                        "where": { "name": "House of Reps" },
-                        "create": { "name": "House of Reps" },
+                        "where": {"name": "House of Reps"},
+                        "create": {"name": "House of Reps"},
                     },
                 ],
             },
@@ -71,69 +69,28 @@ async def main():
     )
 
     await db.source.create(
-        data = {
+        data={
             "name": "Modern Senate Hansard",
             "script": "parsers/hansard.py",
-            "scrape": "scrapers/hansard.py",
-            "outFile": "/Data/raw_sources/hansard/modern/senate",
             "inFile": "--is-senate",
             "groups": {
                 "connectOrCreate": [
                     {
-                        "where": { "name": "Hansard" },
-                        "create": { "name": "Hansard" },
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
                     },
                     {
-                        "where": { "name": "Senate" },
-                        "create": { "name": "Senate" },
-                    },
-                ],
-            },
-        }
-    )
-
-
-    await db.source.create(
-        data = {
-            "name": "Historic House of Reps Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/historic_hansard.py",
-            "outFile": "/Data/raw_sources/hansard/historic/hofreps",
-            "inFile": "",
-            "groups": {
-                "connectOrCreate": [
-                    {
-                        "where": { "name": "Hansard" },
-                        "create": { "name": "Hansard" },
-                    },
-                    {
-                        "where": { "name": "House of Reps" },
-                        "create": { "name": "House of Reps" },
+                        "where": {"name": "Senate"},
+                        "create": {"name": "Senate"},
                     },
                 ],
             },
         }
     )
 
-    await db.infrastructuregroup.create(
-        data = {
-            "name": "Renewables",
-            "infrastructureTypes": {
-                "create": [
-                    {
-                        "name": "solar",
-                        "infrastructures": {
-                            "create": [{"name": "Rooftop Solar"}]
-                        }
-                    }
-                ]
-            }
-        
-        })
-
-    await db.disconnect()
 
 import asyncio
+
 try:
     asyncio.run(main())
 except Exception as e:

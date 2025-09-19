@@ -27,14 +27,8 @@ def list_xml_files_from_html(url):
     return files
 
 
-# ---- Async download ----
-
-
 async def download_file(session, url, outpath, retries=3):
     """Download a single file, skipping if it already exists, with retries."""
-    if os.path.exists(outpath):
-        return "skipped"
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0 Safari/537.36"
     }
@@ -54,7 +48,7 @@ async def download_file(session, url, outpath, retries=3):
                 return f"failed: {e}"
 
 
-async def main(download_list, max_concurrent=20):
+async def download(download_list, max_concurrent=20):
     if not download_list:
         print("No files to download.")
         return
@@ -76,27 +70,25 @@ async def main(download_list, max_concurrent=20):
 
 # ---- Main ----
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Async Hansard Scraper")
-    parser.add_argument("--is-senate", action="store_true")
-    parser.add_argument("outfile", help="Output folder for downloaded XMLs")
-    args = parser.parse_args()
 
-    house = "senate" if args.is_senate else "hofreps"
-    ensure_dir(args.outfile)
+def scraper(db, is_senate=False, source_id=None):
+    house = "senate" if is_senate else "hofreps"
 
-    download_list = []
     # Add OpenAustralia XMLs
     open_url = (
         "http://data.openaustralia.org.au/origxml/senate_debates/"
         if house == "senate"
         else "http://data.openaustralia.org.au/origxml/representatives_debates/"
     )
-    open_urls = list_xml_files_from_html(open_url)
-    for url in open_urls:
-        filename = os.path.basename(url)
-        outpath = os.path.join(args.outfile, filename)
-        download_list.append((url, outpath))
+    urls = list_xml_files_from_html(open_url)
 
-    # Run async downloader
-    asyncio.run(main(download_list, max_concurrent=20))
+    for file in urls:
+        file_name = parse_filename(file)
+        existing_file = await db.rawDocument.find_unique(
+            where={"name": file_name, "sourceId": source_id}
+        )
+        if existing_file:
+            pass
+        else:
+            file_string = download_file(urls)
+            await upload_file(source_id, file_name, file_string)
