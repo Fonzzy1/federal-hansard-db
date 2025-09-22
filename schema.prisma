@@ -4,8 +4,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:/Data/dev.db"
+  provider = "postgresql"
+  url      = "postgresql://prisma_user:prisma_password@localhost:5432/prisma_db?schema=public"
 }
 
 ///  Sources 
