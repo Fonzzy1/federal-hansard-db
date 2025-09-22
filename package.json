@@ -1,7 +1,13 @@
 {
-    "name": "database",
-    "version": "0.0.0",
-    "prisma": {
-        "seed": "python3 seed.py"
-    }
+  "name": "federal-hansard-db",
+  "version": "0.0.0",
+  "prisma": {
+    "seed": "python3 seed.py"
+  },
+  "scripts": {
+    "migrate": "prisma migrate dev",
+    "generate": "prisma generate",
+    "reset": "prisma migrate reset",
+    "seed": "python3 seed.py"
+  }
 }
