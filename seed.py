@@ -1,4 +1,5 @@
 from prisma import Prisma
+import asyncio
 
 db = Prisma()
 
@@ -8,9 +9,9 @@ async def main():
     await db.source.create(
         data={
             "name": "Historic House of Reps Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/historic_hansard.py",
-            "inFile": "",
+            "parserModule": "parsers/hansard",
+            "scraperModule": "scrapers/historic_hansard",
+            "args": "",
             "groups": {
                 "connectOrCreate": [
                     {
@@ -29,9 +30,9 @@ async def main():
     await db.source.create(
         data={
             "name": "Historic Senate Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/historic_hansard.py",
-            "inFile": "--is-senate",
+            "parserModule": "parsers/hansard.py",
+            "scraperModule": "scrapers/historic_hansard.py",
+            "args": "{'senate':true}",
             "groups": {
                 "connectOrCreate": [
                     {
@@ -50,9 +51,9 @@ async def main():
     await db.source.create(
         data={
             "name": "Modern House of Reps Hansard",
-            "script": "parsers/hansard.py",
-            "scrape": "scrapers/hansard.py",
-            "inFile": "",
+            "parserModule": "parsers/hansard.py",
+            "scraperModule": "scrapers/hansard.py",
+            "args": "",
             "groups": {
                 "connectOrCreate": [
                     {
@@ -71,8 +72,9 @@ async def main():
     await db.source.create(
         data={
             "name": "Modern Senate Hansard",
-            "script": "parsers/hansard.py",
-            "inFile": "--is-senate",
+            "parserModule": "parsers/hansard.py",
+            "scraperModule": "scrapers/hansard.py",
+            "args": "{'senate':true}",
             "groups": {
                 "connectOrCreate": [
                     {
@@ -89,7 +91,6 @@ async def main():
     )
 
 
-import asyncio
 
 try:
     asyncio.run(main())
