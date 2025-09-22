@@ -33,6 +33,8 @@ model RawDocument {
     dateModified DateTime   @updatedAt
     sourceId     Int
     documents    Document[]
+
+    @@unique([name, text])
 }
 
 model SourceGroup {
