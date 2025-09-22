@@ -83,7 +83,7 @@ class HansardSpeechExtractor:
 
         return fixed_xml
 
-    def __init__(self, source, raw_document_id, date=None, from_file=False):
+    def __init__(self, source, date=None, from_file=False):
         """
         :param source: XML filename or string, depending on from_file.
         :param from_file: If True, treat source as filename. If False, treat as string.
@@ -103,8 +103,8 @@ class HansardSpeechExtractor:
         if date:
             self.date = date
         else:
-            self.date = self.root.attrib.get("DATE", None)
-        self.raw_document_id = raw_document_id
+            self.date = self._find_session_date()
+            print(self.date)
 
     def _find_session_date(self):
         date_elem = self.root.find(".//session.header/date")
@@ -180,12 +180,10 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
-                        "rawDocumentId": self.raw_document_id,
                         "answer": {
                             "type": "answer",
                             "author": self._extract_talker(elem["answer"]),
                             "text": self._extract_text(elem["answer"]),
-                            "rawDocumentId": self.raw_document_id,
                             "date": self.date,
                         },
                     }
@@ -194,7 +192,6 @@ class HansardSpeechExtractor:
                     entry = {
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
-                        "rawDocumentId": self.raw_document_id,
                         "text": self._extract_text(elem["answer"]),
                         "date": self.date,
                     }
@@ -203,7 +200,6 @@ class HansardSpeechExtractor:
                     entry = {
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
-                        "rawDocumentId": self.raw_document_id,
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
                     }
@@ -215,7 +211,6 @@ class HansardSpeechExtractor:
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
                         "text": self._extract_text(elem["element"]),
-                        "rawDocumentId": self.raw_document_id,
                         "date": self.date,
                     }
                     results.append(entry)
@@ -309,7 +304,7 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
 
 
-def parse(file_text, raw_document_id):
-    extractor = HansardSpeechExtractor(file_text, raw_document_id)
+def parse(file_text):
+    extractor = HansardSpeechExtractor(file_text)
     results = extractor.extract()
     return results
