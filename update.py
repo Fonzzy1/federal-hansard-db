@@ -1,10 +1,9 @@
 from prisma import Client
 import subprocess
 import asyncio
-from politicians import main as import_politician_metadata 
+from politicians import main as import_politician_metadata
 import importlib
-import json 
-
+import json
 
 
 async def main():
@@ -28,15 +27,16 @@ async def main():
         ## Scrapers expect a db and then any args that it might want to include
         scraper = importlib.import_module(source.scraperModule).scrape
         args = json.loads(source.args)
-        args['source_id'] = source.id
-        source_docuements = scraper(db, *args)
-
+        args["source_id"] = source.id
+        source_documents = scraper(*args)
 
         # Parsers will take in a raw_document_id and then create both the
         # documents and join these docuemtents back to the parliamentatians
         parser = importlib.import_module(source.parserModule).parse
-        for raw_document_id in source_docuements:
-            parser(db, raw_document_id)
+
+        for document in source_documents:
+            parsed_doucments = parser(document)
+            ## next we insert 
 
     await db.disconnect()
 
