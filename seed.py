@@ -1,16 +1,13 @@
 from prisma import Prisma
 import asyncio
 
-db = Prisma()
 
-
-async def main():
-    await db.connect()
+async def main(db):
     await db.source.create(
         data={
             "name": "Historic House of Reps Hansard",
-            "parserModule": "parsers/hansard",
-            "scraperModule": "scrapers/historic_hansard",
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.historic_hansard",
             "args": "",
             "groups": {
                 "connectOrCreate": [
@@ -30,8 +27,8 @@ async def main():
     await db.source.create(
         data={
             "name": "Historic Senate Hansard",
-            "parserModule": "parsers/hansard.py",
-            "scraperModule": "scrapers/historic_hansard.py",
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.historic_hansard",
             "args": "{'senate':true}",
             "groups": {
                 "connectOrCreate": [
@@ -51,8 +48,8 @@ async def main():
     await db.source.create(
         data={
             "name": "Modern House of Reps Hansard",
-            "parserModule": "parsers/hansard.py",
-            "scraperModule": "scrapers/hansard.py",
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.hansard",
             "args": "",
             "groups": {
                 "connectOrCreate": [
@@ -72,8 +69,8 @@ async def main():
     await db.source.create(
         data={
             "name": "Modern Senate Hansard",
-            "parserModule": "parsers/hansard.py",
-            "scraperModule": "scrapers/hansard.py",
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.hansard",
             "args": "{'senate':true}",
             "groups": {
                 "connectOrCreate": [
@@ -91,9 +88,17 @@ async def main():
     )
 
 
+db = Prisma()
 
-try:
-    asyncio.run(main())
-except Exception as e:
-    print(e)
-    asyncio.run(db.disconnect())
+
+async def run():
+    await db.connect()
+    try:
+        await main(db)
+    except Exception as e:
+        raise e
+    finally:
+        await db.disconnect()
+
+
+asyncio.run(run())
