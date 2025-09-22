@@ -34,7 +34,7 @@ model RawDocument {
     sourceId     Int
     documents    Document[]
 
-    @@unique([name, text])
+    @@unique([name, sourceId])
 }
 
 model SourceGroup {
@@ -96,7 +96,7 @@ model Parliament {
 
 model rawAuthor {
     id                Int              @id @default(autoincrement())
-    name              String
+    name              String           @unique
     dateAdded         DateTime         @default(now())
     dateModified      DateTime         @updatedAt
     Parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])

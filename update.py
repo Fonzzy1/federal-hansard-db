@@ -1,20 +1,196 @@
 from prisma import Client
-import subprocess
 import asyncio
-from politicians import main as politician_metadata
 import importlib
 import json
 import re
 import string
+import datetime
+from politicians import main as politician_metadata
+from rich.console import Console
+from rich.progress import Progress
+
+console = Console()
 
 
-def normalize(text):
+# -------------------- Helpers --------------------
+
+
+def normalize(text: str) -> str:
+    """Normalize text by removing punctuation/whitespace and lowering case."""
     if not text:
         return ""
     return re.sub(rf"[{re.escape(string.punctuation)}\s]", "", text).lower()
 
 
-async def join_politicians_to_raw_authors(db):
+def log(msg: str) -> None:
+    """Simple logger with consistent style."""
+    console.print(f"[bold green]▶[/bold green] {msg}")
+
+
+# -------------------- DB Operations --------------------
+async def insert_document(db, document, raw_document_id):
+    print(document)
+    print(raw_document_id)
+    if document["type"] == "question" and "answer" in document:
+        await db.document.create(
+            data={
+                "text": document["text"],
+                "date": datetime.datetime.strptime(
+                    document["date"], "%Y-%m-%d"
+                ),
+                "type": document["type"],
+                "rawAuthor": {
+                    "connectOrCreate": {
+                        "where": {"name": document["author"]},
+                        "create": {"name": document["author"]},
+                    }
+                },
+                "rawDocumentId": raw_document_id,
+                "citedBy": {
+                    "create": {
+                        "text": document["answer"]["text"],
+                        "date": datetime.datetime.strptime(
+                            document["answer"]["date"], "%Y-%m-%d"
+                        ),
+                        "type": document["answer"]["type"],
+                        "rawAuthor": {
+                            "connectOrCreate": {
+                                "where": {"name": document["author"]},
+                                "create": {"name": document["author"]},
+                            }
+                        },
+                        "rawDocumentId": raw_document_id,
+                    }
+                },
+            }
+        )
+    else:
+        await db.document.create(
+            data={
+                "text": document["text"],
+                "date": datetime.datetime.strptime(
+                    document["date"], "%Y-%m-%d"
+                ),
+                "type": document["type"],
+                "rawAuthor": {
+                    "connectOrCreate": {
+                        "where": {"name": document["author"]},
+                        "create": {"name": document["author"]},
+                    }
+                },
+                "rawDocumentId": raw_document_id,
+            }
+        )
+
+
+async def reset_politician_links(db: Client) -> None:
+    log("Resetting politician links from raw authors...")
+    await db.rawauthor.update_many(
+        where={"parliamentarianId": {"not": None}},
+        data={"parliamentarianId": None},
+    )
+    log("Done resetting links.")
+
+
+async def load_politician_metadata(db: Client) -> None:
+    log("Loading politician metadata...")
+
+    parties, parliaments, parliament_intervals, politicians = (
+        politician_metadata()
+    )
+
+    log("Inserting parties...")
+    await db.party.create_many(
+        [{"name": x} for x in parties], skip_duplicates=True
+    )
+
+    log("Upserting parliaments...")
+    with Progress(console=console, transient=False) as progress:
+        task = progress.add_task("Parliaments", total=len(parliaments))
+        for x in parliaments:
+            await db.parliament.upsert(
+                where={"id": x["id"]}, data={"create": x, "update": x}
+            )
+            progress.advance(task)
+
+    log("Upserting politicians...")
+    with Progress(console=console, transient=False) as progress:
+        task = progress.add_task("Politicians", total=len(politicians))
+        for x in politicians:
+            await db.parliamentarian.upsert(
+                where={"id": x["id"]},
+                data={
+                    "update": {
+                        **x,
+                        "services": {
+                            "deleteMany": {},
+                            "create": x["services"]["create"],
+                        },
+                    },
+                    "create": x,
+                },
+            )
+            progress.advance(task)
+
+    log("Finished loading metadata.")
+
+
+async def scrape_and_parse_sources(db: Client) -> None:
+    log("Scraping and parsing sources...")
+
+    sources = await db.source.find_many()
+
+    for source in sources:
+        log(f"Processing source: [cyan]{source.name}[/cyan]")
+
+        module = importlib.import_module(source.scraperModule)
+        parser = importlib.import_module(source.parserModule).parse
+
+        args = json.loads(source.args) if source.args else {}
+        file_dict = module.file_list_extractor(**args)
+
+        existing = await db.rawdocument.find_many(
+            where={"sourceId": source.id}, include={"text": False}
+        )
+        existing_names = {doc.name for doc in existing}
+
+        new_documents = {
+            name: val
+            for name, val in file_dict.items()
+            if name not in existing_names
+        }
+
+        if new_documents:
+            with Progress(console=console, transient=False) as progress:
+                task_docs = progress.add_task(
+                    f"[green]New files for {source.name}[/green]",
+                    total=len(new_documents),
+                )
+
+                for name, file in new_documents.items():
+                    raw_document = module.scraper(file)
+                    raw_inserted_document = await db.rawdocument.create(
+                        data={
+                            "name": name,
+                            "text": raw_document,
+                            "sourceId": source.id,
+                        }
+                    )
+                    raw_document_id = raw_inserted_document.id
+                    documents: dict = parser(raw_document)
+                    for document in documents:
+                        await insert_document(db, document, raw_document_id)
+
+                    progress.advance(task_docs)
+        else:
+            console.print(f"[dim]No new files for {source.name}[/dim]")
+
+    log("Finished scraping sources.")
+
+
+async def join_politicians_to_raw_authors(db: Client) -> None:
+    log("Joining raw authors to politicians...")
+
     all_services = await db.parliamentarian.find_many()
     politicians = {normalize(p.id): p for p in all_services}
     politicians.update(
@@ -23,116 +199,48 @@ async def join_politicians_to_raw_authors(db):
 
     authors = {
         k.id: k
-        for k in await db.author.find_many(
-            where={"parliamentarian": None},
-        )
+        for k in await db.author.find_many(where={"parliamentarian": None})
     }
 
-    for auth in authors.values():
-        auth_name_clean = normalize(auth.rawName)
+    with Progress(console=console, transient=False) as progress:
+        task = progress.add_task("Authors", total=len(authors))
 
-        # Skip if cleaned rawName is empty
-        if auth_name_clean == "":
-            continue
-        elif auth_name_clean in politicians.keys():
-            matched_id = politicians[auth_name_clean].id
-            await db.author.update(
-                where={"id": auth.id},
-                data={"parliamentarian": {"connect": {"id": matched_id}}},
-            )
-        else:
-            print(f"{auth.rawName} is an alt_name")
+        for auth in authors.values():
+            auth_name_clean = normalize(auth.rawName)
+            if not auth_name_clean:
+                progress.advance(task)
+                continue
+            elif auth_name_clean in politicians:
+                matched_id = politicians[auth_name_clean].id
+                await db.rawauthor.update(
+                    where={"id": auth.id},
+                    data={"parliamentarian": {"connect": {"id": matched_id}}},
+                )
+            else:
+                console.print(
+                    f"[yellow]⚠[/yellow] Could not match: {auth.rawName} (possible alt name)"
+                )
+            progress.advance(task)
+
+    log("Finished joining authors.")
 
 
-async def main():
+# -------------------- Main Orchestration --------------------
+
+
+async def main() -> None:
+    console.rule("[bold blue]Pipeline Start")
     db = Client()
     await db.connect()
 
-    # Unjoin the politicians
-    await db.rawauthor.update_many(
-        where={"parliamentarianId": {"not": None}},
-        data={
-            "parliamentarianId": None,
-        },
-    )
-    # Fisrt run the politician script
-    await db.rawauthor.update_many(
-        where={"parliamentarianId": {"not": None}},
-        data={
-            "parliamentarianId": None,
-        },
-    )
-    parties, parliaments, parliament_intervals, politicians = (
-        politician_metadata()
-    )
-
-    await db.party.create_many(
-        [{"name": x} for x in parties], skip_duplicates=True
-    )
-    _ = [
-        await db.parliament.upsert(
-            where={"id": x["id"]}, data={"create": x, "update": x}
-        )
-        for x in parliaments
-    ]
-    _ = [
-        await db.parliamentarian.upsert(
-            where={"id": x["id"]},
-            data={
-                "update": {
-                    **x,
-                    "services": {
-                        "deleteMany": {},  # remove all existing services
-                        "create": x["services"]["create"],  # add new ones
-                    },
-                },
-                "create": x,
-            },
-        )
-        for x in politicians
-    ]
-
-    sources = await db.source.find_many()
-    for source in sources:
-        # First have the scrape scripts, that will take in the inFile, which is
-        # either a url or a arg for the scraper. These will create a heap of
-        # rawDocument objects we can then go on to parse. All the rawDocuments
-        # are create or update so this can be run freely
-
-        ## All scrapers will have 2 parts, a file list extractor and a scraper
-        module = importlib.import_module(source.scraperModule)
-        parser = importlib.import_module(source.parserModule).parse
-
-        ## Will create a dict of raw names to scraper inputs
-        args = json.loads(source.args) if source.args else {}
-        file_dict = module.file_list_extractor(**args)
-
-        # Get the current existing documents
-        existing = await db.rawdocument.find_many(
-            where={"sourceId": source.id}, include={"text": False}
-        )
-
-        # Find the elements of file_dict that aren't in the db
-        existing_names = {doc.name for doc in existing}
-        new_documents = {
-            name: val
-            for name, val in file_dict.items()
-            if name not in existing_names
-        }
-
-        for name, file in new_documents:
-            raw_docuent = module.scaper(file)
-            document_id = await db.rawdocument.create(
-                data={"name": name, "text": raw_document, "sourceId": source.id}
-            )
-            documents = parser(raw_document, document_id)
-            for document in documents:
-                await db.document.create(data=document)
-
-    # Do all the joins
+    # await reset_politician_links(db)
+    # await load_politician_metadata(db)
+    await scrape_and_parse_sources(db)
     await join_politicians_to_raw_authors(db)
 
     await db.disconnect()
+    console.rule("[bold blue]Pipeline Complete")
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
