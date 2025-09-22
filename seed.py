@@ -29,7 +29,7 @@ async def main(db):
             "name": "Historic Senate Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.historic_hansard",
-            "args": "{'senate':true}",
+            "args": '{"senate":true}',
             "groups": {
                 "connectOrCreate": [
                     {
@@ -71,7 +71,7 @@ async def main(db):
             "name": "Modern Senate Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.hansard",
-            "args": "{'senate':true}",
+            "args": '{"senate":true}',
             "groups": {
                 "connectOrCreate": [
                     {

@@ -1,14 +1,6 @@
-import json
 import datetime
-import asyncio
-from tqdm.asyncio import tqdm_asyncio
-import re
-import datetime
-import re
-import json
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from prisma import Prisma
 
 
 def update_personal_info(people, phid, updates):
@@ -354,58 +346,35 @@ def parse_dates(data, start_key, end_key):
     return parsed
 
 
-async def upload_parties(db, parliaments):
+def parse_parties(parliaments):
     parties = set(
         x["Name"] for y in parliaments for x in y["PartiesByParliament"]
     )
-    party_dict = {}
-    for party in parties:
-        p = await db.party.upsert(
-            where={"name": party},
-            data={"create": {"name": party}, "update": {}},
-        )
-        party_dict[party] = p.id
-    return party_dict
+    return list(parties)
 
 
-async def upload_parliaments(db, parliaments):
+def parse_parliaments(parliaments):
     parliament_intervals = parse_dates(
         parliaments, "DateOpening", "DateDissolution"
     )
 
+    parsed_parliaments = []
     for parliament in parliaments:
-        _ = await db.parliament.upsert(
-            where={"id": parliament["PID"]},
-            data={
-                "create": {
-                    "id": parliament["PID"],
-                    "firstDate": datetime.datetime.strptime(
-                        parliament["DateOpening"], "%Y-%m-%d"
-                    ),
-                    "lastDate": (
-                        datetime.datetime.strptime(
-                            parliament["DateDissolution"], "%Y-%m-%d"
-                        )
-                        if parliament["ParliamentEnd"]
-                        else None
-                    ),
-                },
-                "update": {
-                    "id": parliament["PID"],
-                    "firstDate": datetime.datetime.strptime(
-                        parliament["DateOpening"], "%Y-%m-%d"
-                    ),
-                    "lastDate": (
-                        datetime.datetime.strptime(
-                            parliament["DateDissolution"], "%Y-%m-%d"
-                        )
-                        if parliament["ParliamentEnd"]
-                        else None
-                    ),
-                },
-            },
-        )
-    return parliament_intervals
+        data = {
+            "id": parliament["PID"],
+            "firstDate": datetime.datetime.strptime(
+                parliament["DateOpening"], "%Y-%m-%d"
+            ),
+            "lastDate": (
+                datetime.datetime.strptime(
+                    parliament["DateDissolution"], "%Y-%m-%d"
+                )
+                if parliament["ParliamentEnd"]
+                else None
+            ),
+        }
+        parsed_parliaments.append(data)
+    return parsed_parliaments, parliament_intervals
 
 
 def format_politician(politician, party_dict, parliament_intervals):
@@ -477,7 +446,7 @@ def format_politician(politician, party_dict, parliament_intervals):
                         "isSenate": isSenate,
                         "seat": electorate[0] if len(electorate) else None,
                         "state": state,
-                        "party": {"connect": {"id": party_dict[parties[0]]}},
+                        "party": {"connect": {"name": parties[0]}},
                         "parliament": {"connect": {"id": p["PID"]}},
                     }
                 )
@@ -504,9 +473,7 @@ def format_politician(politician, party_dict, parliament_intervals):
                                     "isSenate": False,
                                     "seat": seat,
                                     "state": state,
-                                    "party": {
-                                        "connect": {"id": party_dict[party]}
-                                    },
+                                    "party": {"connect": {"name": party}},
                                     "parliament": {"connect": {"id": p["PID"]}},
                                 }
                             )
@@ -519,62 +486,23 @@ def format_politician(politician, party_dict, parliament_intervals):
                                 "isSenate": True,
                                 "seat": None,
                                 "state": state,
-                                "party": {"connect": {"id": party_dict[party]}},
+                                "party": {"connect": {"name": party}},
                                 "parliament": {"connect": {"id": p["PID"]}},
                             }
                         )
     return format_dict
 
 
-async def upload_politician(db, politician):
-    await db.parliamentarian.upsert(
-        where={"id": politician["id"]},
-        data={"create": politician, "update": politician},
-    )
-
-
-async def clean(db):
-    await db.author.update_many(
-        where={"parliamentarianId": {"not": None}},
-        data={
-            "parliamentarianId": None,
-        },
-    )
-    await db.service.delete_many()
-    await db.parliament.delete_many()
-    await db.party.delete_many()
-    await db.parliamentarian.delete_many()
-
-
-async def main():
-    print("Fetching Politician MetaData")
+def main():
     raw_politicians = fetch_raw_data()
-    parliaments = fetch_raw_parliament_data()
-    print("Connecting to database...")
-    db = Prisma()
-    await db.connect()
-    print("Cleaning db...")
-    await clean(db)
-    print("Uploading parties...")
-    party_dict = await upload_parties(db, parliaments)
-    print("Uploading parliaments...")
-    parliament_intervals = await upload_parliaments(db, parliaments)
-    print("Formatting politicians...")
+    raw_parliaments = fetch_raw_parliament_data()
+    parties = parse_parties(raw_parliaments)
+    parliaments, parliament_intervals = parse_parliaments(raw_parliaments)
     with ThreadPoolExecutor() as executor:
         politicians = list(
             executor.map(
-                lambda x: format_politician(
-                    x, party_dict, parliament_intervals
-                ),
+                lambda x: format_politician(x, parties, parliament_intervals),
                 raw_politicians,
             )
         )
-    for politician in tqdm_asyncio(politicians, desc="Uploading politicians"):
-        _ = await upload_politician(db, politician)
-    print("Disconnecting from database...")
-    await db.disconnect()
-    print("Done.")
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    return parties, parliaments, parliament_intervals, politicians

@@ -1,20 +1,18 @@
 import requests
 from tqdm import tqdm
 import zipfile
-import tempfile
-import os
-import shutil
 import re
 from datetime import datetime
-import argparse
 from tqdm import tqdm
-import os
 import shutil
+import os
 
 
 # ---- Helper functions ----
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
+
+
 def grab_and_format_yyyymmdd(s):
     # Grab all digits in order
     digits = re.findall(r"\d", s)
@@ -29,57 +27,52 @@ def grab_and_format_yyyymmdd(s):
         print(f"failed for {s}")
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Async Hansard Scraper")
-    parser.add_argument("--is-senate", action="store_true")
-    parser.add_argument("outfile", help="Output folder for downloaded XMLs")
-    args = parser.parse_args()
+def download_from_github():
+    tmpdir = "/tmp/hansard_xml"  # set your fixed temp folder path
+    os.makedirs(tmpdir, exist_ok=True)
+    local_zip_path = os.path.join(tmpdir, "master.zip")
 
-    house = "senate" if args.is_senate else "hofreps"
-    ensure_dir(args.outfile)
-    if not os.path.exists(os.path.join(args.outfile, '1901-05-09.xml')):
-        # --- Download to a temp directory ---
-        with tempfile.TemporaryDirectory() as tmpdir:
-            local_zip_path = os.path.join(tmpdir, "master.zip")
-            
-            # Download with progress bar
-            response = requests.get('https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip', stream=True)
-            total_size = int(response.headers.get('content-length', 0))
-            block_size = 1024
-            
-            with open(local_zip_path, 'wb') as f, tqdm(
-                desc="Downloading",
-                total=total_size,
-                unit='B',
-                unit_scale=True,
-                unit_divisor=1024
-            ) as bar:
-                for data in response.iter_content(block_size):
-                    f.write(data)
-                    bar.update(len(data))
-            
-            # --- Unzip in temp dir ---
-            with zipfile.ZipFile(local_zip_path, 'r') as zip_ref:
-                zip_ref.extractall(tmpdir)
-            
-            extracted_folder = os.path.join(tmpdir, "hansard-xml-master", house)
-            
+    if not os.path.exists(local_zip_path):
+        response = requests.get(
+            "https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip",
+            stream=True,
+        )
+        total_size = int(response.headers.get("content-length", 0))
+        block_size = 1024
 
-            # --- Process files ---
-            all_files = []
-            for root, dirs, files in os.walk(extracted_folder):
-                for filename in files:
-                    all_files.append((root, filename))
+        with open(local_zip_path, "wb") as f, tqdm(
+            desc="Downloading",
+            total=total_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+        ) as bar:
+            for data in response.iter_content(block_size):
+                f.write(data)
+                bar.update(len(data))
 
-            for root, filename in tqdm(all_files):
-                file_path = os.path.join(root, filename)
-                
-                # Replace with your function
-                yyyymmdd = grab_and_format_yyyymmdd(filename)
-                
-                output_file = os.path.join(args.outfile, f"{yyyymmdd}.xml")
-                
-                # Move the file
-                shutil.move(file_path, output_file)
-            
-            print("All files processed.")
+    extracted_folder = os.path.join(
+        tmpdir,
+        "hansard-xml-master",
+    )
+    if not os.path.exists(extracted_folder):
+        with zipfile.ZipFile(local_zip_path, "r") as zip_ref:
+            zip_ref.extractall(tmpdir)
+    return extracted_folder
+
+
+def file_list_extractor(senate=True):
+    house = "senate" if senate else "hofreps"
+    path = download_from_github()
+    file_dict = {}
+    for year in os.listdir(os.path.join(path, house)):
+        for file in os.listdir(os.path.join(path, house, year)):
+            file_dict[grab_and_format_yyyymmdd(file)] = os.path.join(
+                path, house, year, file
+            )
+    return file_dict
+
+
+def scraper(file):
+    with open(file, "r") as f:
+        return f.read()

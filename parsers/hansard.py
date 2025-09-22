@@ -83,7 +83,7 @@ class HansardSpeechExtractor:
 
         return fixed_xml
 
-    def __init__(self, source, date=None, from_file=True):
+    def __init__(self, source, raw_document_id, date=None, from_file=False):
         """
         :param source: XML filename or string, depending on from_file.
         :param from_file: If True, treat source as filename. If False, treat as string.
@@ -104,7 +104,7 @@ class HansardSpeechExtractor:
             self.date = date
         else:
             self.date = self.root.attrib.get("DATE", None)
-        full_date = datetime.datetime.strptime(self.date, "%Y-%m-%d")
+        self.raw_document_id = raw_document_id
 
     def _find_session_date(self):
         date_elem = self.root.find(".//session.header/date")
@@ -180,10 +180,12 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
+                        "rawDocumentId": self.raw_document_id,
                         "answer": {
                             "type": "answer",
                             "author": self._extract_talker(elem["answer"]),
                             "text": self._extract_text(elem["answer"]),
+                            "rawDocumentId": self.raw_document_id,
                             "date": self.date,
                         },
                     }
@@ -192,6 +194,7 @@ class HansardSpeechExtractor:
                     entry = {
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
+                        "rawDocumentId": self.raw_document_id,
                         "text": self._extract_text(elem["answer"]),
                         "date": self.date,
                     }
@@ -200,6 +203,7 @@ class HansardSpeechExtractor:
                     entry = {
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
+                        "rawDocumentId": self.raw_document_id,
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
                     }
@@ -211,6 +215,7 @@ class HansardSpeechExtractor:
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
                         "text": self._extract_text(elem["element"]),
+                        "rawDocumentId": self.raw_document_id,
                         "date": self.date,
                     }
                     results.append(entry)
@@ -277,7 +282,7 @@ class HansardSpeechExtractor:
         #     for x in elem
         # ):
         #     return ""
-        #print(str(ET.tostring(elem, encoding="unicode")))
+        # print(str(ET.tostring(elem, encoding="unicode")))
         return ""
 
         raise FailedTalkerExtractionException(elem)
@@ -304,77 +309,7 @@ def print_tag_tree(element, max_depth, indent=0):
         print_tag_tree(child, max_depth, indent + 1)
 
 
-
-# --------------------------
-# Parsing function (CPU-bound)
-# --------------------------
-def parse_file_sync(filename):
-    try:
-        names = filename.split("/")
-        extractor = HansardSpeechExtractor(filename, date=names[-1][:10])
-        results = extractor.extract()
-    except Exception:
-        results = []
+def parse(file_text, raw_document_id):
+    extractor = HansardSpeechExtractor(file_text, raw_document_id)
+    results = extractor.extract()
     return results
-
-# --------------------------
-# Async DB insertion
-# --------------------------
-async def insert_documents(db, documents, source_name): 
-    for document in tqdm(documents,total=len(documents),desc="Inserting Documents"):
-        if document["type"] == "question" and "answer" in document: 
-            await db.document.create( data={ "text": document["text"], "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"), "type": document["type"], "author": { "connectOrCreate": { "where": {"rawName": document["author"]}, "create": {"rawName": document["author"]}, } }, "source": {"connect": {"name": source_name}}, "citedBy": { "create": { "text": document["answer"]["text"], "date": datetime.datetime.strptime(document["answer"]["date"], "%Y-%m-%d"), "type": document["answer"]["type"], "source": {"connect": {"name": source_name}}, "author": { "connectOrCreate": { "where": {"rawName": document["answer"]["author"]}, "create": {"rawName": document["answer"]["author"]}, } }, } }, } ) 
-        else: await db.document.create( data={ "text": document["text"], "date": datetime.datetime.strptime(document["date"], "%Y-%m-%d"), "type": document["type"], "author": { "connectOrCreate": { "where": {"rawName": document["author"]}, "create": {"rawName": document["author"]}, } }, "source": {"connect": {"name": source_name}}, } )
-
-# --------------------------
-# Main
-# --------------------------
-async def main(source_out_file):
-    db = Prisma()
-    await db.connect()
-
-    # Find source name in DB
-    source_obj = await db.source.find_many(where={'outFile': source_out_file})
-    if not source_obj:
-        raise ValueError(f"No source found with outFile={source_out_file}")
-    source_name = source_obj[0].name
-
-    all_files = sorted([os.path.join(source_out_file, f) for f in os.listdir(source_out_file)])
-
-    # Step 1: get existing document dates
-    existing_docs = await db.document.find_many(
-        where={"source": {"name": source_name}},
-    )
-    existing_dates = {doc.date for doc in existing_docs}
-
-    files_to_parse = []
-    for f in all_files:
-        try:
-            file_date = datetime.datetime.strptime(os.path.basename(f)[:10], "%Y-%m-%d").date()
-            if file_date not in existing_dates:
-                files_to_parse.append(f)
-        except Exception:
-            files_to_parse.append(f)
-
-    loop = asyncio.get_running_loop()
-    results = []
-
-    # CPU-bound parsing
-    with ProcessPoolExecutor() as executor:
-        tasks = [loop.run_in_executor(executor, parse_file_sync, f) for f in files_to_parse]
-        for f in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="Parsing files"):
-            results.extend(await f)
-
-    # Batch insert with tqdm
-    await insert_documents(db, results, source_name)
-
-    await db.disconnect()
-
-# --------------------------
-# Entry point
-# --------------------------
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("source_out_file", help="Source outFile to lookup in DB")
-    args = parser.parse_args()
-    asyncio.run(main(args.source_out_file))
