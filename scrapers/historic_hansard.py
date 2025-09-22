@@ -17,14 +17,14 @@ def grab_and_format_yyyymmdd(s):
     # Grab all digits in order
     digits = re.findall(r"\d", s)
     if len(digits) < 8:
-        return None  # Not enough digits
+        return s  # Not enough digits
     # Take the first 8 digits and join them
     yyyymmdd = "".join(digits[:8])
     try:
         date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
         return date_obj.strftime("%Y-%m-%d")
-    except ValueError:
-        print(f"failed for {s}")
+    except:
+        return s
 
 
 def download_from_github():

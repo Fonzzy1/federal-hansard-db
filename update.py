@@ -166,6 +166,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
                 )
 
                 for name, file in new_documents.items():
+                    print(name,file)
                     raw_document = module.scraper(file)
                     raw_inserted_document = await db.rawdocument.create(
                         data={

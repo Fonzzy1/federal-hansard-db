@@ -47,6 +47,22 @@ class FailedTextExtractionException(Exception):
 
 class HansardSpeechExtractor:
 
+    def __init__(self, source, from_file=False):
+        """
+        :param source: XML filename or string, depending on from_file.
+        :param from_file: If True, treat source as filename. If False, treat as string.
+        """
+        if from_file:
+            hansard_string = open(source).read()
+        else:
+            hansard_string = source
+
+        if len(hansard_string) == 0:
+            raise EmptyDocumentError()
+
+        cleaned_string = self._clean_hansard(hansard_string)
+        self.root = ET.fromstring(cleaned_string)
+
     def _clean_hansard(self, string):
         # Step 1: Strip problematic declarations
         lines = string.split("\n")
@@ -83,27 +99,6 @@ class HansardSpeechExtractor:
 
         return fixed_xml
 
-    def __init__(self, source, date=None, from_file=False):
-        """
-        :param source: XML filename or string, depending on from_file.
-        :param from_file: If True, treat source as filename. If False, treat as string.
-        """
-        if from_file:
-            hansard_string = open(source).read()
-        else:
-            hansard_string = source
-
-        if len(hansard_string) == 0:
-            raise EmptyDocumentError()
-
-        cleaned_string = self._clean_hansard(hansard_string)
-        self.root = ET.fromstring(cleaned_string)
-
-        if date:
-            self.date = date
-        else:
-            self.date = self._find_session_date()
-
     def _find_session_date(self):
         # 1. Try <HANSARD DATE="...">
         hansard_elem = self.root
@@ -125,7 +120,7 @@ class HansardSpeechExtractor:
 
         if date_str:
             # Try parsing multiple formats
-            for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+            for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
                 try:
                     parsed_date = datetime.datetime.strptime(date_str, fmt)
                     return parsed_date.strftime("%Y-%m-%d")
@@ -142,7 +137,7 @@ class HansardSpeechExtractor:
 
         # If no relevant elements found, raise an exception
         if not check_elements:
-            raise EmptyDocumentError()
+            raise HansardNoElementsException(print_tag_tree(self.root, 3))
 
         self.elements = []
         # Iterate over document to get all the items
@@ -189,6 +184,7 @@ class HansardSpeechExtractor:
 
     def extract(self):
         self._extract_elements()
+        self.date = self._find_session_date()
         results = []
         for elem in self.elements:
             if elem["type"] == "question" and "answer" in elem.keys():
@@ -327,5 +323,10 @@ def print_tag_tree(element, max_depth, indent=0):
 
 def parse(file_text):
     extractor = HansardSpeechExtractor(file_text)
-    results = extractor.extract()
+    try:
+        results = extractor.extract()
+    except EmptyDocumentError:
+        results = []
+    except HansardNoElementsException:
+        results = []
     return results
