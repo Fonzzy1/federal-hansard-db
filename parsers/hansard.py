@@ -97,22 +97,43 @@ class HansardSpeechExtractor:
             raise EmptyDocumentError()
 
         cleaned_string = self._clean_hansard(hansard_string)
-        self.tree = ET.fromstring(cleaned_string)
-        self.root = self.tree
+        self.root = ET.fromstring(cleaned_string)
 
         if date:
             self.date = date
         else:
             self.date = self._find_session_date()
-            print(self.date)
 
     def _find_session_date(self):
-        date_elem = self.root.find(".//session.header/date")
-        return (
-            date_elem.text.strip()
-            if date_elem is not None and date_elem.text
-            else None
-        )
+        # 1. Try <HANSARD DATE="...">
+        hansard_elem = self.root
+        if hansard_elem is not None and hansard_elem.get("date"):
+            date_str = hansard_elem.get("date")
+        else:
+            # 2. Try <DAY.START DATE="...">
+            day_start_elem = self.root.find(".//day.start")
+            if day_start_elem is not None and day_start_elem.get("date"):
+                date_str = day_start_elem.get("date")
+            else:
+                # 3. Fallback to <date> element
+                date_elem = self.root.find(".//date")
+                date_str = (
+                    date_elem.text.strip()
+                    if date_elem is not None and date_elem.text
+                    else None
+                )
+
+        if date_str:
+            # Try parsing multiple formats
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
+                try:
+                    parsed_date = datetime.datetime.strptime(date_str, fmt)
+                    return parsed_date.strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+
+        # If no valid date found, raise an error
+        raise ValueError("No valid session date found in the XML.")
 
     def _extract_elements(self):
         check_elements = self.root.xpath(
@@ -125,7 +146,7 @@ class HansardSpeechExtractor:
 
         self.elements = []
         # Iterate over document to get all the items
-        raw_elements = list(self.tree.iter())
+        raw_elements = list(self.root.iter())
         i = 0
         while i < len(raw_elements):
             el = raw_elements[i]

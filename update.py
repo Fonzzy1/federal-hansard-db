@@ -29,8 +29,6 @@ def log(msg: str) -> None:
 
 # -------------------- DB Operations --------------------
 async def insert_document(db, document, raw_document_id):
-    print(document)
-    print(raw_document_id)
     if document["type"] == "question" and "answer" in document:
         await db.document.create(
             data={
@@ -45,7 +43,7 @@ async def insert_document(db, document, raw_document_id):
                         "create": {"name": document["author"]},
                     }
                 },
-                "rawDocumentId": raw_document_id,
+                "rawDocument": {"connect": {"id": raw_document_id}},
                 "citedBy": {
                     "create": {
                         "text": document["answer"]["text"],
@@ -59,7 +57,7 @@ async def insert_document(db, document, raw_document_id):
                                 "create": {"name": document["author"]},
                             }
                         },
-                        "rawDocumentId": raw_document_id,
+                        "rawDocument": {"connect": {"id": raw_document_id}},
                     }
                 },
             }
@@ -78,7 +76,7 @@ async def insert_document(db, document, raw_document_id):
                         "create": {"name": document["author"]},
                     }
                 },
-                "rawDocumentId": raw_document_id,
+                "rawDocument": {"connect": {"id": raw_document_id}},
             }
         )
 
