@@ -1,6 +1,7 @@
 import datetime
 import requests
 from concurrent.futures import ThreadPoolExecutor
+import json
 
 
 def update_personal_info(people, phid, updates):
@@ -110,129 +111,30 @@ def fetch_raw_data():
         "https://handbookapi.aph.gov.au/api/individuals"
     ).json()["value"]
 
-    add_party_affiliation(
-        data,
-        phid="KLL",
-        term_start="1943-09-21",
-        term_end="1946-08-14",
-        party_name="Australian Labor Party",
-    )
-    add_party_affiliation(
-        data,
-        phid="291406",
-        term_start="2025-05-03",
-        term_end=datetime.datetime.today().strftime("%Y-%m-%d"),
-        party_name="Liberal Party of Australia",
-    )
-    update_personal_info(data, "5U4", {"PreferredName": "(Jim)"})
-    update_personal_info(data, "JWX", {"PreferredName": "(Jim)"})
-    update_personal_info(data, "ZG4", {"PreferredName": "(Ted)"})
-    update_personal_info(data, "K9M", {"PreferredName": "(Les)"})
-    update_personal_info(data, "K0O", {"PreferredName": "(Rex)"})
-    update_personal_info(data, "BU4", {"PreferredName": "(Doug)"})
+    # Load all fixes from one JSON file
+    with open("fixes.json", "r") as f:
+        fixes = json.load(f)
 
-    add_alt_id(data, "KIM", "YI7")
-    add_alt_id(data, "009MA", "EL7")
-    add_alt_id(data, "00ATA", "TE7")
-    add_alt_id(data, "JRD", "037")
-    add_alt_id(data, "KCT", "Y87")
-    add_alt_id(data, "KSF", "DL7")
-    add_alt_id(data, "JVD", "9M7")
-    add_alt_id(data, "JRU", "837")
-    add_alt_id(data, "KNK", "XD7")
-    add_alt_id(data, "KJA", "LF7")
-    add_alt_id(data, "K9M", "6G7")
-    add_alt_id(data, "KCE", "B87")
-    add_alt_id(data, "K5A", "AN7")
-    add_alt_id(data, "KVM", "FS7")
-    add_alt_id(data, "KSJ", "014")
-    add_alt_id(data, "KVY", "ZS7")
-    add_alt_id(data, "KDP", "V97")
-    add_alt_id(data, "JVV", "WM7")
-    add_alt_id(data, "DRW", "XF7")
-    add_alt_id(data, "009OD", "0N7")
-    add_alt_id(data, "JUST", "ML7")
-    add_alt_id(data, "JM9", "Q07")
-    add_alt_id(data, "KJU", "WF7")
-    add_alt_id(data, "KEO", "6A7")
-    add_alt_id(data, "JNG", "457")
-    add_alt_id(data, "KB8", "8C7")
-    add_alt_id(data, "JXQ", "GB7")
-    add_alt_id(data, "KWZ", "VT7")
-    add_alt_id(data, "009DB", "6M7")
-    add_alt_id(data, "KRR", "8L7")
-    add_alt_id(data, "KKT", "BJ7")
-    add_alt_id(data, "L0J", "8Q7")
-    add_alt_id(data, "KDV", "FG7")
-    add_alt_id(data, "JT9", "Z37")
-    add_alt_id(data, "JPG", "D27")
-    add_alt_id(data, "KIK", "VI7")
-    add_alt_id(data, "4I4", "BL7")
-    add_alt_id(data, "DQF", "MR7")
-    add_alt_id(data, "JMI", "IT4")
-    add_alt_id(data, "ZD4", "ZD7")
-    add_alt_id(data, "KEI", "4H7")
-    add_alt_id(data, "1B6", "DU7")
-    add_alt_id(data, "KYP", "4P7")
-    add_alt_id(data, "KOH", "8K7")
-    add_alt_id(data, "K17", "L67")
-    add_alt_id(data, "KAO", "4U7")
-    add_alt_id(data, "6V5", "P47")
-    # "R56" is tony blair
-    # "G5F" Harper steven
-    add_alt_id(data, "00APG", "APG")
-    add_alt_id(data, "8IS", "81S")
-    # DVB president of indonesia
-    # "GYB" OBAMA
-    add_alt_id(data, "DYN", "oneDYNDYN")
-    # "TO3" Chairman of committees
-    add_alt_id(data, "KRE", "KEROSENE")
-    add_alt_id(data, "K5H", "MQ7")
-    add_alt_id(data, "KPV", "IH7")
-    add_alt_id(data, "KKD", "2G7")
-    add_alt_id(data, "KUU", "YL7")
-    add_alt_id(data, "KVK", "GM7")
-    add_alt_id(data, "K6F", "757")
-    add_alt_id(data, "C7D", "6D7")
-    add_alt_id(data, "K1Y", "F27")
-    add_alt_id(data, "K2U", "OP7")
-    add_alt_id(data, "KBY", "HV7")
-    add_alt_id(data, "KUJ", "OL7")
-    add_alt_id(data, "KPG", "SG7")
-    add_alt_id(data, "KTZ", "4L7")
-    add_alt_id(data, "L8O", "YJ7")
-    add_alt_id(data, "JXG", "NM7")
-    add_alt_id(data, "K1M", "SO7")
-    add_alt_id(data, "KQD", "NH7")
-    add_alt_id(data, "JTT", "287")
-    add_alt_id(data, "CJO", "IU7")
-    add_alt_id(data, "CAK", "0P7")
-    add_alt_id(data, "JYI", "O97")
-    add_alt_id(data, "K8H", "TS7")
-    add_alt_id(data, "KOM", "FE7")
-    add_alt_id(data, "KSY", "9K7")
-    add_alt_id(data, "KTJ", "WK7")
-    add_alt_id(data, "KTA", "EK7")
-    add_alt_id(data, "KSW", "6K7")
-    add_alt_id(data, "K69", "9R7")
-    add_alt_id(data, "K8R", "8T7")
-    add_alt_id(data, "JYA", "4N7")
-    add_alt_id(data, "KQN", "YH7")
-    add_alt_id(data, "KNA", "WJ7")
-    add_alt_id(data, "K7H", "C67")
-    add_alt_id(data, "EVL", "8R7")
-    add_alt_id(data, "JYL", "S97")
-    add_alt_id(data, "KA8", "OT7")
-    add_alt_id(data, "JUI", "J87")
-    add_alt_id(data, "OI4", "O14")
-    add_alt_id(data, "KBS", "8V7")
-    add_alt_id(data, "QD4", "D4")
-    add_alt_id(data, "7Y6", "Y6")
-    add_alt_id(data, "I0V", "00AF1")
-    add_alt_id(data, "00AOS", "Is00AOS")
-    add_alt_id(data, "E68", "sE68")
-    add_alt_id(data, "281558", "009FX")
-    add_alt_id(data, "283585", "FRD")
+    # Apply party affiliations
+    today_str = datetime.datetime.today().strftime("%Y-%m-%d")
+    for p in fixes["party_affiliations"]:
+        term_end = p["term_end"] or today_str
+        add_party_affiliation(
+            data,
+            phid=p["phid"],
+            term_start=p["term_start"],
+            term_end=term_end,
+            party_name=p["party_name"],
+            party_id=p.get("party_id", 0),
+        )
+
+    # Apply preferred names
+    for phid, name in fixes["preferred_name_updates"].items():
+        update_personal_info(data, phid, {"PreferredName": name})
+
+    # Apply alt_ids
+    for phid, alt_list in fixes["alt_ids"].items():
+        add_alt_id(data, phid, alt_list)
 
     return data
 
