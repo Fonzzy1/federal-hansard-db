@@ -183,11 +183,11 @@ async def scrape_and_parse_sources(db: Client) -> None:
                         progress.advance(task_docs)
 
                     except Exception as e:
-                                        print(e)
-                                        print(name)
-                                        print(file)
-                                        raise
-                        
+                        print(e)
+                        print(name)
+                        print(file)
+                        raise
+
         else:
             console.print(f"[dim]No new files for {source.name}[/dim]")
 
