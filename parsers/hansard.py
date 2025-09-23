@@ -58,7 +58,7 @@ class HansardSpeechExtractor:
             hansard_string = source
 
         if len(hansard_string) == 0:
-            raise EmptyDocumentError()
+            raise EmptyDocumentError
 
         cleaned_string = self._clean_hansard(hansard_string)
         self.root = ET.fromstring(cleaned_string)
@@ -95,7 +95,7 @@ class HansardSpeechExtractor:
             repaired = html.fromstring(string)
             ET.strip_tags(repaired, ET.Comment)
             fixed_xml = html.tostring(repaired, method="xml").decode()
-        except etree.XMLSyntaxError:
+        except ET.XMLSyntaxError:
             raise FailedTextExtractionException(
                 "XML could not be parsed even after cleaning."
             )
@@ -325,8 +325,8 @@ def print_tag_tree(element, max_depth, indent=0):
 
 
 def parse(file_text):
-    extractor = HansardSpeechExtractor(file_text)
     try:
+        extractor = HansardSpeechExtractor(file_text)
         results = extractor.extract()
     except EmptyDocumentError:
         results = []
