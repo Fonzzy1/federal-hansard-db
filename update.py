@@ -244,8 +244,8 @@ async def main() -> None:
     db = Client()
     await db.connect()
 
-    # await reset_politician_links(db)
-    # await load_politician_metadata(db)
+    await reset_politician_links(db)
+    await load_politician_metadata(db)
     await scrape_and_parse_sources(db)
     await join_politicians_to_raw_authors(db)
 
