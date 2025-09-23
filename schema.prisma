@@ -99,7 +99,7 @@ model rawAuthor {
     name              String           @unique
     dateAdded         DateTime         @default(now())
     dateModified      DateTime         @updatedAt
-    Parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
+    parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     parliamentarianId String?
     Document          Document[]
 }

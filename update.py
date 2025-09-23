@@ -210,14 +210,14 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
 
     authors = {
         k.id: k
-        for k in await db.author.find_many(where={"parliamentarian": None})
+        for k in await db.rawauthor.find_many(where={"parliamentarian": None})
     }
 
     with Progress(console=console, transient=False) as progress:
         task = progress.add_task("Authors", total=len(authors))
 
         for auth in authors.values():
-            auth_name_clean = normalize(auth.rawName)
+            auth_name_clean = normalize(auth.name)
             if not auth_name_clean:
                 progress.advance(task)
                 continue
@@ -229,7 +229,7 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
                 )
             else:
                 console.print(
-                    f"[yellow]⚠[/yellow] Could not match: {auth.rawName} (possible alt name)"
+                    f"[yellow]⚠[/yellow] Could not match: {auth.name} (possible alt name)"
                 )
             progress.advance(task)
 
