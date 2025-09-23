@@ -68,7 +68,7 @@ class HansardSpeechExtractor:
         lines = string.split("\n")
         if lines:
             for i, line in enumerate(lines):
-                if "<hansard:" in line.lower():
+                if "<hansard" in line.lower():
                     string = "\n".join(lines[i:])
                     break
 
