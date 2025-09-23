@@ -166,21 +166,28 @@ async def scrape_and_parse_sources(db: Client) -> None:
                 )
 
                 for name, file in new_documents.items():
-                    print(name,file)
-                    raw_document = module.scraper(file)
-                    raw_inserted_document = await db.rawdocument.create(
-                        data={
-                            "name": name,
-                            "text": raw_document,
-                            "sourceId": source.id,
-                        }
-                    )
-                    raw_document_id = raw_inserted_document.id
-                    documents: dict = parser(raw_document)
-                    for document in documents:
-                        await insert_document(db, document, raw_document_id)
+                    try:
+                        raw_document = module.scraper(file)
+                        raw_inserted_document = await db.rawdocument.create(
+                            data={
+                                "name": name,
+                                "text": raw_document,
+                                "sourceId": source.id,
+                            }
+                        )
+                        raw_document_id = raw_inserted_document.id
+                        documents: dict = parser(raw_document)
+                        for document in documents:
+                            await insert_document(db, document, raw_document_id)
 
-                    progress.advance(task_docs)
+                        progress.advance(task_docs)
+
+                    except Exception as e:
+                                        print(e)
+                                        print(name)
+                                        print(file)
+                                        raise
+                        
         else:
             console.print(f"[dim]No new files for {source.name}[/dim]")
 
