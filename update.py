@@ -200,7 +200,12 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
     all_services = await db.parliamentarian.find_many()
     politicians = {normalize(p.id): p for p in all_services}
     politicians.update(
-        {normalize(p.altId): p for p in all_services if hasattr(p, "altId")}
+        {
+            normalize(alt_id): p
+            for p in all_services
+            if hasattr(p, "altId")
+            for alt_id in p.altId
+        }
     )
 
     authors = {
