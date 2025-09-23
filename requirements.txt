@@ -3,3 +3,7 @@ lxml
 wget  
 fuzzywuzzy
 pandas
+rich
+pydrive2
+rich
+pydrive2
