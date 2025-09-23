@@ -47,7 +47,7 @@ model SourceGroup {
 
 model Parliamentarian {
     id           String      @id
-    altId        String?
+    altId        String[]
     firstName    String
     lastName     String
     altName      String?
