@@ -61,7 +61,7 @@ def download_from_github():
     return extracted_folder
 
 
-def file_list_extractor(senate=True):
+def file_list_extractor(senate=False):
     house = "senate" if senate else "hofreps"
     path = download_from_github()
     file_dict = {}
