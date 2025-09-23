@@ -302,7 +302,7 @@ def format_politician(politician, party_dict, parliament_intervals):
     #     break
     format_dict = {
         "id": politician["PHID"],
-        "altId": politician.get("alt_id", None),
+        "altId": politician.get("alt_id", []),
         "firstName": (
             politician["PreferredName"][1:-1]
             if politician["PreferredName"]
