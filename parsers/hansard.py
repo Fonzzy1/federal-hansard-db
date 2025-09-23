@@ -66,8 +66,11 @@ class HansardSpeechExtractor:
     def _clean_hansard(self, string):
         # Step 1: Strip problematic declarations
         lines = string.split("\n")
-        if lines and ("DOCTYPE" in lines[0] or "encoding" in lines[0]):
-            string = "\n".join(lines[1:])
+        if lines:
+            for i, line in enumerate(lines):
+                if "<hansard:" in line.lower():
+                    string = "\n".join(lines[i:])
+                    break
 
         # Step 2: Replace character entities
         char_map = {
