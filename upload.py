@@ -1,11 +1,7 @@
 import os
-import json
-import subprocess
 from pydrive2.drive import GoogleDrive
 from pydrive2.auth import GoogleAuth
 from oauth2client.service_account import ServiceAccountCredentials
-import tempfile
-import sys
 from tqdm import tqdm
 from pathlib import Path
 
@@ -16,21 +12,18 @@ DB_USER = "prisma_user"
 BACKUP_DIR = ".temporary_backup"
 BACKUP_FILE = f"{DB_NAME}.backup"  # fixed name
 BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
-COMPRESSED_BACKUP_PATH = BACKUP_PATH + ".gz"
 
 # --- Ensure backup dir exists ---
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# --- Get database size (for pv progress) ---
+# --- Dump database without compression ---
+dump_cmd = f"docker exec -t {DB_CONTAINER} pg_dump -U {DB_USER} -d {DB_NAME} -F c -f /tmp/{BACKUP_FILE}"
+os.system(dump_cmd)
 
-# --- Dump database with progress ---
-dump_cmd = (
-    f"docker exec -t {DB_CONTAINER} pg_dump -U {DB_USER} -d {DB_NAME} -F c"
-)
-pv_cmd = f"pv | gzip > {COMPRESSED_BACKUP_PATH}"
-os.system(f"{dump_cmd} | {pv_cmd}")
+# Copy from container to host
+os.system(f"docker cp {DB_CONTAINER}:/tmp/{BACKUP_FILE} {BACKUP_PATH}")
 
-print(f"Local backup complete and compressed: {COMPRESSED_BACKUP_PATH}")
+print(f"Local backup complete: {BACKUP_PATH}")
 
 # --- Google Drive Auth ---
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -45,16 +38,14 @@ gauth.credentials = credentials
 drive = GoogleDrive(gauth)
 
 folder_id = "1splKDhcBuy1p_OAJTCTuIbx6t5o6yURi"
-compressed_filename = os.path.basename(COMPRESSED_BACKUP_PATH)
+filename = os.path.basename(BACKUP_PATH)
 
 # --- Search for existing file ---
 file_list = drive.ListFile(
-    {
-        "q": f"'{folder_id}' in parents and title='{compressed_filename}' and trashed=false"
-    }
+    {"q": f"'{folder_id}' in parents and title='{filename}' and trashed=false"}
 ).GetList()
 
-backup_path = Path(COMPRESSED_BACKUP_PATH)
+backup_path = Path(BACKUP_PATH)
 file_size = backup_path.stat().st_size
 
 if file_list:
@@ -65,7 +56,7 @@ if file_list:
         with tqdm.wrapattr(
             fobj,
             "read",
-            desc=f"Updating {compressed_filename}",
+            desc=f"Updating {filename}",
             total=file_size,
             unit="B",
             unit_scale=True,
@@ -73,15 +64,15 @@ if file_list:
         ) as wrapped:
             if file_size:  # PyDrive bug with empty files
                 gfile.content = wrapped
-            gfile["title"] = compressed_filename
+            gfile["title"] = filename
             gfile.Upload(param={"supportsAllDrives": True})
 
-    print(f"Updated existing file: {compressed_filename}")
+    print(f"Updated existing file: {filename}")
 
 else:
     # File does not exist, create new
     file_metadata = {
-        "title": compressed_filename,  # PyDrive uses 'title' not 'name'
+        "title": filename,
         "parents": [{"id": folder_id}],
     }
     gfile = drive.CreateFile(file_metadata)
@@ -90,7 +81,7 @@ else:
         with tqdm.wrapattr(
             fobj,
             "read",
-            desc=f"Creating {compressed_filename}",
+            desc=f"Creating {filename}",
             total=file_size,
             unit="B",
             unit_scale=True,
@@ -98,11 +89,8 @@ else:
         ) as wrapped:
             if file_size:
                 gfile.content = wrapped
-            gfile["title"] = compressed_filename
+            gfile["title"] = filename
             gfile.Upload(param={"supportsAllDrives": True})
 
-    print(f"Created new file: {compressed_filename}")
+    print(f"Created new file: {filename}")
 
-# --- Cleanup ---
-os.remove(COMPRESSED_BACKUP_PATH)
-print("Temporary compressed backup removed.")
