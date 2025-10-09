@@ -14,5 +14,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  db_manager:
+    imange:
+      build: . 
+
+
+
 volumes:
   postgres_data:
