@@ -1,7 +1,7 @@
 version: "3.8"
 
 services:
-  postgres:
+  db:
     image: postgres:15
     container_name: postgres
     restart: always
@@ -13,12 +13,39 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
 
   db_manager:
-    imange:
-      build: . 
+    build: .
+    depends_on:
+      - db
+    volumes:
+      - cache_data:/tmp
 
+  seed:
+    extends:
+      service: db_manager
+    command: scripts/seed.py
 
+  update:
+    extends:
+      service: db_manager
+    command: scripts/update.py
+
+  upload:
+    extends:
+      service: db_manager
+    command: scripts/upload.py
+
+  download:
+    extends:
+      service: db_manager
+    command: scripts/download.py
 
 volumes:
   postgres_data:
+  cache_data:

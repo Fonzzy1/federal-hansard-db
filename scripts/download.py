@@ -21,7 +21,7 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # --- Google Drive Auth ---
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "/root/mount/hansard_db_client_secret.json"
+SERVICE_ACCOUNT_FILE = "/client.json"
 
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
     SERVICE_ACCOUNT_FILE, SCOPES

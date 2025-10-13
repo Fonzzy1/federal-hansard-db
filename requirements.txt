@@ -5,3 +5,4 @@ fuzzywuzzy
 pandas
 rich
 pydrive2
+tqdm

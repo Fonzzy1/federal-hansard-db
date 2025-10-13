@@ -28,13 +28,13 @@ cd federal-hansard-db
 
 ```{bash}
 docker --version
-docker-compose --version
+docker compose --version
 ```
 
 3. **Start the Container**
 
 ```{bash}
-docker-compose up db -d
+docker compose up db -d
 ```
 
 4. **Connect to the DB**
@@ -68,14 +68,13 @@ git submodule update --init --recursive
 
 ```{bash}
 docker --version
-docker-compose --version
 ```
 
 3. **Start the DB**
 
 ```{bash}
 cd path/to/submodule
-docker-compose up db -d
+docker compose up db -d
 ```
 
 4. **Generate the Prisma Client**
@@ -109,7 +108,7 @@ and post 2005 content respectively.
 The to scrape and parse these sources - run the following command:
 
 ```{bash}
-docker compose run db_manager update
+docker compose run update
 ```
 
 This command is repeatable and will add any sitting days that have not yet been
@@ -125,8 +124,9 @@ the form of a client.json file.
 The to scrape and parse these sources - run the following command:
 
 ```{bash}
-docker compose run -v /path/to/client.json:/client.json db_manager download
+docker compose run -v /path/to/client.json:/client.json download
 ```
+
 
 ### Database Structure
 
