@@ -1,3 +1,4 @@
+#! /bin/env/python3
 import os
 from pydrive2.drive import GoogleDrive
 from pydrive2.auth import GoogleAuth

@@ -1,3 +1,4 @@
+#! /bin/env/python3
 from prisma import Client
 import asyncio
 import importlib
