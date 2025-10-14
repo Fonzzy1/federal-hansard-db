@@ -124,9 +124,9 @@ the form of a client.json file.
 The to scrape and parse these sources - run the following command:
 
 ```{bash}
-docker compose run -v /path/to/client.json:/client.json download
+export SYS_DIR=$PWD
+docker compose run download
 ```
-
 
 ### Database Structure
 

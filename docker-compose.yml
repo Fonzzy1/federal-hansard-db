@@ -45,6 +45,10 @@ services:
     extends:
       service: db_manager
     command: scripts/download.py
+    volumes:
+      - type: bind
+        source: ${SYS_DIR}/client.json
+        target: /root/client.json
 
 volumes:
   postgres_data:

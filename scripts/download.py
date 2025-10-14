@@ -21,7 +21,7 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # --- Google Drive Auth ---
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "/client.json"
+SERVICE_ACCOUNT_FILE = "/app/client.json"
 
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
     SERVICE_ACCOUNT_FILE, SCOPES
