@@ -1,6 +1,7 @@
 # Use Python slim image
 FROM python:3.12-slim
 
+RUN apt update && apt install -y postgresql-client
 # Set working directory
 WORKDIR /app
 ENV PYTHONPATH=/app:$PYTHONPATH

@@ -9,7 +9,7 @@ from googleapiclient.http import MediaIoBaseDownload
 from pathlib import Path
 
 # --- Config ---
-DB_CONTAINER = "postgres"
+DB_CONTAINER = "db"
 DB_NAME = "prisma_db"
 DB_USER = "prisma_user"
 BACKUP_DIR = ".temporary_backup"
@@ -66,17 +66,9 @@ with open(BACKUP_PATH, "wb") as f:
 
 print(f"Downloaded: {BACKUP_PATH}")
 
-# --- Copy backup into Docker container ---
-container_backup_path = f"/tmp/{BACKUP_FILE}"
-copy_cmd = f"docker cp {BACKUP_PATH} {DB_CONTAINER}:{container_backup_path}"
-subprocess.run(copy_cmd, shell=True, check=True)
-print(f"Copied backup into container at {container_backup_path}")
 
 # --- Restore into Postgres with verbose output ---
 print("Restoring database...")
-restore_cmd = (
-    f"docker exec -i {DB_CONTAINER} "
-    f"pg_restore -U {DB_USER} -d {DB_NAME} --clean --verbose {container_backup_path}"
-)
+restore_cmd = f"pg_restore -h {DB_CONTAINER} -p 5432  -U {DB_USER} -d {DB_NAME} --clean --verbose {BACKUP_PATH}"
 subprocess.run(restore_cmd, shell=True, check=True)
 print("Database restore complete.")
