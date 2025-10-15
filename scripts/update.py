@@ -9,6 +9,7 @@ import datetime
 from politicians import main as politician_metadata
 from rich.console import Console
 from rich.progress import Progress
+from scripts.seed import main as seed_sources
 
 console = Console()
 
@@ -245,6 +246,7 @@ async def main() -> None:
     db = Client()
     await db.connect()
 
+    await seed_sources(db)
     await reset_politician_links(db)
     await load_politician_metadata(db)
     await scrape_and_parse_sources(db)

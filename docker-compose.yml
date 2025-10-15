@@ -26,11 +26,6 @@ services:
     volumes:
       - cache_data:/tmp
 
-  seed:
-    extends:
-      service: db_manager
-    command: scripts/seed.py
-
   update:
     extends:
       service: db_manager

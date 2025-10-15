@@ -1,10 +1,27 @@
 from prisma import Prisma
-import asyncio
 
 
-async def main(db):
-    await db.source.create(
-        data={
+async def seed(db: Prisma):
+    await db.source.upsert(
+        where={"name": "Historic House of Reps Hansard"},
+        update={
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.historic_hansard",
+            "args": "",
+            "groups": {
+                "connectOrCreate": [
+                    {
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
+                    },
+                    {
+                        "where": {"name": "House of Reps"},
+                        "create": {"name": "House of Reps"},
+                    },
+                ],
+            },
+        },
+        create={
             "name": "Historic House of Reps Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.historic_hansard",
@@ -21,11 +38,26 @@ async def main(db):
                     },
                 ],
             },
-        }
+        },
     )
 
-    await db.source.create(
-        data={
+    await db.source.upsert(
+        where={"name": "Historic Senate Hansard"},
+        update={
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.historic_hansard",
+            "args": '{"senate":true}',
+            "groups": {
+                "connectOrCreate": [
+                    {
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
+                    },
+                    {"where": {"name": "Senate"}, "create": {"name": "Senate"}},
+                ],
+            },
+        },
+        create={
             "name": "Historic Senate Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.historic_hansard",
@@ -36,17 +68,32 @@ async def main(db):
                         "where": {"name": "Hansard"},
                         "create": {"name": "Hansard"},
                     },
+                    {"where": {"name": "Senate"}, "create": {"name": "Senate"}},
+                ],
+            },
+        },
+    )
+
+    await db.source.upsert(
+        where={"name": "Modern House of Reps Hansard"},
+        update={
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.hansard",
+            "args": "",
+            "groups": {
+                "connectOrCreate": [
                     {
-                        "where": {"name": "Senate"},
-                        "create": {"name": "Senate"},
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
+                    },
+                    {
+                        "where": {"name": "House of Reps"},
+                        "create": {"name": "House of Reps"},
                     },
                 ],
             },
-        }
-    )
-
-    await db.source.create(
-        data={
+        },
+        create={
             "name": "Modern House of Reps Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.hansard",
@@ -63,11 +110,26 @@ async def main(db):
                     },
                 ],
             },
-        }
+        },
     )
 
-    await db.source.create(
-        data={
+    await db.source.upsert(
+        where={"name": "Modern Senate Hansard"},
+        update={
+            "parserModule": "parsers.hansard",
+            "scraperModule": "scrapers.hansard",
+            "args": '{"senate":true}',
+            "groups": {
+                "connectOrCreate": [
+                    {
+                        "where": {"name": "Hansard"},
+                        "create": {"name": "Hansard"},
+                    },
+                    {"where": {"name": "Senate"}, "create": {"name": "Senate"}},
+                ],
+            },
+        },
+        create={
             "name": "Modern Senate Hansard",
             "parserModule": "parsers.hansard",
             "scraperModule": "scrapers.hansard",
@@ -78,27 +140,18 @@ async def main(db):
                         "where": {"name": "Hansard"},
                         "create": {"name": "Hansard"},
                     },
-                    {
-                        "where": {"name": "Senate"},
-                        "create": {"name": "Senate"},
-                    },
+                    {"where": {"name": "Senate"}, "create": {"name": "Senate"}},
                 ],
             },
-        }
+        },
     )
 
-
-db = Prisma()
-
-
-async def run():
+async def main() -> None:
+    db = Client()
     await db.connect()
-    try:
-        await main(db)
-    except Exception as e:
-        raise e
-    finally:
-        await db.disconnect()
+    await seed(db)
+    await db.disconnect()
 
 
-asyncio.run(run())
+if __name__ == "__main__":
+    asyncio.run(main())
