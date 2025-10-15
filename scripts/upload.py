@@ -10,25 +10,14 @@ from pathlib import Path
 DB_CONTAINER = "postgres"
 DB_NAME = "prisma_db"
 DB_USER = "prisma_user"
+DB_PASSWORD = "prisma_password"
 BACKUP_DIR = ".temporary_backup"
 BACKUP_FILE = f"{DB_NAME}.backup"  # fixed name
 BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
 
-# --- Ensure backup dir exists ---
-os.makedirs(BACKUP_DIR, exist_ok=True)
-
-# --- Dump database without compression ---
-dump_cmd = f"docker exec -t {DB_CONTAINER} pg_dump -U {DB_USER} -d {DB_NAME} -F c -f /tmp/{BACKUP_FILE}"
-os.system(dump_cmd)
-
-# Copy from container to host
-os.system(f"docker cp {DB_CONTAINER}:/tmp/{BACKUP_FILE} {BACKUP_PATH}")
-
-print(f"Local backup complete: {BACKUP_PATH}")
-
 # --- Google Drive Auth ---
 SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "/root/mount/hansard_db_client_secret.json"
+SERVICE_ACCOUNT_FILE = "/root/client.json"
 
 credentials = ServiceAccountCredentials.from_json_keyfile_name(
     SERVICE_ACCOUNT_FILE, SCOPES
@@ -45,6 +34,17 @@ filename = os.path.basename(BACKUP_PATH)
 file_list = drive.ListFile(
     {"q": f"'{folder_id}' in parents and title='{filename}' and trashed=false"}
 ).GetList()
+
+
+# --- Ensure backup dir exists ---
+os.makedirs(BACKUP_DIR, exist_ok=True)
+
+# --- Dump database without compression ---
+print(f"Backing up to complete: {BACKUP_PATH}")
+dump_cmd = f"PGPASSWORD={DB_PASSWORD} pg_dump -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} -F c -f  {BACKUP_PATH}"
+os.system(dump_cmd)
+
+print(f"Local backup complete: {BACKUP_PATH}")
 
 backup_path = Path(BACKUP_PATH)
 file_size = backup_path.stat().st_size
@@ -94,4 +94,3 @@ else:
             gfile.Upload(param={"supportsAllDrives": True})
 
     print(f"Created new file: {filename}")
-

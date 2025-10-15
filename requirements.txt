@@ -6,3 +6,5 @@ pandas
 rich
 pydrive2
 tqdm
+aiohttp
+beautifulsoup4

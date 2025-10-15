@@ -37,6 +37,10 @@ services:
     extends:
       service: db_manager
     command: scripts/upload.py
+    volumes:
+      - type: bind
+        source: ${SYS_DIR}/client.json
+        target: /root/client.json
 
   studio:
     extends:
