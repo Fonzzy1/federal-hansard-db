@@ -6,10 +6,10 @@ import json
 import re
 import string
 import datetime
-from politicians import main as politician_metadata
+from scripts.politicians import main as politician_metadata
 from rich.console import Console
 from rich.progress import Progress
-from scripts.seed import main as seed_sources
+from scripts.seed import seed as seed_sources
 
 console = Console()
 
@@ -55,8 +55,8 @@ async def insert_document(db, document, raw_document_id):
                         "type": document["answer"]["type"],
                         "rawAuthor": {
                             "connectOrCreate": {
-                                "where": {"name": document["author"]},
-                                "create": {"name": document["author"]},
+                                "where": {"name": document['answer']["author"]},
+                                "create": {"name": document['answer']["author"]},
                             }
                         },
                         "rawDocument": {"connect": {"id": raw_document_id}},

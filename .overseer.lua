@@ -8,6 +8,16 @@ return {
             }
         end,
     },
+
+    {
+        name = "Prisma Studio",
+        builder = function(_)
+            return {
+                cmd = { "docker", "compose", "run", "studio" },
+                components = { "default" },
+            }
+        end,
+    },
     {
         name = "Download DB",
         builder = function(_)

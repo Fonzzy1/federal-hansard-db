@@ -2,7 +2,7 @@
 
 A database format for the Australian Federal Parliament's Hansard -- the
 verbatim transcript of everything said since 1901 in both houses of Parliament.
-While all of the text is available on ParlInfo, it is notoriously hard to
+While all the text is available on ParlInfo, it is notoriously hard to
 search and doesn't allow for more complex queries.
 
 This repository offers both a way of combining previous scrapes of the Hansard
@@ -28,7 +28,6 @@ cd federal-hansard-db
 
 ```{bash}
 docker --version
-docker compose --version
 ```
 
 3. **Start the Container**
@@ -47,6 +46,19 @@ Port: 5432
 Username: prisma_user
 Password: prisma_password
 Database: prisma_db
+```
+
+```{bash}
+
+DATABASE_URL=postgresql://prisma_user:prisma_password@localhost:5432/prisma_db?schema=public
+```
+
+1. **Use Prisma Studio**
+
+To use the built in db GUI, run:
+
+```{bash}
+docker compose up studio
 ```
 
 ---
@@ -306,3 +318,32 @@ To join the authors from the documents to parliamentarians, you can add more
 content to fixes.json. Politicians are joined to authors on `id` and `altId`; to
 ensure the join works, make sure that the alt_id for the parliamentarian is set
 in fixes.json.
+
+## Examples
+
+### Big Query
+
+To pull out all the row-wise information for the documents through various
+joins:
+
+```{sql connection = "con" }
+
+SELECT
+    doc.*,
+    rau.*,
+    par.*,
+    svc.*,
+    prt.*
+FROM
+    "Document" doc
+JOIN
+    "rawAuthor" rau ON doc."rawAuthorId" = rau.id
+JOIN
+    "Parliamentarian" par ON rau."parliamentarianId" = par.id
+JOIN
+    "Service" svc ON par.id = svc."parliamentarianId"
+    AND doc."date" BETWEEN svc."startDate" AND svc."endDate"
+JOIN
+    "Party" prt ON prt.id = svc."partyId"
+
+```

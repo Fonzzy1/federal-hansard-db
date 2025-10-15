@@ -21,6 +21,8 @@ services:
 
   db_manager:
     build: .
+    environment:
+      - DATABASE_URL=postgresql://prisma_user:prisma_password@db:5432/prisma_db?schema=public
     depends_on:
       - db
     volumes:
@@ -35,6 +37,14 @@ services:
     extends:
       service: db_manager
     command: scripts/upload.py
+
+  studio:
+    extends:
+      service: db_manager
+    entrypoint: prisma
+    command: studio
+    ports:
+      - "5555:5555"
 
   download:
     extends:

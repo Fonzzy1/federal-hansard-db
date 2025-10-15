@@ -146,6 +146,7 @@ async def seed(db: Prisma):
         },
     )
 
+
 async def main() -> None:
     db = Client()
     await db.connect()

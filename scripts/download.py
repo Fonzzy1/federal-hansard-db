@@ -12,6 +12,7 @@ from pathlib import Path
 DB_CONTAINER = "db"
 DB_NAME = "prisma_db"
 DB_USER = "prisma_user"
+DB_PASSWORD = "prisma_password"
 BACKUP_DIR = ".temporary_backup"
 BACKUP_FILE = f"{DB_NAME}.backup"
 BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
@@ -69,6 +70,6 @@ print(f"Downloaded: {BACKUP_PATH}")
 
 # --- Restore into Postgres with verbose output ---
 print("Restoring database...")
-restore_cmd = f"pg_restore -h {DB_CONTAINER} -p 5432  -U {DB_USER} -d {DB_NAME} --clean --verbose {BACKUP_PATH}"
+restore_cmd = f"PGPASSWORD={DB_PASSWORD} pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} --clean --verbose {BACKUP_PATH}"
 subprocess.run(restore_cmd, shell=True, check=True)
 print("Database restore complete.")

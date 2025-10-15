@@ -208,7 +208,7 @@ class HansardSpeechExtractor:
                         },
                     }
                     results.append(entry)
-                elif valid_answer and not valid_answer:
+                elif valid_answer and not valid_question:
                     entry = {
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
