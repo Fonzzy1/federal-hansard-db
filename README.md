@@ -98,8 +98,8 @@ prisma generate
 
 5. **Import and use the ORM**
 
-```{python}
-from path.to.submodule.prisma import Client
+```{py}
+from prisma import Client
 
 db = Client()
 
