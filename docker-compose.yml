@@ -26,6 +26,8 @@ services:
       - db
     volumes:
       - cache_data:/tmp
+    profiles:
+      - db-tools
 
   update:
     extends:
@@ -40,6 +42,8 @@ services:
       - type: bind
         source: ${SYS_DIR}/client.json
         target: /root/client.json
+    profiles:
+      - db-tools
 
   studio:
     extends:
@@ -48,6 +52,8 @@ services:
     command: studio
     ports:
       - "5555:5555"
+    profiles:
+      - db-tools
 
   download:
     extends:
@@ -57,6 +63,8 @@ services:
       - type: bind
         source: ${SYS_DIR}/client.json
         target: /root/client.json
+    profiles:
+      - db-tools
 
 volumes:
   postgres_data:
