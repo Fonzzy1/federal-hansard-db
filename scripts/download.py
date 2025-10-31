@@ -72,4 +72,5 @@ print(f"Downloaded: {BACKUP_PATH}")
 print("Restoring database...")
 restore_cmd = f"PGPASSWORD={DB_PASSWORD} pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} --clean --verbose {BACKUP_PATH}"
 subprocess.run(restore_cmd, shell=True, check=True)
+os.remove(BACKUP_PATH)
 print("Database restore complete.")
