@@ -26,6 +26,9 @@ services:
       - db
     volumes:
       - cache_data:/tmp
+      - type: bind
+        source: ${SYS_DIR}/client.json
+        target: /root/client.json
     profiles:
       - db-tools
 
@@ -38,12 +41,6 @@ services:
     extends:
       service: db_manager
     command: scripts/upload.py
-    volumes:
-      - type: bind
-        source: ${SYS_DIR}/client.json
-        target: /root/client.json
-    profiles:
-      - db-tools
 
   studio:
     extends:
@@ -52,19 +49,16 @@ services:
     command: studio
     ports:
       - "5555:5555"
-    profiles:
-      - db-tools
 
   download:
     extends:
       service: db_manager
     command: scripts/download.py
-    volumes:
-      - type: bind
-        source: ${SYS_DIR}/client.json
-        target: /root/client.json
-    profiles:
-      - db-tools
+
+  reparse:
+    extends:
+      service: db_manager
+    command: scripts/update.py --reparse
 
 volumes:
   postgres_data:

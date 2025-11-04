@@ -12,7 +12,6 @@ import lxml.etree as ET
 
 """
 Goal is to extract:
-
     Speeches
     Question and answer pairs
     Petitions
@@ -62,6 +61,11 @@ class HansardSpeechExtractor:
 
         cleaned_string = self._clean_hansard(hansard_string)
         self.root = ET.fromstring(cleaned_string)
+
+        # Build child → parent map
+        self.parent_map = {
+            child: parent for parent in self.root.iter() for child in parent
+        }
 
     def _clean_hansard(self, string):
         # Step 1: Strip problematic declarations
@@ -134,9 +138,7 @@ class HansardSpeechExtractor:
         raise ValueError("No valid session date found in the XML.")
 
     def _extract_elements(self):
-        check_elements = self.root.xpath(
-            ".//speech | .//question | .//answer | .//petition"
-        )
+        check_elements = self.root.xpath(".//speech | .//question | .//answer")
 
         # If no relevant elements found, raise an exception
         if not check_elements:
@@ -178,10 +180,6 @@ class HansardSpeechExtractor:
                 self.elements.append(
                     {"type": "speech", "element": self._clean_element(el)}
                 )
-            elif tag == "petition":
-                self.elements.append(
-                    {"type": "petition", "element": self._clean_element(el)}
-                )
 
             i += 1
 
@@ -200,11 +198,13 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
+                        "title": self._get_debate_info(elem["question"]),
                         "answer": {
                             "type": "answer",
                             "author": self._extract_talker(elem["answer"]),
                             "text": self._extract_text(elem["answer"]),
                             "date": self.date,
+                            "title": self._get_debate_info(elem["answer"]),
                         },
                     }
                     results.append(entry)
@@ -214,6 +214,7 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["answer"]),
                         "text": self._extract_text(elem["answer"]),
                         "date": self.date,
+                        "title": self._get_debate_info(elem["answer"]),
                     }
                     results.append(entry)
                 elif valid_question and not valid_answer:
@@ -222,6 +223,7 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
+                        "title": self._get_debate_info(elem["element"]),
                     }
                     results.append(entry)
 
@@ -232,10 +234,26 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["element"]),
                         "text": self._extract_text(elem["element"]),
                         "date": self.date,
+                        "title": self._get_debate_info(elem["element"]),
                     }
                     results.append(entry)
 
         return results
+
+    def _get_debate_info(self, el):
+        titles = []
+        while el in self.parent_map:
+            parent = self.parent_map[el]
+            # Look for an info element directly under this parent
+            info = parent.find("debateinfo") or parent.find("subdebateinfo")
+            if info is not None:
+                title = info.findtext("title")
+                if title:
+                    titles.append(title.strip())
+            el = parent
+        # Reverse so it's top-down order (debate → subdebate.1 → subdebate.2)
+        titles.reverse()
+        return ", ".join(titles)
 
     def _clean_element(self, el):
         for interjection in el.xpath(".//interjection"):

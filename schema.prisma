@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
     provider = "postgresql"
-    url = env("DATABASE_URL")
+    url      = env("DATABASE_URL")
 }
 
 ///  Sources 
@@ -108,7 +108,7 @@ model Document {
     id            Int         @id @default(autoincrement())
     text          String
     date          DateTime
-    url           String?
+    title          String
     type          String
     rawAuthor     rawAuthor   @relation(fields: [rawAuthorId], references: [id])
     rawDocumentId Int

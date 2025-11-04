@@ -10,6 +10,7 @@ from scripts.politicians import main as politician_metadata
 from rich.console import Console
 from rich.progress import Progress
 from scripts.seed import seed as seed_sources
+import argparse
 
 console = Console()
 
@@ -39,6 +40,7 @@ async def insert_document(db, document, raw_document_id):
                     document["date"], "%Y-%m-%d"
                 ),
                 "type": document["type"],
+                "title": document["title"],
                 "rawAuthor": {
                     "connectOrCreate": {
                         "where": {"name": document["author"]},
@@ -53,10 +55,13 @@ async def insert_document(db, document, raw_document_id):
                             document["answer"]["date"], "%Y-%m-%d"
                         ),
                         "type": document["answer"]["type"],
+                        "title": document["answer"]["title"],
                         "rawAuthor": {
                             "connectOrCreate": {
-                                "where": {"name": document['answer']["author"]},
-                                "create": {"name": document['answer']["author"]},
+                                "where": {"name": document["answer"]["author"]},
+                                "create": {
+                                    "name": document["answer"]["author"]
+                                },
                             }
                         },
                         "rawDocument": {"connect": {"id": raw_document_id}},
@@ -79,6 +84,7 @@ async def insert_document(db, document, raw_document_id):
                     }
                 },
                 "rawDocument": {"connect": {"id": raw_document_id}},
+                "title": document["title"],
             }
         )
 
@@ -238,10 +244,53 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Finished joining authors.")
 
 
-# -------------------- Main Orchestration --------------------
+async def reparse_all_sources(db: Client) -> None:
+    """Re-parse all existing raw documents."""
+    log("Re-parsing all existing raw documents...")
+
+    sources = await db.source.find_many()
+
+    for source in sources:
+        log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
+
+        parser = importlib.import_module(source.parserModule).parse
+
+        raw_documents = await db.rawdocument.find_many(
+            where={"sourceId": source.id},
+            include={"text": True},  # get the stored raw text
+        )
+
+        with Progress(console=console, transient=False) as progress:
+            task_docs = progress.add_task(
+                f"[green]Re-parsing {source.name}[/green]",
+                total=len(raw_documents),
+            )
+
+            for raw_doc in raw_documents:
+                try:
+                    documents = parser(raw_doc.text)
+                    await db.document.delete_many(
+                        where={"rawDocumentId": raw_doc.id}
+                    )
+                    for document in documents:
+                        await insert_document(db, document, raw_doc.id)
+                except Exception as e:
+                    console.print(
+                        f"[red]Error re-parsing {raw_doc.name}: {e}[/red]"
+                    )
+                    raise e
+                progress.advance(task_docs)
+
+    log("Finished re-parsing all sources.")
 
 
-async def main() -> None:
+async def main():
+    parser = argparse.ArgumentParser(description="Run the data pipeline.")
+    parser.add_argument(
+        "--reparse", action="store_true", help="Re-parse all raw documents."
+    )
+    args = parser.parse_args()
+
     console.rule("[bold blue]Pipeline Start")
     db = Client()
     await db.connect()
@@ -249,9 +298,13 @@ async def main() -> None:
     await seed_sources(db)
     await reset_politician_links(db)
     await load_politician_metadata(db)
-    await scrape_and_parse_sources(db)
-    await join_politicians_to_raw_authors(db)
 
+    if args.reparse:
+        await reparse_all_sources(db)
+    else:
+        await scrape_and_parse_sources(db)
+
+    await join_politicians_to_raw_authors(db)
     await db.disconnect()
     console.rule("[bold blue]Pipeline Complete")
 

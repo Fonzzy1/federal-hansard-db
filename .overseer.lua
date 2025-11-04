@@ -36,4 +36,14 @@ return {
             }
         end,
     },
+
+    {
+        name = "Update DB",
+        builder = function(_)
+            return {
+                cmd = { "docker", "compose", "run", "reparse" },
+                components = { "default" },
+            }
+        end,
+    },
 }
