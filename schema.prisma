@@ -108,7 +108,7 @@ model Document {
     id            Int         @id @default(autoincrement())
     text          String
     date          DateTime
-    title          String
+    title         String
     type          String
     rawAuthor     rawAuthor   @relation(fields: [rawAuthorId], references: [id])
     rawDocumentId Int

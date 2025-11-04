@@ -201,8 +201,8 @@ Represents a _processed and parsed document_, derived from a RawDocument.
 | `id`                         | Unique identifier.                                                                  |
 | `text`                       | Cleaned or structured text from the raw document.                                   |
 | `date`                       | Original publication or event date of the document.                                 |
-| `title`                        | Title of the Document.                                               |
-| `type`                       | Type/category of the document.                    |
+| `title`                      | Title of the Document.                                                              |
+| `type`                       | Type/category of the document.                                                      |
 | `rawDocumentId`              | Foreign key to the originating `RawDocument`.                                       |
 | `rawAuthorId`                | Foreign key linking to the `rawAuthor`.                                             |
 | `citedBy` / `references`     | Self-referential many-to-many relation indicating document citations or references. |
