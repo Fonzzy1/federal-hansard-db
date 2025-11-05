@@ -5,14 +5,14 @@ from pydrive2.auth import GoogleAuth
 from oauth2client.service_account import ServiceAccountCredentials
 from tqdm import tqdm
 from pathlib import Path
+import subprocess
 
 # --- Config ---
-DB_CONTAINER = "postgres"
-DB_NAME = "prisma_db"
-DB_USER = "prisma_user"
-DB_PASSWORD = "prisma_password"
+DB_CONTAINER = "db"
+DB_NAME = os.environ["PGDB"]
+DB_USER = os.environ["PGUSER"]
 BACKUP_DIR = ".temporary_backup"
-BACKUP_FILE = f"{DB_NAME}.backup"  # fixed name
+BACKUP_FILE = f"{DB_NAME}.backup"
 BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
 
 # --- Google Drive Auth ---
@@ -41,8 +41,8 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 
 # --- Dump database without compression ---
 print(f"Backing up to complete: {BACKUP_PATH}")
-dump_cmd = f"PGPASSWORD={DB_PASSWORD} pg_dump -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} -F c -f  {BACKUP_PATH}"
-os.system(dump_cmd)
+dump_cmd = f"pg_dump -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} --verbose -F c -f  {BACKUP_PATH}"
+subprocess.run(dump_cmd, shell=True, check=True)
 
 print(f"Local backup complete: {BACKUP_PATH}")
 

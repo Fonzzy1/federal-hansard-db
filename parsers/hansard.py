@@ -223,7 +223,7 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": self._extract_text(elem["question"]),
                         "date": self.date,
-                        "title": self._get_debate_info(elem["element"]),
+                        "title": self._get_debate_info(elem["question"]),
                     }
                     results.append(entry)
 

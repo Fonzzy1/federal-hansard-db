@@ -257,7 +257,6 @@ async def reparse_all_sources(db: Client) -> None:
 
         raw_documents = await db.rawdocument.find_many(
             where={"sourceId": source.id},
-            include={"text": True},  # get the stored raw text
         )
 
         with Progress(console=console, transient=False) as progress:

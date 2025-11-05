@@ -13,7 +13,7 @@ return {
         name = "Prisma Studio",
         builder = function(_)
             return {
-                cmd = { "docker", "compose", "run", "studio" },
+                cmd = { "docker", "compose", "run", "-p", "5555:5555", "studio" },
                 components = { "default" },
             }
         end,
@@ -38,10 +38,10 @@ return {
     },
 
     {
-        name = "Update DB",
+        name = "Reparse DB",
         builder = function(_)
             return {
-                cmd = { "docker", "compose", "run", "reparse" },
+                cmd = { "docker", "compose", "run", "update", "scripts/update.py", "--reparse" },
                 components = { "default" },
             }
         end,

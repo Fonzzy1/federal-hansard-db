@@ -44,6 +44,47 @@ async def seed(db: Prisma):
     )
 
     await db.source.upsert(
+        where={"name": "Historic House of Reps Hansard"},
+        data={
+            "update": {
+                "parserModule": "parsers.hansard",
+                "scraperModule": "scrapers.historic_hansard",
+                "args": "",
+                "groups": {
+                    "connectOrCreate": [
+                        {
+                            "where": {"name": "Hansard"},
+                            "create": {"name": "Hansard"},
+                        },
+                        {
+                            "where": {"name": "House of Reps"},
+                            "create": {"name": "House of Reps"},
+                        },
+                    ],
+                },
+            },
+            "create": {
+                "name": "Historic House of Reps Hansard",
+                "parserModule": "parsers.hansard",
+                "scraperModule": "scrapers.historic_hansard",
+                "args": "",
+                "groups": {
+                    "connectOrCreate": [
+                        {
+                            "where": {"name": "Hansard"},
+                            "create": {"name": "Hansard"},
+                        },
+                        {
+                            "where": {"name": "House of Reps"},
+                            "create": {"name": "House of Reps"},
+                        },
+                    ],
+                },
+            },
+        },
+    )
+
+    await db.source.upsert(
         where={"name": "Modern House of Reps Hansard"},
         data={
             "update": {
