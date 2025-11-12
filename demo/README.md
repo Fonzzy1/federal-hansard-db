@@ -1,25 +1,33 @@
----
-title: Federal Hansard DB Dem
-author: Alfie Chadwick
-date: "2025-11-12"
-format: gfm
----
+# Federal Hansard DB Demo
 
-```{r install, message=FALSE, warning=FALSE, eval=TRUE}
+
+``` r
 required_packages <- c("DBI", "RPostgres", "dplyr", "ggplot2")
 
 to_install <- setdiff(required_packages, rownames(installed.packages()))
 if(length(to_install)) install.packages(to_install)
-
 ```
 
-```{r setup, include=FALSE}
+``` r
 library(DBI)
 library(RPostgres)
 library(dplyr)
+```
+
+
+    Attaching package: 'dplyr'
+
+    The following objects are masked from 'package:stats':
+
+        filter, lag
+
+    The following objects are masked from 'package:base':
+
+        intersect, setdiff, setequal, union
+
+``` r
 library(ggplot2)
 
-# Fill in your connection info
 con <- dbConnect(
   RPostgres::Postgres(),
   dbname = "prisma_db",
@@ -30,11 +38,9 @@ con <- dbConnect(
 )
 ```
 
----
-
 ## Grab Raw Documents
 
-```{sql, connection=con, output.var="doc_counts"}
+``` sql
 SELECT
     sg.id AS group_id,
     sg.name AS group_name,
@@ -60,11 +66,11 @@ ORDER BY
     sg.id, year
 ```
 
----
+------------------------------------------------------------------------
 
 ## Hansard Documents
 
-```{r plot, message=FALSE, warning=FALSE}
+``` r
 # Coerce types if necessary
 doc_counts <- doc_counts %>%
   mutate(year = as.integer(as.character(year)),
@@ -82,7 +88,11 @@ ggplot(doc_counts, aes(x = year, y = raw_document_count, color = group_name)) +
     color = "Source Group"
   ) +
   theme_minimal()
-# Basic plot
+```
+
+![](README_files/figure-commonmark/unnamed-chunk-3-1.png)
+
+``` r
 ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
   geom_point() +
   labs(
@@ -93,3 +103,5 @@ ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
   ) +
   theme_minimal()
 ```
+
+![](README_files/figure-commonmark/unnamed-chunk-3-2.png)

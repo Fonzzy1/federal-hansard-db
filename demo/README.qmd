@@ -1,19 +1,34 @@
-# Federal Hansard DB Dem
-Alfie Chadwick
-2025-11-12
+---
+title: "Federal Hansard DB Demo"
+format: gfm
+---
 
-``` r
+```{r}
 required_packages <- c("DBI", "RPostgres", "dplyr", "ggplot2")
 
 to_install <- setdiff(required_packages, rownames(installed.packages()))
 if(length(to_install)) install.packages(to_install)
 ```
 
-------------------------------------------------------------------------
+```{r setup}
+library(DBI)
+library(RPostgres)
+library(dplyr)
+library(ggplot2)
+
+con <- dbConnect(
+  RPostgres::Postgres(),
+  dbname = "prisma_db",
+  host = "localhost",
+  port = 5432,
+  user = "prisma_user",
+  password = "prisma_password"
+)
+```
 
 ## Grab Raw Documents
 
-``` sql
+```{sql, connection=con, output.var="doc_counts"}
 SELECT
     sg.id AS group_id,
     sg.name AS group_name,
@@ -43,7 +58,7 @@ ORDER BY
 
 ## Hansard Documents
 
-``` r
+```{r}
 # Coerce types if necessary
 doc_counts <- doc_counts %>%
   mutate(year = as.integer(as.character(year)),
@@ -61,12 +76,6 @@ ggplot(doc_counts, aes(x = year, y = raw_document_count, color = group_name)) +
     color = "Source Group"
   ) +
   theme_minimal()
-```
-
-![](demo_files/figure-commonmark/plot-1.png)
-
-``` r
-# Basic plot
 ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
   geom_point() +
   labs(
@@ -78,4 +87,3 @@ ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
   theme_minimal()
 ```
 
-![](demo_files/figure-commonmark/plot-2.png)
