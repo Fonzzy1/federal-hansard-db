@@ -29,7 +29,6 @@ services:
     depends_on:
       - db
     volumes:
-      - cache_data:/tmp
       - type: bind
         source: ${SYS_DIR}/client.json
         target: /root/client.json
@@ -74,5 +73,5 @@ services:
     command: scripts/update.py --reparse
 
 volumes:
-  postgres_data:
-  cache_data:
+  hansard_db_data:
+    external: true
