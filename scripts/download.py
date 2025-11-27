@@ -3,6 +3,7 @@ import os
 import requests
 from pathlib import Path
 import subprocess
+from tqdm import tqdm
 
 # --- Config ---
 DB_CONTAINER = "db"
@@ -15,7 +16,7 @@ RESTORED_FILE = f"{DB_NAME}.backup"
 # Replace these with your repo and release
 REPO_OWNER = "fonzzy1"
 REPO_NAME = "federal-hansard-db"
-RELEASE_TAG = None  # None = latest release, or set "v1.0.0"
+RELEASE_TAG = None  # None = latest release
 
 # --- Create local folder ---
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -25,7 +26,9 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 # -------------------------------------------------------
 # If latest release
 if RELEASE_TAG is None:
-    api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+    api_url = (
+        f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+    )
 else:
     api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{RELEASE_TAG}"
 
@@ -37,27 +40,25 @@ print(f"Downloading release: {release['tag_name']}")
 # -------------------------------------------------------
 # DOWNLOAD ASSETS
 # -------------------------------------------------------
-for asset in release['assets']:
-    asset_name = asset['name']
-    download_url = asset['browser_download_url']
+for asset in tqdm(release["assets"], desc = 'Downloading DB Backup'):
+    asset_name = asset["name"]
+    download_url = asset["browser_download_url"]
     asset_path = os.path.join(BACKUP_DIR, asset_name)
-    print(f"Downloading {asset_name} ...")
     with requests.get(download_url, stream=True) as r:
         r.raise_for_status()
         with open(asset_path, "wb") as f:
             for chunk in r.iter_content(chunk_size=8192):
-                f.write(chunk)
-    print(f"Downloaded {asset_name}")
+                _ = f.write(chunk)
 
 # -------------------------------------------------------
 # REASSEMBLE SPLIT FILES
 # -------------------------------------------------------
-split_files = sorted(Path(BACKUP_DIR).glob('*'))  # ensure correct order
+split_files = sorted(Path(BACKUP_DIR).glob("*"))  # ensure correct order
 with open(RESTORED_FILE, "wb") as outfile:
     for part in split_files:
         print(f"Adding {part} ...")
         with open(part, "rb") as infile:
-            outfile.write(infile.read())
+            _ = outfile.write(infile.read())
 
 print(f"Backup reassembled as {RESTORED_FILE}")
 
@@ -67,7 +68,7 @@ print(f"Backup reassembled as {RESTORED_FILE}")
 print(f"Restoring database {DB_NAME} ...")
 restore_cmd = (
     f"pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} "
-    f"-d {DB_NAME} --verbose {RESTORED_FILE}"
+    f"-d {DB_NAME} --verbose --clean {RESTORED_FILE}"
 )
 subprocess.run(restore_cmd, shell=True, check=True)
 print(f"Database {DB_NAME} restored successfully.")
