@@ -28,7 +28,7 @@ def grab_and_format_yyyymmdd(s):
 
 
 def download_from_github():
-    tmpdir = "/tmp/hansard_xml"  # set your fixed temp folder path
+    tmpdir = "/cache/hansard_xml"  # set your fixed temp folder path
     os.makedirs(tmpdir, exist_ok=True)
     local_zip_path = os.path.join(tmpdir, "master.zip")
 

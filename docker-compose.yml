@@ -32,6 +32,7 @@ services:
       - type: bind
         source: ${SYS_DIR}/client.json
         target: /root/client.json
+      - hansard_db_cache:/cache
     profiles:
       - db-tools
 
@@ -74,4 +75,6 @@ services:
 
 volumes:
   hansard_db_data:
+    external: true
+  hansard_db_historic_cache:
     external: true
