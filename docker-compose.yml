@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:15
     restart: always
-    container_name: federal-hansard-db
+    container_name: hansard-db
     environment:
       POSTGRES_USER: prisma_user
       POSTGRES_PASSWORD: prisma_password
