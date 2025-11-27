@@ -4,8 +4,9 @@ wget
 fuzzywuzzy
 pandas
 rich
-pydrive2
+PyGithub
 tqdm
 aiohttp
 beautifulsoup4
+
 

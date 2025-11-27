@@ -1,75 +1,73 @@
-#! /bin/env/python3
+#! /bin/env python3
 import os
-import subprocess
-from tqdm import tqdm
-from pydrive2.auth import GoogleAuth
-from pydrive2.drive import GoogleDrive
-from oauth2client.service_account import ServiceAccountCredentials
-from googleapiclient.http import MediaIoBaseDownload
+import requests
 from pathlib import Path
+import subprocess
 
 # --- Config ---
 DB_CONTAINER = "db"
 DB_NAME = os.environ["PGDB"]
 DB_USER = os.environ["PGUSER"]
-BACKUP_DIR = ".temporary_backup"
-BACKUP_FILE = f"{DB_NAME}.backup"
-BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
+BACKUP_DIR = "split_backup_download"
+RESTORED_FILE = f"{DB_NAME}.backup"
 
-# --- Ensure backup dir exists ---
+# --- GitHub release info ---
+# Replace these with your repo and release
+REPO_OWNER = "fonzzy1"
+REPO_NAME = "federal-hansard-db"
+RELEASE_TAG = None  # None = latest release, or set "v1.0.0"
+
+# --- Create local folder ---
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# --- Google Drive Auth ---
-SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "/root/client.json"
+# -------------------------------------------------------
+# GET RELEASE INFO
+# -------------------------------------------------------
+# If latest release
+if RELEASE_TAG is None:
+    api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+else:
+    api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{RELEASE_TAG}"
 
-credentials = ServiceAccountCredentials.from_json_keyfile_name(
-    SERVICE_ACCOUNT_FILE, SCOPES
+resp = requests.get(api_url)
+resp.raise_for_status()
+release = resp.json()
+print(f"Downloading release: {release['tag_name']}")
+
+# -------------------------------------------------------
+# DOWNLOAD ASSETS
+# -------------------------------------------------------
+for asset in release['assets']:
+    asset_name = asset['name']
+    download_url = asset['browser_download_url']
+    asset_path = os.path.join(BACKUP_DIR, asset_name)
+    print(f"Downloading {asset_name} ...")
+    with requests.get(download_url, stream=True) as r:
+        r.raise_for_status()
+        with open(asset_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    print(f"Downloaded {asset_name}")
+
+# -------------------------------------------------------
+# REASSEMBLE SPLIT FILES
+# -------------------------------------------------------
+split_files = sorted(Path(BACKUP_DIR).glob('*'))  # ensure correct order
+with open(RESTORED_FILE, "wb") as outfile:
+    for part in split_files:
+        print(f"Adding {part} ...")
+        with open(part, "rb") as infile:
+            outfile.write(infile.read())
+
+print(f"Backup reassembled as {RESTORED_FILE}")
+
+# -------------------------------------------------------
+# RESTORE DATABASE
+# -------------------------------------------------------
+print(f"Restoring database {DB_NAME} ...")
+restore_cmd = (
+    f"pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} "
+    f"-d {DB_NAME} --verbose {RESTORED_FILE}"
 )
-
-gauth = GoogleAuth()
-gauth.credentials = credentials
-drive = GoogleDrive(gauth)
-
-folder_id = "1splKDhcBuy1p_OAJTCTuIbx6t5o6yURi"
-
-# --- Search for the backup file ---
-file_list = drive.ListFile(
-    {
-        "q": f"'{folder_id}' in parents and title='{BACKUP_FILE}' and trashed=false"
-    }
-).GetList()
-
-if not file_list:
-    raise FileNotFoundError(
-        f"No backup file '{BACKUP_FILE}' found in Drive folder."
-    )
-
-gfile = file_list[0]
-file_size = int(gfile["fileSize"])
-
-# --- Download with progress bar ---
-if not os.path.exists(BACKUP_PATH):
-    print("Downloading backup from Drive...")
-    request = gfile.auth.service.files().get_media(fileId=gfile["id"])
-    with open(BACKUP_PATH, "wb") as f:
-        downloader = MediaIoBaseDownload(
-            f, request, chunksize=1024 * 1024 * 10
-        )  # 10MB chunks
-        done = False
-        with tqdm(
-            total=file_size, unit="B", unit_scale=True, desc="Download"
-        ) as pbar:
-            while not done:
-                status, done = downloader.next_chunk()
-                if status:
-                    pbar.update(status.resumable_progress - pbar.n)
-
-    print(f"Downloaded: {BACKUP_PATH}")
-
-
-# --- Restore into Postgres with verbose output ---
-print("Restoring database...")
-restore_cmd = f"pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} --clean --verbose {BACKUP_PATH}"
-subprocess.run(restore_cmd, shell=True, check=False)
-print("Database restore complete.")
+subprocess.run(restore_cmd, shell=True, check=True)
+print(f"Database {DB_NAME} restored successfully.")

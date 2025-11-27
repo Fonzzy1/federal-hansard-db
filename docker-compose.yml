@@ -26,14 +26,12 @@ services:
       PGUSER: prisma_user
       PGPASSWORD: prisma_password
       PGDB: prisma_db
+      GITHUB_TOKEN: $GITHUB_TOKEN
     entrypoint: psql
     command: -U prisma_user -d prisma_db -h db -p 5432
     depends_on:
       - db
     volumes:
-      - type: bind
-        source: ${SYS_DIR}/client.json
-        target: /root/client.json
       - hansard_db_cache:/cache
     profiles:
       - db-tools
@@ -84,4 +82,4 @@ volumes:
     external: true
 
 networks:
-  - db_management_network
+  db_management_network:

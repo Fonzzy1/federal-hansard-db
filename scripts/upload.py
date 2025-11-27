@@ -1,96 +1,126 @@
-#! /bin/env/python3
+#! /bin/env python3
 import os
-from pydrive2.drive import GoogleDrive
-from pydrive2.auth import GoogleAuth
-from oauth2client.service_account import ServiceAccountCredentials
-from tqdm import tqdm
 from pathlib import Path
-import subprocess
+from github import Github, Auth
+import re
+from tqdm import tqdm
 
 # --- Config ---
 DB_CONTAINER = "db"
 DB_NAME = os.environ["PGDB"]
 DB_USER = os.environ["PGUSER"]
-BACKUP_DIR = ".temporary_backup"
+BACKUP_DIR = "split_backup"
 BACKUP_FILE = f"{DB_NAME}.backup"
-BACKUP_PATH = os.path.join(BACKUP_DIR, BACKUP_FILE)
+GH_TOKEN = os.environ["GITHUB_TOKEN"]
 
-# --- Google Drive Auth ---
-SCOPES = ["https://www.googleapis.com/auth/drive"]
-SERVICE_ACCOUNT_FILE = "/root/client.json"
+# --- Github setup ---
+auth = Auth.Token(GH_TOKEN)
+github = Github(auth=auth)
+repo = github.get_repo("fonzzy1/federal-hansard-db")
 
-credentials = ServiceAccountCredentials.from_json_keyfile_name(
-    SERVICE_ACCOUNT_FILE, SCOPES
-)
-
-gauth = GoogleAuth()
-gauth.credentials = credentials
-drive = GoogleDrive(gauth)
-
-folder_id = "1splKDhcBuy1p_OAJTCTuIbx6t5o6yURi"
-filename = os.path.basename(BACKUP_PATH)
-
-# --- Search for existing file ---
-file_list = drive.ListFile(
-    {"q": f"'{folder_id}' in parents and title='{filename}' and trashed=false"}
-).GetList()
-
-
-# --- Ensure backup dir exists ---
+# --- Backup folder ---
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-# --- Dump database without compression ---
-print(f"Backing up to complete: {BACKUP_PATH}")
-dump_cmd = f"pg_dump -h {DB_CONTAINER} -p 5432 -U {DB_USER} -d {DB_NAME} --verbose -F c -f  {BACKUP_PATH}"
-subprocess.run(dump_cmd, shell=True, check=True)
 
-print(f"Local backup complete: {BACKUP_PATH}")
+# -------------------------------------------------------
+# HELPER FUNCTIONS
+# -------------------------------------------------------
+def run(cmd):
+    """Run a shell command"""
+    import subprocess
 
-backup_path = Path(BACKUP_PATH)
-file_size = backup_path.stat().st_size
+    subprocess.run(cmd, shell=True, check=True)
 
-if file_list:
-    # File exists, update it
-    gfile = file_list[0]
 
-    with backup_path.open("rb") as fobj:
-        with tqdm.wrapattr(
-            fobj,
-            "read",
-            desc=f"Updating {filename}",
-            total=file_size,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as wrapped:
-            if file_size:  # PyDrive bug with empty files
-                gfile.content = wrapped
-            gfile["title"] = filename
-            gfile.Upload(param={"supportsAllDrives": True})
+def parse_semver(tag):
+    """Parse a tag like v1.2.3"""
+    if tag is None:
+        return [0, 0, 0]
+    m = re.match(r"v?(\d+)\.(\d+)\.(\d+)", tag)
+    if not m:
+        raise ValueError(f"Invalid tag format: {tag}")
+    return list(map(int, m.groups()))
 
-    print(f"Updated existing file: {filename}")
 
-else:
-    # File does not exist, create new
-    file_metadata = {
-        "title": filename,
-        "parents": [{"id": folder_id}],
-    }
-    gfile = drive.CreateFile(file_metadata)
+def bump_version(version, bump_type):
+    major, minor, patch = version
+    if bump_type == "major":
+        major += 1
+        minor = 0
+        patch = 0
+    elif bump_type == "minor":
+        minor += 1
+        patch = 0
+    elif bump_type == "patch":
+        patch += 1
+    return f"v{major}.{minor}.{patch}"
 
-    with backup_path.open("rb") as fobj:
-        with tqdm.wrapattr(
-            fobj,
-            "read",
-            desc=f"Creating {filename}",
-            total=file_size,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as wrapped:
-            if file_size:
-                gfile.content = wrapped
-            gfile["title"] = filename
-            gfile.Upload(param={"supportsAllDrives": True})
 
-    print(f"Created new file: {filename}")
+def choose_bump():
+    print("Select version bump:")
+    print("  1) major")
+    print("  2) minor")
+    print("  3) patch")
+    choice = input("Enter choice (1/2/3): ").strip()
+    if choice == "1":
+        return "major"
+    elif choice == "2":
+        return "minor"
+    elif choice == "3":
+        return "patch"
+    else:
+        print("Invalid choice.")
+        exit(1)
+
+
+# -------------------------------------------------------
+# DETERMINE TAG
+# -------------------------------------------------------
+latest_release = None
+try:
+    latest_release = repo.get_latest_release()
+    latest_tag = latest_release.tag_name
+except:
+    latest_tag = None
+
+current_version = parse_semver(latest_tag)
+bump_type = choose_bump()
+TAG = bump_version(current_version, bump_type)
+RELEASE_NAME = f"Federal Hansard DB {TAG}"
+
+print("Previous tag:", latest_tag)
+print("New tag:", TAG)
+
+# -------------------------------------------------------
+# DATABASE BACKUP
+# -------------------------------------------------------
+print(f"Backing up to complete: {BACKUP_FILE}")
+dump_cmd = (
+    f"pg_dump -h {DB_CONTAINER} -p 5432 -U {DB_USER} "
+    f"-d {DB_NAME} --verbose -F c -f {BACKUP_FILE}"
+)
+run(dump_cmd)
+print(f"Local backup complete: {BACKUP_FILE}")
+
+# Split backup file
+split_cmd = f"split --verbose -b 50M {BACKUP_FILE} {BACKUP_DIR}/"
+run(split_cmd)
+
+# -------------------------------------------------------
+# CREATE GITHUB RELEASE
+# -------------------------------------------------------
+release = repo.create_git_release(
+    tag=TAG, name=RELEASE_NAME, message="", draft=False, prerelease=False
+)
+print("Created new release:", release.html_url)
+
+# -------------------------------------------------------
+# UPLOAD ASSETS
+# -------------------------------------------------------
+for fname in tqdm(os.listdir(BACKUP_DIR), desc="Uploading Assets"):
+    fpath = os.path.join(BACKUP_DIR, fname)
+    if os.path.isfile(fpath):
+        release.upload_asset(fpath)
+
+
+print("All assets uploaded successfully.")
