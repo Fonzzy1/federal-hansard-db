@@ -16,6 +16,8 @@ services:
       interval: 5s
       timeout: 2s
       retries: 20
+    networks:
+      - db_management_network
 
   db_manager:
     build: .
@@ -35,6 +37,8 @@ services:
       - hansard_db_cache:/cache
     profiles:
       - db-tools
+    networks:
+      - db_management_network
 
   update:
     extends:
@@ -78,3 +82,6 @@ volumes:
     external: true
   hansard_db_historic_cache:
     external: true
+
+networks:
+  - db_management_network
