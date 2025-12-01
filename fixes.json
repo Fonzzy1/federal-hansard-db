@@ -295,6 +295,10 @@
         ],
         "283585": [
             "FRD"
+        ],
+        "AW5": [
+            "AW5AW5",
+            "cAW5"
         ]
     },
     "party_affiliations": [
@@ -312,5 +316,13 @@
             "party_name": "Liberal Party of Australia",
             "party_id": 2
         }
+    ],
+    "ignore_ids": [
+        "10000",
+        "20000",
+        "TS4",
+        "UNKNOWN",
+        "Unknown",
+        "T03"
     ]
 }
