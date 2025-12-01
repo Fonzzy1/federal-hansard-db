@@ -349,7 +349,3 @@ def parse(file_text):
     except HansardNoElementsException:
         results = []
     return results
-
-
-self = HansardSpeechExtractor("test.xml", from_file=True)
-self.extract()
