@@ -56,6 +56,7 @@ def download_from_github():
         "hansard-xml-master",
     )
     if not os.path.exists(extracted_folder):
+        print("Extracting Zips")
         with zipfile.ZipFile(local_zip_path, "r") as zip_ref:
             zip_ref.extractall(tmpdir)
     return extracted_folder
@@ -63,6 +64,7 @@ def download_from_github():
 
 def file_list_extractor(senate=False):
     house = "senate" if senate else "hofreps"
+
     path = download_from_github()
     file_dict = {}
     for year in os.listdir(os.path.join(path, house)):
