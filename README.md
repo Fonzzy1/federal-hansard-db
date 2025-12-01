@@ -11,7 +11,10 @@ better access to the Hansard into the future.
 
 ## Installation and Setup
 
-The Federal Hansard DB can be used in two ways:
+The Federal Hansard DB can be used in two ways, directly and through a Prisma  
+submodule. For direct analysis of the data, it is recommended that you use the  
+database standalone. Instead, for use as part of a dashboard, there are good  
+ways to use the Prisma ORM to simplify DB connections and data management.
 
 ---
 
@@ -36,7 +39,13 @@ docker --version
 docker compose up db -d
 ```
 
-4. **Connect to the DB**
+4. **Download the latest Version of the DB**
+
+```{bash}
+docker compose run download
+```
+
+5. **Connect to the DB**
 
 Using the DB connector of your choice, set up the following connection
 parameters
@@ -49,16 +58,22 @@ Database: prisma_db
 ```
 
 ```{bash}
-
 DATABASE_URL=postgresql://prisma_user:prisma_password@localhost:5432/prisma_db?schema=public
 ```
 
-1. **Use Prisma Studio**
-
-To use the built in db GUI, run:
+Since the database is set up with Prisma, you can use the built in graphical
+tools to look around. First run this command:
 
 ```{bash}
 docker compose up studio
+```
+
+Then go to [[http://localhost:5555]].
+
+The other option is to use the PSQL CLI, which can be accessed by running:
+
+```{bash}
+docker compose run -it db_manager
 ```
 
 ---
@@ -89,14 +104,20 @@ cd path/to/submodule
 docker compose up db -d
 ```
 
-4. **Generate the Prisma Client**
+4. **Download the latest Version of the DB**
+
+```{bash}
+docker compose run download
+```
+
+5. **Generate the Prisma Client**
 
 ```{bash}
 pip install prisma
 prisma generate
 ```
 
-5. **Import and use the ORM**
+6. **Import and use the ORM**
 
 ```{py}
 from prisma import Client
@@ -120,6 +141,8 @@ and post 2005 content respectively.
 The to scrape and parse these sources - run the following command:
 
 ```{bash}
+
+docker volume create  hansard_db_historic_cache
 docker compose run update
 ```
 
@@ -321,29 +344,5 @@ in fixes.json.
 
 ## Examples
 
-### Big Query
-
-To pull out all the row-wise information for the documents through various
-joins:
-
-```{sql connection = "con" }
-
-SELECT
-    doc.*,
-    rau.*,
-    par.*,
-    svc.*,
-    prt.*
-FROM
-    "Document" doc
-JOIN
-    "rawAuthor" rau ON doc."rawAuthorId" = rau.id
-JOIN
-    "Parliamentarian" par ON rau."parliamentarianId" = par.id
-JOIN
-    "Service" svc ON par.id = svc."parliamentarianId"
-    AND doc."date" BETWEEN svc."startDate" AND svc."endDate"
-JOIN
-    "Party" prt ON prt.id = svc."partyId"
-
-```
+For more information on example queries, see
+[demo](https://github.com/Fonzzy1/federal-hansard-db/tree/main/demo)
