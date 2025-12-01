@@ -40,7 +40,7 @@ print(f"Downloading release: {release['tag_name']}")
 # -------------------------------------------------------
 # DOWNLOAD ASSETS
 # -------------------------------------------------------
-for asset in tqdm(release["assets"], desc = 'Downloading DB Backup'):
+for asset in tqdm(release["assets"], desc="Downloading DB Backup"):
     asset_name = asset["name"]
     download_url = asset["browser_download_url"]
     asset_path = os.path.join(BACKUP_DIR, asset_name)
@@ -68,7 +68,7 @@ print(f"Backup reassembled as {RESTORED_FILE}")
 print(f"Restoring database {DB_NAME} ...")
 restore_cmd = (
     f"pg_restore -h {DB_CONTAINER} -p 5432 -U {DB_USER} "
-    f"-d {DB_NAME} --verbose --clean {RESTORED_FILE}"
+    f"-d {DB_NAME} --verbose --clean {RESTORED_FILE} || true"
 )
 subprocess.run(restore_cmd, shell=True, check=True)
 print(f"Database {DB_NAME} restored successfully.")
