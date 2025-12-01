@@ -1,9 +1,3 @@
-from prisma import Prisma
-import argparse
-import asyncio
-import os
-from concurrent.futures import ProcessPoolExecutor
-from tqdm import tqdm
 import datetime
 import re
 from lxml import html
@@ -153,17 +147,21 @@ class HansardSpeechExtractor:
             tag = el.tag.lower()
             if tag == "question":
                 parent = el.getparent()
-                answer_ls = [
-                    child
-                    for child in parent
-                    if child is not el and child.tag.lower() == "answer"
-                ]
-                if len(answer_ls) != 0:
+                answer = None
+                found_el = False
+                for child in parent:
+                    if child is el:
+                        found_el = True
+                        continue
+                    if found_el and child.tag.lower() == "answer":
+                        answer = child
+                        break
+                if answer is not None:
                     self.elements.append(
                         {
                             "type": "question",
                             "question": self._clean_element(el),
-                            "answer": self._clean_element(answer_ls[0]),
+                            "answer": self._clean_element(answer),
                         }
                     )
                 ## Exception weh threre is no answer
@@ -248,7 +246,7 @@ class HansardSpeechExtractor:
             info = parent.find("debateinfo") or parent.find("subdebateinfo")
             if info is not None:
                 title = info.findtext("title")
-                if title:
+                if title is not None:
                     titles.append(title.strip())
             el = parent
         # Reverse so it's top-down order (debate → subdebate.1 → subdebate.2)
@@ -351,3 +349,7 @@ def parse(file_text):
     except HansardNoElementsException:
         results = []
     return results
+
+
+self = HansardSpeechExtractor("test.xml", from_file=True)
+self.extract()
