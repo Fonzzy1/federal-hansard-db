@@ -155,10 +155,20 @@ async def scrape_and_parse_sources(db: Client) -> None:
         args = json.loads(source.args) if source.args else {}
         file_dict = module.file_list_extractor(**args)
 
-        existing = await db.rawdocument.find_many(
-            where={"sourceId": source.id}, include={"text": False}
-        )
-        existing_names = {doc.name for doc in existing}
+        print("Finding Existing Files")
+        offset = 0
+        existing_names = set()
+        while True:
+            existing = await db.rawdocument.find_many(
+                where={"sourceId": source.id},
+                include={"text": False},
+                take=1000,
+                skip=offset,
+            )
+            if not existing:
+                break
+            existing_names.update({doc.name for doc in existing})
+            offset += 1000
 
         new_documents = {
             name: val
@@ -204,6 +214,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
 
 async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Joining raw authors to politicians...")
+    ignore_ids = json.load(open("fixes.json", "r"))["ignore_ids"]
 
     all_services = await db.parliamentarian.find_many()
     politicians = {normalize(p.id): p for p in all_services}
@@ -236,9 +247,10 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
                     data={"parliamentarian": {"connect": {"id": matched_id}}},
                 )
             else:
-                console.print(
-                    f"[yellow]⚠[/yellow] Could not match: {auth.name} (possible alt name)"
-                )
+                if auth.name not in ignore_ids:
+                    console.print(
+                        f"[yellow]⚠[/yellow] Could not match: {auth.name} (possible alt name)"
+                    )
             progress.advance(task)
 
     log("Finished joining authors.")
