@@ -32,7 +32,7 @@ services:
     depends_on:
       - db
     volumes:
-      - hansard_db_cache:/cache
+      - hansard_db_historic_cache:/cache
     profiles:
       - db-tools
     networks:
