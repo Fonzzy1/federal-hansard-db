@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/1061476911.svg)](https://doi.org/10.5281/zenodo.17783854)
 
-cite as:
+Cite as:
 
 ```bib
 @misc{chadwick2025,
