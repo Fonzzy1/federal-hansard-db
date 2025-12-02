@@ -3,17 +3,60 @@ title: "Federal Hansard DB Demo"
 format: gfm
 ---
 
-```{r}
+
+::: {.cell}
+
+```{.r .cell-code}
 required_packages <- c("DBI", "RPostgres", "dplyr", "ggplot2")
 
 to_install <- setdiff(required_packages, rownames(installed.packages()))
 if(length(to_install)) install.packages(to_install)
 ```
+:::
 
-```{r setup}
+
+
+::: {.cell}
+
+```{.r .cell-code}
 library(DBI)
 library(RPostgres)
 library(dplyr)
+```
+
+::: {.cell-output .cell-output-stderr}
+
+```
+
+Attaching package: 'dplyr'
+```
+
+
+:::
+
+::: {.cell-output .cell-output-stderr}
+
+```
+The following objects are masked from 'package:stats':
+
+    filter, lag
+```
+
+
+:::
+
+::: {.cell-output .cell-output-stderr}
+
+```
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+```
+
+
+:::
+
+```{.r .cell-code}
 library(ggplot2)
 
 con <- dbConnect(
@@ -25,10 +68,15 @@ con <- dbConnect(
   password = "prisma_password"
 )
 ```
+:::
+
 
 ## Grab Raw Documents
 
-```{sql, connection=con, output.var="doc_counts"}
+
+::: {.cell output.var='doc_counts'}
+
+```{.sql .cell-code}
 SELECT
     sg.id AS group_id,
     sg.name AS group_name,
@@ -53,12 +101,17 @@ GROUP BY
 ORDER BY
     sg.id, year
 ```
+:::
+
 
 ------------------------------------------------------------------------
 
 ## Hansard Documents
 
-```{r}
+
+::: {.cell}
+
+```{.r .cell-code}
 # Coerce types if necessary
 doc_counts <- doc_counts %>%
   mutate(year = as.integer(as.character(year)),
@@ -78,6 +131,13 @@ ggplot(doc_counts, aes(x = year, y = raw_document_count, color = group_name)) +
     color = "Source Group"
   ) +
   theme_minimal()
+```
+
+::: {.cell-output-display}
+![](README_files/figure-commonmark/unnamed-chunk-3-1.png)
+:::
+
+```{.r .cell-code}
 ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
   geom_point() +
   labs(
@@ -87,7 +147,13 @@ ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
     color = "Source Group"
   ) +
   theme_minimal()
+```
 
+::: {.cell-output-display}
+![](README_files/figure-commonmark/unnamed-chunk-3-2.png)
+:::
+
+```{.r .cell-code}
 ggplot(doc_counts, aes(x = year, y = per_doc_document_count, color = group_name)) +
   geom_point() +
   labs(
@@ -99,9 +165,18 @@ ggplot(doc_counts, aes(x = year, y = per_doc_document_count, color = group_name)
   theme_minimal()
 ```
 
+::: {.cell-output-display}
+![](README_files/figure-commonmark/unnamed-chunk-3-3.png)
+:::
+:::
 
 
-```{sql connection = "con" }
+
+
+
+::: {.cell}
+
+```{.sql .cell-code}
 
 SELECT
     doc.*,
@@ -123,3 +198,14 @@ JOIN
 LIMIT 20;
 
 ```
+
+
+
+
+Table: 0 records
+
+| id|text |date |type | rawDocumentId|dateAdded |dateModified | rawAuthorId|title | id|name |dateAdded |dateModified |parliamentarianId |id |firstName |lastName |altName |middleNames |firstNations |image | gender|dob |dateAdded |dateModified |altId | id|startDate |endDate |isSenate |seat |state |dateAdded |dateModified |parliamentarianId | parliamentId| partyId| id|name |
+|--:|:----|:----|:----|-------------:|:---------|:------------|-----------:|:-----|--:|:----|:---------|:------------|:-----------------|:--|:---------|:--------|:-------|:-----------|:------------|:-----|------:|:---|:---------|:------------|:-----|--:|:---------|:-------|:--------|:----|:-----|:---------|:------------|:-----------------|------------:|-------:|--:|:----|
+:::
+
+

@@ -76,6 +76,8 @@ doc_counts <- doc_counts %>%
   mutate(year = as.integer(as.character(year)),
          document_count = as.integer(document_count),
          raw_document_count = as.integer(raw_document_count),
+         per_doc_document_count =
+             as.integer(document_count)/as.integer(raw_document_count),
          group_name = as.factor(group_name))
 
 # Basic plot
@@ -105,3 +107,44 @@ ggplot(doc_counts, aes(x = year, y = document_count, color = group_name)) +
 ```
 
 ![](README_files/figure-commonmark/unnamed-chunk-3-2.png)
+
+``` r
+ggplot(doc_counts, aes(x = year, y = per_doc_document_count, color = group_name)) +
+  geom_point() +
+  labs(
+    title = "Speeches Per Sitting Day per Year per Source Group",
+    x = "Year",
+    y = "Speeches Per Sitting Day",
+    color = "Source Group"
+  ) +
+  theme_minimal()
+```
+
+![](README_files/figure-commonmark/unnamed-chunk-3-3.png)
+
+``` sql
+
+SELECT
+    doc.*,
+    rau.*,
+    par.*,
+    svc.*,
+    prt.*
+FROM
+    "Document" doc
+JOIN
+    "rawAuthor" rau ON doc."rawAuthorId" = rau.id
+JOIN
+    "Parliamentarian" par ON rau."parliamentarianId" = par.id
+JOIN
+    "Service" svc ON par.id = svc."parliamentarianId"
+    AND doc."date" BETWEEN svc."startDate" AND svc."endDate"
+JOIN
+    "Party" prt ON prt.id = svc."partyId"
+LIMIT 20;
+```
+
+| id | text | date | type | rawDocumentId | dateAdded | dateModified | rawAuthorId | title | id | name | dateAdded | dateModified | parliamentarianId | id | firstName | lastName | altName | middleNames | firstNations | image | gender | dob | dateAdded | dateModified | altId | id | startDate | endDate | isSenate | seat | state | dateAdded | dateModified | parliamentarianId | parliamentId | partyId | id | name |
+|---:|:---|:---|:---|---:|:---|:---|---:|:---|---:|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|:---|---:|:---|:---|:---|:---|---:|:---|:---|:---|:---|:---|:---|:---|:---|---:|---:|---:|:---|
+
+0 records

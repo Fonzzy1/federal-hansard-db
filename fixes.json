@@ -1,328 +1,151 @@
 {
-    "preferred_name_updates": {
-        "5U4": "(Jim)",
-        "JWX": "(Jim)",
-        "ZG4": "(Ted)",
-        "K9M": "(Les)",
-        "K0O": "(Rex)",
-        "BU4": "(Doug)"
+  "preferred_name_updates": {
+    "5U4": "(Jim)",
+    "JWX": "(Jim)",
+    "ZG4": "(Ted)",
+    "K9M": "(Les)",
+    "K0O": "(Rex)",
+    "BU4": "(Doug)"
+  },
+  "alt_ids": {
+    "KIM": ["YI7"],
+    "009MA": ["EL7"],
+    "00ATA": ["TE7"],
+    "JRD": ["037"],
+    "KCT": ["Y87"],
+    "KSF": ["DL7"],
+    "JVD": ["9M7"],
+    "JRU": ["837"],
+    "KNK": ["XD7"],
+    "KJA": ["LF7"],
+    "K9M": ["6G7"],
+    "KCE": ["B87"],
+    "K5A": ["AN7"],
+    "KVM": ["FS7"],
+    "KSJ": ["014"],
+    "KVY": ["ZS7"],
+    "KDP": ["V97"],
+    "JVV": ["WM7"],
+    "DRW": ["XF7"],
+    "009OD": ["0N7"],
+    "JUST": ["ML7"],
+    "JM9": ["Q07"],
+    "KJU": ["WF7"],
+    "KEO": ["6A7"],
+    "JNG": ["457"],
+    "KB8": ["8C7"],
+    "JXQ": ["GB7"],
+    "KWZ": ["VT7"],
+    "009DB": ["6M7"],
+    "KRR": ["8L7"],
+    "KKT": ["BJ7"],
+    "L0J": ["8Q7"],
+    "KDV": ["FG7"],
+    "JT9": ["Z37"],
+    "JPG": ["D27"],
+    "KIK": ["VI7"],
+    "4I4": ["BL7"],
+    "DQF": ["MR7"],
+    "JMI": ["IT4"],
+    "ZD4": ["ZD7", "ED4"],
+    "KEI": ["4H7"],
+    "1B6": ["DU7"],
+    "KYP": ["4P7"],
+    "KOH": ["8K7"],
+    "K17": ["L67"],
+    "KAO": ["4U7"],
+    "6V5": ["P47"],
+    "00APG": ["APG"],
+    "8IS": ["81S"],
+    "DYN": ["oneDYNDYN", "Am oneDYNDYN"],
+    "KRE": ["KEROSENE"],
+    "K5H": ["MQ7"],
+    "KPV": ["IH7"],
+    "KKD": ["2G7"],
+    "KUU": ["YL7"],
+    "KVK": ["GM7"],
+    "K6F": ["757"],
+    "C7D": ["6D7"],
+    "K1Y": ["F27"],
+    "K2U": ["OP7"],
+    "KBY": ["HV7"],
+    "KUJ": ["OL7"],
+    "KPG": ["SG7"],
+    "KTZ": ["4L7"],
+    "L8O": ["YJ7"],
+    "JXG": ["NM7"],
+    "K1M": ["SO7"],
+    "KQD": ["NH7"],
+    "JTT": ["287"],
+    "CJO": ["IU7"],
+    "CAK": ["0P7"],
+    "JYI": ["O97"],
+    "K8H": ["TS7"],
+    "KOM": ["FE7"],
+    "KSY": ["9K7"],
+    "KTJ": ["WK7"],
+    "KTA": ["EK7"],
+    "KSW": ["6K7"],
+    "K69": ["9R7"],
+    "K8R": ["8T7"],
+    "JYA": ["4N7"],
+    "KQN": ["YH7"],
+    "KNA": ["WJ7"],
+    "K7H": ["C67"],
+    "EVL": ["8R7"],
+    "JYL": ["S97"],
+    "KA8": ["OT7"],
+    "JUI": ["J87"],
+    "OI4": ["O14"],
+    "KBS": ["8V7"],
+    "QD4": ["D4"],
+    "7Y6": ["Y6"],
+    "I0V": ["00AF1"],
+    "00AOS": ["Is00AOS"],
+    "281558": ["009FX"],
+    "283585": ["FRD"],
+    "AW5": ["AW5AW5", "cAW5"],
+    "3L6": ["213L6"],
+    "9L6": ["9L6M"],
+    "5L6": ["15L6"],
+    "00A9C": ["A9C", "0000A9C"],
+    "JUS": ["ML7"],
+    "008K0": ["008KO"],
+    "KZL": ["RP7"],
+    "VU5": ["V5"],
+    "WU5": ["U5"],
+    "XH4": ["mXH4"]
+  },
+  "party_affiliations": [
+    {
+      "phid": "KLL",
+      "term_start": "1943-09-21",
+      "term_end": "1946-08-14",
+      "party_name": "Australian Labor Party",
+      "party_id": 1
     },
-    "alt_ids": {
-        "KIM": [
-            "YI7"
-        ],
-        "009MA": [
-            "EL7"
-        ],
-        "00ATA": [
-            "TE7"
-        ],
-        "JRD": [
-            "037"
-        ],
-        "KCT": [
-            "Y87"
-        ],
-        "KSF": [
-            "DL7"
-        ],
-        "JVD": [
-            "9M7"
-        ],
-        "JRU": [
-            "837"
-        ],
-        "KNK": [
-            "XD7"
-        ],
-        "KJA": [
-            "LF7"
-        ],
-        "K9M": [
-            "6G7"
-        ],
-        "KCE": [
-            "B87"
-        ],
-        "K5A": [
-            "AN7"
-        ],
-        "KVM": [
-            "FS7"
-        ],
-        "KSJ": [
-            "014"
-        ],
-        "KVY": [
-            "ZS7"
-        ],
-        "KDP": [
-            "V97"
-        ],
-        "JVV": [
-            "WM7"
-        ],
-        "DRW": [
-            "XF7"
-        ],
-        "009OD": [
-            "0N7"
-        ],
-        "JUST": [
-            "ML7"
-        ],
-        "JM9": [
-            "Q07"
-        ],
-        "KJU": [
-            "WF7"
-        ],
-        "KEO": [
-            "6A7"
-        ],
-        "JNG": [
-            "457"
-        ],
-        "KB8": [
-            "8C7"
-        ],
-        "JXQ": [
-            "GB7"
-        ],
-        "KWZ": [
-            "VT7"
-        ],
-        "009DB": [
-            "6M7"
-        ],
-        "KRR": [
-            "8L7"
-        ],
-        "KKT": [
-            "BJ7"
-        ],
-        "L0J": [
-            "8Q7"
-        ],
-        "KDV": [
-            "FG7"
-        ],
-        "JT9": [
-            "Z37"
-        ],
-        "JPG": [
-            "D27"
-        ],
-        "KIK": [
-            "VI7"
-        ],
-        "4I4": [
-            "BL7"
-        ],
-        "DQF": [
-            "MR7"
-        ],
-        "JMI": [
-            "IT4"
-        ],
-        "ZD4": [
-            "ZD7"
-        ],
-        "KEI": [
-            "4H7"
-        ],
-        "1B6": [
-            "DU7"
-        ],
-        "KYP": [
-            "4P7"
-        ],
-        "KOH": [
-            "8K7"
-        ],
-        "K17": [
-            "L67"
-        ],
-        "KAO": [
-            "4U7"
-        ],
-        "6V5": [
-            "P47"
-        ],
-        "00APG": [
-            "APG"
-        ],
-        "8IS": [
-            "81S"
-        ],
-        "DYN": [
-            "oneDYNDYN"
-        ],
-        "KRE": [
-            "KEROSENE"
-        ],
-        "K5H": [
-            "MQ7"
-        ],
-        "KPV": [
-            "IH7"
-        ],
-        "KKD": [
-            "2G7"
-        ],
-        "KUU": [
-            "YL7"
-        ],
-        "KVK": [
-            "GM7"
-        ],
-        "K6F": [
-            "757"
-        ],
-        "C7D": [
-            "6D7"
-        ],
-        "K1Y": [
-            "F27"
-        ],
-        "K2U": [
-            "OP7"
-        ],
-        "KBY": [
-            "HV7"
-        ],
-        "KUJ": [
-            "OL7"
-        ],
-        "KPG": [
-            "SG7"
-        ],
-        "KTZ": [
-            "4L7"
-        ],
-        "L8O": [
-            "YJ7"
-        ],
-        "JXG": [
-            "NM7"
-        ],
-        "K1M": [
-            "SO7"
-        ],
-        "KQD": [
-            "NH7"
-        ],
-        "JTT": [
-            "287"
-        ],
-        "CJO": [
-            "IU7"
-        ],
-        "CAK": [
-            "0P7"
-        ],
-        "JYI": [
-            "O97"
-        ],
-        "K8H": [
-            "TS7"
-        ],
-        "KOM": [
-            "FE7"
-        ],
-        "KSY": [
-            "9K7"
-        ],
-        "KTJ": [
-            "WK7"
-        ],
-        "KTA": [
-            "EK7"
-        ],
-        "KSW": [
-            "6K7"
-        ],
-        "K69": [
-            "9R7"
-        ],
-        "K8R": [
-            "8T7"
-        ],
-        "JYA": [
-            "4N7"
-        ],
-        "KQN": [
-            "YH7"
-        ],
-        "KNA": [
-            "WJ7"
-        ],
-        "K7H": [
-            "C67"
-        ],
-        "EVL": [
-            "8R7"
-        ],
-        "JYL": [
-            "S97"
-        ],
-        "KA8": [
-            "OT7"
-        ],
-        "JUI": [
-            "J87"
-        ],
-        "OI4": [
-            "O14"
-        ],
-        "KBS": [
-            "8V7"
-        ],
-        "QD4": [
-            "D4"
-        ],
-        "7Y6": [
-            "Y6"
-        ],
-        "I0V": [
-            "00AF1"
-        ],
-        "00AOS": [
-            "Is00AOS"
-        ],
-        "281558": [
-            "009FX"
-        ],
-        "283585": [
-            "FRD"
-        ],
-        "AW5": [
-            "AW5AW5",
-            "cAW5"
-        ]
-    },
-    "party_affiliations": [
-        {
-            "phid": "KLL",
-            "term_start": "1943-09-21",
-            "term_end": "1946-08-14",
-            "party_name": "Australian Labor Party",
-            "party_id": 1
-        },
-        {
-            "phid": "291406",
-            "term_start": "2025-05-03",
-            "term_end": null,
-            "party_name": "Liberal Party of Australia",
-            "party_id": 2
-        }
-    ],
-    "ignore_ids": [
-        "10000",
-        "20000",
-        "TS4",
-        "UNKNOWN",
-        "Unknown",
-        "T03"
-    ]
+    {
+      "phid": "291406",
+      "term_start": "2025-05-03",
+      "term_end": null,
+      "party_name": "Liberal Party of Australia",
+      "party_id": 2
+    }
+  ],
+  "ignore_ids": [
+    "10000",
+    "20000",
+    "TS4",
+    "UNKNOWN",
+    "Unknown",
+    "TO3",
+    "COO",
+    "009C3",
+    "QT2",
+    "R56",
+    "R56",
+    "G5F",
+    "DVB",
+    "GYB"
+  ]
 }
