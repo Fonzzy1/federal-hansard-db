@@ -1,3 +1,19 @@
+[![DOI](https://zenodo.org/badge/1061476911.svg)](https://doi.org/10.5281/zenodo.17783854)
+
+cite as:
+
+```bib
+@misc{chadwick2025,
+  doi = {10.5281/ZENODO.17783854},
+  url = {https://zenodo.org/doi/10.5281/zenodo.17783854},
+  author = {Alfie Chadwick},
+  title = {Federal Hansard DB},
+  publisher = {Zenodo},
+  year = {2025},
+  copyright = {Creative Commons Attribution 4.0 International}
+}
+```
+
 # Federal Hansard DB
 
 A database format for the Australian Federal Parliament's Hansard -- the
