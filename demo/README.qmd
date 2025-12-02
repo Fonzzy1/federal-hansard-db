@@ -3,6 +3,19 @@ title: "Federal Hansard DB Demo"
 format: gfm
 ---
 
+This document demonstrates how to use Federal Hansard DB to explore
+parliamentary speech patterns, document volumes, and topic-specific
+trends—specifically, how often terms related to climate change appear over time
+and across political parties.
+
+We will connect to the database, query document-level metadata, and visualise
+the evolution of parliamentary speech production and topic salience.
+
+## Set up
+
+Assuming that the instructions in the README are followed to up and download the
+database, we now need the packages to interact with the database.
+
 ```{r}
 required_packages <- c("DBI", "RPostgres", "dplyr", "ggplot2")
 
@@ -10,11 +23,13 @@ to_install <- setdiff(required_packages, rownames(installed.packages()))
 if(length(to_install)) install.packages(to_install)
 ```
 
-```{r setup}
+Once the environment is ready, we establish a connection to the database.
+
+```{r setup, include=FALSE, warning=FALSE}
 library(DBI)
 library(RPostgres)
 library(dplyr)
-library(ggplot2)
+library(tidyverse)
 
 con <- dbConnect(
   RPostgres::Postgres(),
@@ -26,7 +41,11 @@ con <- dbConnect(
 )
 ```
 
-## Grab Raw Documents
+## Exploring the Documents
+
+Hansard content is organised into RawDocuments (sitting-day level) and Documents
+(individual speeches or utterances). Our first query retrieves a year-by-year
+count of both document types for two key source groups.
 
 ```{sql, connection=con, output.var="doc_counts"}
 SELECT
@@ -54,9 +73,7 @@ ORDER BY
     sg.id, year
 ```
 
-------------------------------------------------------------------------
-
-## Hansard Documents
+We then prepare the data for plotting:
 
 ```{r}
 # Coerce types if necessary
@@ -67,6 +84,20 @@ doc_counts <- doc_counts %>%
          per_doc_document_count =
              as.integer(document_count)/as.integer(raw_document_count),
          group_name = as.factor(group_name))
+
+```
+
+### Visualising Speech Production Over Time
+
+These plots reveal how different parliamentary sources contribute to the volume of documents across years:
+
+Raw documents per year: an approximation of sitting days or session-level bundles
+
+Speeches per year: total number of spoken contributions
+
+Speeches per sitting day: a proxy for parliamentary verbosity
+
+```{r}
 
 # Basic plot
 ggplot(doc_counts, aes(x = year, y = raw_document_count, color = group_name)) +
@@ -99,16 +130,23 @@ ggplot(doc_counts, aes(x = year, y = per_doc_document_count, color = group_name)
   theme_minimal()
 ```
 
+These figures provide a useful macro-level sense of how much parliament is
+talking -- and how much of it we’ve captured -- across time.
 
+## Tracking Climate-Related Language in the Hansard
 
-```{sql connection = "con" }
+Next, we explore substantive content: specifically, how often terms like
+“Climate Change” and “Global Warming” appear in speeches. The following query
+aggregates mentions at the yearly level.
+
+```{sql connection = "con", output.var="word_counts"}
 
 SELECT
-    doc.*,
-    rau.*,
-    par.*,
-    svc.*,
-    prt.*
+    EXTRACT(YEAR FROM doc."date") AS year,
+    SUM(CASE WHEN doc."text" ILIKE '%Climate Change%' THEN 1 ELSE 0 END) AS
+    climate_change_count,
+    SUM(CASE WHEN doc."text" ILIKE '%Global Warming%' THEN 1 ELSE 0 END) AS
+    global_warming_count
 FROM
     "Document" doc
 JOIN
@@ -120,6 +158,128 @@ JOIN
     AND doc."date" BETWEEN svc."startDate" AND svc."endDate"
 JOIN
     "Party" prt ON prt.id = svc."partyId"
-LIMIT 20;
+GROUP BY
+    year
+ORDER BY
+    year;
+
 
 ```
+
+We reshape the data for plotting:
+```{R}
+
+word_counts_long <- gather(word_counts, key = "term", value = "count",
+climate_change_count, global_warming_count)
+word_counts_long$count <- as.integer(word_counts_long$count)
+
+ggplot(word_counts_long) +
+  geom_point( aes(x = year, y = count, color = term)) +
+  labs(title = "Counts of 'Climate Change' and 'Global Warming' Over Years",
+       x = "Year",
+       y = "Count",
+       color = "Term") 
+```
+
+### Percent of Total Speeches Mentioning Climate-Related Terms
+
+Raw counts are informative, but they don’t account for changes in total speech
+volume. To contextualise trends, we compute the proportion of speeches
+containing climate-related terms.
+
+```{r}
+# Calculate total speeches per year
+total_speeches <- doc_counts %>%
+  group_by(year) %>%
+  summarise(total = sum(document_count))
+
+# Combine with word_counts and calculate percentage
+word_counts <- word_counts %>%
+  mutate(total = total_speeches$total[match(year, total_speeches$year)],
+         total_mentions = climate_change_count,
+         percent_mentions = 100 * total_mentions / total)
+
+# Plot percentage of speeches mentioning climate change or global warming
+ggplot(word_counts, aes(x = year, y = percent_mentions)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Percentage of Speeches Mentioning Climate Change or Global Warming
+    Each Year",
+    x = "Year",
+    y = "Percentage of Speeches (%)"
+  ) 
+```
+This view highlights periods when climate issues rise or fall on the
+parliamentary agenda—independent of how talkative parliament was overall. We can
+see two big peaks in the mid-2000s and early 2020s, which are understood to be
+pivotal times for Australia's climate policy.
+
+## Party Level Rhetoric
+
+Finally, we disaggregate by party to examine how different political groups
+engage with climate topics.
+
+```{sql connection = "con", output.var="party_mentions"}
+
+-- climate-change mentions per year per party
+SELECT
+    EXTRACT(YEAR FROM doc."date") AS year,
+    prt.name AS party,
+    COUNT(*) FILTER (WHERE doc."text" ILIKE '%Climate Change%') AS
+    climate_change_count,
+    COUNT(*) FILTER (WHERE doc."text" ILIKE '%Global Warming%') AS
+    global_warming_count,
+    COUNT(*) AS total_speeches
+FROM
+    "Document" doc
+JOIN "rawAuthor" rau ON doc."rawAuthorId" = rau.id
+JOIN "Parliamentarian" par ON rau."parliamentarianId" = par.id
+JOIN "Service" svc ON par.id = svc."parliamentarianId"
+    AND doc."date" BETWEEN svc."startDate" AND svc."endDate"
+JOIN "Party" prt ON prt.id = svc."partyId"
+WHERE
+    prt.name IN ('Australian Greens', 'Australian Labor Party', 'Independent',
+    'Liberal Party of Australia', 'The Nationals')
+    AND EXTRACT(YEAR FROM doc."date") > 1990
+GROUP BY year, party
+ORDER BY year, party;
+```
+
+```{R}
+party_mentions <- party_mentions %>%
+  mutate(
+    climate_change_count = as.integer(climate_change_count),
+    global_warming_count = as.integer(global_warming_count),
+    total_speeches = as.integer(total_speeches),
+    total_mentions = climate_change_count + global_warming_count,
+    percent_mentions = 100 * total_mentions / total_speeches
+  )
+
+ggplot(party_mentions,
+       aes(x = year, y = total_mentions, color = party)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Climate-Change Mentions per Year per Party",
+    x = "Year",
+    y = "Total Mentions"
+  ) +
+  theme_minimal()
+
+  ggplot(party_mentions,
+       aes(x = year, y = percent_mentions, color = party)) +
+  geom_point() +
+  geom_line() +
+  labs(
+    title = "Percentage of Speeches Mentioning Climate Change per Party",
+    x = "Year",
+    y = "Percent of Speeches (%)"
+  ) +
+  theme_minimal()
+```
+
+These charts reveal distinct rhetorical profiles: while the major parties are
+following the trends of climate change, ideology-based parties such as the
+Greens and some independents consistently talk about climate change as one of
+the core issues.
