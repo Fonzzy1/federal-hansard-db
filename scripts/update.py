@@ -47,6 +47,21 @@ async def insert_document(db, document, raw_document_id):
                         "create": {"name": document["author"]},
                     }
                 },
+                "interjections": {
+                    "create": [
+                        {
+                            "text": inter["text"],
+                            "sequence": inter["sequence"],
+                            "rawAuthor": {
+                                "connectOrCreate": {
+                                    "where": {"name": inter["author"]},
+                                    "create": {"name": inter["author"]},
+                                }
+                            },
+                        }
+                        for inter in document.get("interjections", [])
+                    ]
+                },
                 "rawDocument": {"connect": {"id": raw_document_id}},
                 "citedBy": {
                     "create": {
@@ -56,6 +71,23 @@ async def insert_document(db, document, raw_document_id):
                         ),
                         "type": document["answer"]["type"],
                         "title": document["answer"]["title"],
+                        "interjections": {
+                            "create": [
+                                {
+                                    "text": inter["text"],
+                                    "sequence": inter["sequence"],
+                                    "rawAuthor": {
+                                        "connectOrCreate": {
+                                            "where": {"name": inter["author"]},
+                                            "create": {"name": inter["author"]},
+                                        }
+                                    },
+                                }
+                                for inter in document["answer"].get(
+                                    "interjections", []
+                                )
+                            ]
+                        },
                         "rawAuthor": {
                             "connectOrCreate": {
                                 "where": {"name": document["answer"]["author"]},
@@ -73,6 +105,21 @@ async def insert_document(db, document, raw_document_id):
         await db.document.create(
             data={
                 "text": document["text"],
+                "interjections": {
+                    "create": [
+                        {
+                            "text": inter["text"],
+                            "sequence": inter["sequence"],
+                            "rawAuthor": {
+                                "connectOrCreate": {
+                                    "where": {"name": inter["author"]},
+                                    "create": {"name": inter["author"]},
+                                }
+                            },
+                        }
+                        for inter in document.get("interjections", [])
+                    ]
+                },
                 "date": datetime.datetime.strptime(
                     document["date"], "%Y-%m-%d"
                 ),
@@ -281,7 +328,7 @@ async def reparse_all_sources(db: Client) -> None:
                 try:
                     documents = parser(raw_doc.text)
                     await db.document.delete_many(
-                        where={"rawDocumentId": raw_doc.id}
+                        where={"rawDocumentId": raw_doc.id},
                     )
                     for document in documents:
                         await insert_document(db, document, raw_doc.id)
