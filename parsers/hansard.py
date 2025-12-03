@@ -438,8 +438,8 @@ def parse(file_text):
     return results
 
 
-self = HansardSpeechExtractor("test5.xml", from_file=True)
-docs = self.extract()
+# self = HansardSpeechExtractor("test5.xml", from_file=True)
+# docs = self.extract()
 
-[doc for doc in docs if doc.get("interjections")]
-[doc for doc in docs if not doc.get("text")]
+# [doc for doc in docs if doc.get("interjections")]
+# [doc for doc in docs if not doc.get("text")]
