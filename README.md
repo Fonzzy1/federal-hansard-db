@@ -168,9 +168,7 @@ included already.
 ### Downloading the DB
 
 To save time and resources building from source, builds of the database can be
-downloaded using the download script. To access this, contact
-alfie.chadwick@monash.edu to obtain the download credentials, which will be in
-the form of a client.json file.
+downloaded using the download script.
 
 The to scrape and parse these sources - run the following command:
 
