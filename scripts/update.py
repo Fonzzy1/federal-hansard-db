@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.progress import Progress
 from scripts.seed import seed as seed_sources
 import argparse
+import json
 
 console = Console()
 
@@ -309,6 +310,8 @@ async def reparse_all_sources(db: Client) -> None:
 
     sources = await db.source.find_many()
 
+    await db.query_raw('TRUNCATE "Document" CASCADE;')
+
     for source in sources:
         log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
 
@@ -327,15 +330,13 @@ async def reparse_all_sources(db: Client) -> None:
             for raw_doc in raw_documents:
                 try:
                     documents = parser(raw_doc.text)
-                    await db.document.delete_many(
-                        where={"rawDocumentId": raw_doc.id},
-                    )
                     for document in documents:
                         await insert_document(db, document, raw_doc.id)
                 except Exception as e:
                     console.print(
                         f"[red]Error re-parsing {raw_doc.name}: {e}[/red]"
                     )
+                    print(json.dumps(documents, indent=2))
                     raise e
                 progress.advance(task_docs)
 

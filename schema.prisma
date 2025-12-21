@@ -111,14 +111,14 @@ model Document {
     date          DateTime
     title         String
     type          String
-    rawAuthor     rawAuthor      @relation(fields: [rawAuthorId], references: [id])
+    rawAuthor     rawAuthor?     @relation(fields: [rawAuthorId], references: [id])
     rawDocumentId Int
     dateAdded     DateTime       @default(now())
     dateModified  DateTime       @updatedAt
     rawDocument   RawDocument    @relation(fields: [rawDocumentId], references: [id])
     citedBy       Document[]     @relation("RelatedDocuments")
     references    Document[]     @relation("RelatedDocuments")
-    rawAuthorId   Int
+    rawAuthorId   Int?
     interjections Interjection[]
 }
 

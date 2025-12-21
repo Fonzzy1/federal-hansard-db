@@ -265,7 +265,9 @@ class HansardSpeechExtractor:
                 if info is not None:
                     if info.tag == "title":
                         titles.append(
-                            re.sub(r"\s+", " ", "".join(info.text)).strip()
+                            re.sub(
+                                r"\s+", " ", "".join(info.itertext())
+                            ).strip()
                         )
                     else:
                         title = info.findtext("title")
@@ -282,37 +284,30 @@ class HansardSpeechExtractor:
 
     def _extract_talker(self, elem):
         name = elem.get("nameid")
-        if name:
+        if name and name.lower() != "null":
             return name
-
-        try:
-            talker_obj = elem.find("talk.start/talker/name.id")
-            return talker_obj.text
-        except:
-            pass
-
-        try:
-            names = elem.xpath(".//name.id/text()")
-            unique_names = set(names)
-            if len(unique_names) == 1:
-                return list(unique_names)[0]
-        except:
-            pass
-        try:
-            nameids = elem.xpath(".//NAME/@NAMEID")
-            unique_nameids = set(nameids)
-            if len(unique_nameids) == 1:
-                return list(unique_nameids)[0]
-        except:
-            pass
-        try:
-            nameids = elem.xpath(".//@nameid")
-            unique_nameids = set(nameids)
-            if len(unique_nameids) == 1:
-                return list(unique_nameids)[0]
-        except:
-            pass
-        return None
+        for xpath_expr in [
+            "talk.start/talker/name.id",
+            ".//name.id/text()",
+            ".//NAME/@NAMEID",
+            ".//@nameid",
+        ]:
+            try:
+                if "text()" in xpath_expr or "@" in xpath_expr:
+                    result = elem.xpath(xpath_expr)
+                else:
+                    result = elem.find(xpath_expr)
+                if result is not None:
+                    if isinstance(result, list):
+                        unique = set(r for r in result if r.lower() != "null")
+                        if len(unique) == 1:
+                            return unique.pop()
+                    else:
+                        if result.text and result.text.lower() != "null":
+                            return result.text
+            except:
+                pass
+        return ""
 
         # try:
         #     names = elem.xpath('.//name[@role="metadata"]/text()')
@@ -388,10 +383,14 @@ class HansardSpeechExtractor:
             interjections, text = self._extract_text(elem.find("talk.text"))
             interjection_obj = elem.findall("interjection")
             if interjection_obj:
-                for i in range(len(interjections)):
-                    interjections[i]["author"] = self._extract_talker(
-                        interjection_obj[i]
-                    )
+                if len(interjection_obj) == len(interjections):
+                    for i in range(len(interjections)):
+                        interjections[i]["author"] = self._extract_talker(
+                            interjection_obj[i]
+                        )
+                else :
+                    for i in range(len(interjections)):
+                        interjections[i]["author"] = ""
             return interjections, text
 
         interjections = []
