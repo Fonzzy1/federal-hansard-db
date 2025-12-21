@@ -57,13 +57,14 @@ class HansardSpeechExtractor:
         self.root = ET.fromstring(cleaned_string)
 
     def extract(self):
-        info_dict = self.get_session_info()
-        info_dict["chambers"] = {}
         chambers = self._get_distinct_chambers()
-        for key, el in chambers.items():
-            parser = ChamberSpeechExtractor(el)
-            info_dict["chambers"][key] = parser.extract()
-        return info_dict
+        info_dict = self.get_session_info()
+        return_list = [info_dict] * len(chambers)
+        for i, (k, x) in enumerate(chambers.items()):
+            parser = ChamberSpeechExtractor(x)
+            return_list[i]["documents"] = parser.extract()
+            return_list[i]["chamber"] = k
+        return return_list
 
     def _get_distinct_chambers(self):
         return {
@@ -87,7 +88,7 @@ class HansardSpeechExtractor:
             period = self.root.get("PERIOD.NO") or ""
             chamber = self.root.get("CHAMBER") or ""
 
-        if all(x == "" for x in [date, parliament, session]):
+        if all(x == "" for x in [date, chamber]):
             raise ValueError("Missing session info")
 
         # Try parsing multiple formats

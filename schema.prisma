@@ -108,13 +108,14 @@ model rawAuthor {
 model SittingDay {
     id         Int        @id @default(autoincrement())
     date       DateTime
+    house      String
     chamber    String
     parliament Int?
     session    Int?
     period     Int?
     documents  Document[]
 
-    @@unique([date, chamber])
+    @@unique([date, house, chamber])
 }
 
 model Document {

@@ -32,7 +32,7 @@ def log(msg: str) -> None:
 
 
 # -------------------- DB Operations --------------------
-async def insert_document(db, document, raw_document_id):
+async def insert_document(db, document, raw_document_id, sitting_day_id):
     if document["type"] == "question" and "answer" in document:
         await db.document.create(
             data={
@@ -135,6 +135,19 @@ async def insert_document(db, document, raw_document_id):
                 "title": document["title"],
             }
         )
+
+
+async def create_sitting_day(db, info) -> None:
+    sitting_day = await db.sittingday.create(
+        data={
+            "date": info["date"],
+            "chamber": info["chamber"],
+            "parliament": info.get("parliament"),
+            "session": info.get("session"),
+            "period": info.get("period"),
+        }
+    )
+    return sitting_day.id
 
 
 async def reset_politician_links(db: Client) -> None:
@@ -311,6 +324,7 @@ async def reparse_all_sources(db: Client) -> None:
     sources = await db.source.find_many()
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
+    await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
 
     for source in sources:
         log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
@@ -329,14 +343,17 @@ async def reparse_all_sources(db: Client) -> None:
 
             for raw_doc in raw_documents:
                 try:
-                    documents = parser(raw_doc.text)
-                    for document in documents:
-                        await insert_document(db, document, raw_doc.id)
+                    parsed_document = parser(raw_doc.text)
+                    for extract in parsed_document:
+                        sitting_day_id = await create_sitting_day(db, extract)
+                        for document in extract["documents"]:
+                            await insert_document(
+                                db, document, raw_doc.id, sitting_day_id
+                            )
                 except Exception as e:
                     console.print(
                         f"[red]Error re-parsing {raw_doc.name}: {e}[/red]"
                     )
-                    print(json.dumps(documents, indent=2))
                     raise e
                 progress.advance(task_docs)
 
