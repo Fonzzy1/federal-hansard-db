@@ -149,7 +149,7 @@ async def reset_politician_links(db: Client) -> None:
 async def load_politician_metadata(db: Client) -> None:
     log("Loading politician metadata...")
 
-    parties, parliaments, parliament_intervals, politicians = (
+    ministries, parties, parliaments, parliament_intervals, politicians = (
         politician_metadata()
     )
 
@@ -183,6 +183,36 @@ async def load_politician_metadata(db: Client) -> None:
                     },
                     "create": x,
                 },
+            )
+            progress.advance(task)
+
+    log("Upserting ministries...")
+    await db.query_raw('TRUNCATE "Ministry" CASCADE;')
+    await db.query_raw('TRUNCATE "Minister" CASCADE;')
+    with Progress(console=console, transient=False) as progress:
+        task = progress.add_task("Ministries", total=len(politicians))
+        for x in ministries:
+            await db.ministry.create(
+                data={
+                    "leader": {"connect": {"id": x["leader"]}},
+                    "name": x["name"],
+                    "firstDate": x["firstDate"],
+                    "lastDate": x["lastDate"],
+                    "isShadow": x["isShadow"],
+                    "ministers": {
+                        "create_many": {
+                            "data": [
+                                {
+                                    **y,
+                                    "parliamentarian": {
+                                        "connect": {"id": y["parliamentarian"]}
+                                    },
+                                }
+                                for y in x["ministers"]
+                            ]
+                        }
+                    },
+                }
             )
             progress.advance(task)
 

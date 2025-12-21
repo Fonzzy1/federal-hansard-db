@@ -36,8 +36,8 @@ def add_party_affiliation(
     phid,
     term_start,
     term_end,
-    party_name,
-    party_id,
+    party_name="Australian Labor Party",
+    party_id=1,
 ):
     """
     Add or correct the party affiliation for a given individual's term.
@@ -459,31 +459,9 @@ def fetch_ministries():
             }
         )
 
-def fetch_raw_ministries():
-    data = requests.get(
-        "https://handbookapi.aph.gov.au/api/StatisticalInformation/Ministries"
-    ).json()
-
-
-def fetch_raw_shadowministries():
-    data = requests.get(
-        "https://handbookapi.aph.gov.au/api/StatisticalInformation/ShadowMinistries"
-    ).json()
-
-
-def fetch_raw_shadowministers():
-    data = requests.get(
-        "https://handbookapi.aph.gov.au/api/shadowministryrecords"
-    ).json()
-
-
-def fetch_raw_shadowministers():
-    data = requests.get(
-        "https://handbookapi.aph.gov.au/api/recordsofservice?$select=PHID,Value1,Value2,DateStart1,DateEnd1&$apply=filter(ROSTypeID%20eq%202)&$orderby=DateStart1,Value1,Value2"
-    ).json()
-
 
 def main():
+    ministries = fetch_ministries()
     raw_politicians = fetch_raw_data()
     raw_parliaments = fetch_raw_parliament_data()
     parties = parse_parties(raw_parliaments)
@@ -495,4 +473,4 @@ def main():
                 raw_politicians,
             )
         )
-    return parties, parliaments, parliament_intervals, politicians
+    return ministries, parties, parliaments, parliament_intervals, politicians

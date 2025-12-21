@@ -68,7 +68,7 @@ model Parliamentarian {
 model Minister {
     id                Int             @id @default(autoincrement())
     firstDate         DateTime
-    LastDate          DateTime
+    LastDate          DateTime?
     role              String
     portfolio         String
     displayString     String
@@ -79,7 +79,7 @@ model Minister {
 }
 
 model Ministry {
-    id        Int             
+    id        Int             @id @default(autoincrement())
     leader    Parliamentarian @relation(fields: [parliamentarianId], references: [id])
     name      String
     ministers Minister[]
