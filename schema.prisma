@@ -109,10 +109,12 @@ model SittingDay {
     id         Int        @id @default(autoincrement())
     date       DateTime
     chamber    String
-    parliament String
-    session    String
-    period     String
+    parliament Int?
+    session    Int?
+    period     Int?
     documents  Document[]
+
+    @@unique([date, chamber])
 }
 
 model Document {
