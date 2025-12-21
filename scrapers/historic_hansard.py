@@ -34,7 +34,7 @@ def download_from_github():
 
     if not os.path.exists(local_zip_path):
         response = requests.get(
-            "https://github.com/wragge/hansard-xml/archive/refs/heads/master.zip",
+            "https://github.com/fonzzy1/hansard-xml/archive/refs/heads/master.zip",
             stream=True,
         )
         total_size = int(response.headers.get("content-length", 0))
