@@ -75,11 +75,21 @@ class HansardSpeechExtractor:
 
     def get_session_info(self):
         info = self.root.find("session.header")
-        date = (info.findtext("date") if info is not None else None) or self.root.get("date")
-        parliament = (info.findtext("parliament.no") if info is not None else None) or self.root.get("parliament.no")
-        session = (info.findtext("session.no") if info is not None else None) or self.root.get("session.no")
-        period = (info.findtext("period.no") if info is not None else None) or self.root.get("period.no")
-        house = (info.findtext("chamber") if info is not None else None) or self.root.get("chamber")
+        date = (
+            info.findtext("date") if info is not None else None
+        ) or self.root.get("date")
+        parliament = (
+            info.findtext("parliament.no") if info is not None else None
+        ) or self.root.get("parliament.no")
+        session = (
+            info.findtext("session.no") if info is not None else None
+        ) or self.root.get("session.no")
+        period = (
+            info.findtext("period.no") if info is not None else None
+        ) or self.root.get("period.no")
+        house = (
+            info.findtext("chamber") if info is not None else None
+        ) or self.root.get("chamber")
 
         if all(x is None for x in [date, house]):
             raise ValueError("Missing session info")
@@ -187,7 +197,7 @@ class ChamberSpeechExtractor:
 
         # If no relevant elements found, raise an exception
         if not check_elements:
-            raise HansardNoElementsException(print_tag_tree(self.root, 3))
+            raise HansardNoElementsException(print_tag_tree(self.root, 1))
 
         self.elements = []
         # Iterate over document to get all the items
