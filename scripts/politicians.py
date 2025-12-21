@@ -395,7 +395,73 @@ def format_politician(politician, party_dict, parliament_intervals):
     return format_dict
 
 
+def fetch_ministries():
+
+    return_list = []
+    ministries = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/Ministries"
+    ).json()
+    shadow_ministries = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/ShadowMinistries"
+    ).json()
+
+    ministers = requests.get(
+        "https://handbookapi.aph.gov.au/api/ministryrecords"
+    ).json()["value"]
+    shadow_ministers = requests.get(
+        "https://handbookapi.aph.gov.au/api/shadowministryrecords"
+    ).json()["value"]
+
+    for ministry in ministries:
+        ministry_members = [x for x in ministers if x["MID"] == ministry["Id"]]
+        return_list.append(
+            {
+                "leader": ministry["LeaderPHID"],
+                "name": ministry["MinistryName"],
+                "firstDate": ministry["DateStart"],
+                "lastDate": ministry["DateEnd"],
+                "isShadow": False,
+                "ministers": [
+                    {
+                        "firstDate": x["MDateStart"],
+                        "LastDate": x["RDateEnd"],
+                        "role": x["Role"],
+                        "portfolio": x["Entity"],
+                        "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
+                        "parliamentarian": x["PHID"],
+                    }
+                    for x in ministry_members
+                ],
+            }
+        )
+    for ministry in shadow_ministries:
+        ministry_members = [
+            x for x in shadow_ministers if x["SMID"] == ministry["Id"]
+        ]
+        return_list.append(
+            {
+                "leader": ministry["LeaderPHID"],
+                "name": ministry["MinistryName"],
+                "firstDate": ministry["DateStart"],
+                "lastDate": ministry["DateEnd"],
+                "isShadow": True,
+                "ministers": [
+                    {
+                        "firstDate": x["MDateStart"],
+                        "LastDate": x["RDateEnd"],
+                        "role": x["Role"],
+                        "portfolio": x["Entity"],
+                        "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
+                        "parliamentarian": x["PHID"],
+                    }
+                    for x in ministry_members
+                ],
+            }
+        )
+
+
 def main():
+    ministries = fetch_ministries()
     raw_politicians = fetch_raw_data()
     raw_parliaments = fetch_raw_parliament_data()
     parties = parse_parties(raw_parliaments)
@@ -407,4 +473,4 @@ def main():
                 raw_politicians,
             )
         )
-    return parties, parliaments, parliament_intervals, politicians
+    return ministries, parties, parliaments, parliament_intervals, politicians

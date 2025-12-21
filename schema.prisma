@@ -46,20 +46,59 @@ model SourceGroup {
 }
 
 model Parliamentarian {
-    id           String      @id
-    altId        String[]
-    firstName    String
-    lastName     String
-    altName      String?
-    middleNames  String?
-    firstNations Boolean
-    image        String
-    gender       Int
-    dob          DateTime?
-    dateAdded    DateTime    @default(now())
-    dateModified DateTime    @updatedAt
-    services     Service[]
-    rawAuthors   rawAuthor[]
+    id                   String             @id
+    altId                String[]
+    firstName            String
+    lastName             String
+    altName              String?
+    middleNames          String?
+    firstNations         Boolean
+    image                String
+    gender               Int
+    dob                  DateTime?
+    dateAdded            DateTime           @default(now())
+    dateModified         DateTime           @updatedAt
+    services             Service[]
+    rawAuthors           rawAuthor[]
+    ministerialPositions Minister[]
+    ministriesLed        Ministry[]
+    committeeMemberships CommitteeMembers[]
+}
+
+model Minister {
+    id                Int             @id @default(autoincrement())
+    firstDate         DateTime
+    LastDate          DateTime?
+    role              String
+    portfolio         String
+    displayString     String
+    parliamentarian   Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+    parliamentarianId String
+    ministry          Ministry?       @relation(fields: [ministryId], references: [id])
+    ministryId        Int?
+}
+
+model Ministry {
+    id        Int             @id @default(autoincrement())
+    leader    Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+    name      String
+    ministers Minister[]
+    firstDate DateTime
+    lastDate  DateTime
+    isShadow  Boolean
+
+    parliamentarianId String
+}
+
+model CommitteeMembers {
+    id              Int             @id @default(autoincrement())
+    type            String
+    name            String
+    firstDate       DateTime
+    lastDate        DateTime
+    parliamentarian Parliamentarian @relation(fields: [parliamentarianId], references: [id])
+
+    parliamentarianId String
 }
 
 model Service {
