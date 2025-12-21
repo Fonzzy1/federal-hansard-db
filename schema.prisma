@@ -105,10 +105,20 @@ model rawAuthor {
     interjections     Interjection[]
 }
 
+model SittingDay {
+    id         Int        @id @default(autoincrement())
+    date       DateTime
+    chamber    String
+    parliament String
+    session    String
+    period     String
+    documents  Document[]
+}
+
 model Document {
     id            Int            @id @default(autoincrement())
     text          String
-    date          DateTime
+    date          SittingDay     @relation(fields: [sittingDayId], references: [id])
     title         String
     type          String
     rawAuthor     rawAuthor?     @relation(fields: [rawAuthorId], references: [id])
@@ -119,6 +129,7 @@ model Document {
     citedBy       Document[]     @relation("RelatedDocuments")
     references    Document[]     @relation("RelatedDocuments")
     rawAuthorId   Int?
+    sittingDayId  Int
     interjections Interjection[]
 }
 
