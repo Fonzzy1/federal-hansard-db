@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.progress import Progress
 from scripts.seed import seed as seed_sources
 import argparse
+import json
 
 console = Console()
 
@@ -47,6 +48,21 @@ async def insert_document(db, document, raw_document_id):
                         "create": {"name": document["author"]},
                     }
                 },
+                "interjections": {
+                    "create": [
+                        {
+                            "text": inter["text"],
+                            "sequence": inter["sequence"],
+                            "rawAuthor": {
+                                "connectOrCreate": {
+                                    "where": {"name": inter["author"]},
+                                    "create": {"name": inter["author"]},
+                                }
+                            },
+                        }
+                        for inter in document.get("interjections", [])
+                    ]
+                },
                 "rawDocument": {"connect": {"id": raw_document_id}},
                 "citedBy": {
                     "create": {
@@ -56,6 +72,23 @@ async def insert_document(db, document, raw_document_id):
                         ),
                         "type": document["answer"]["type"],
                         "title": document["answer"]["title"],
+                        "interjections": {
+                            "create": [
+                                {
+                                    "text": inter["text"],
+                                    "sequence": inter["sequence"],
+                                    "rawAuthor": {
+                                        "connectOrCreate": {
+                                            "where": {"name": inter["author"]},
+                                            "create": {"name": inter["author"]},
+                                        }
+                                    },
+                                }
+                                for inter in document["answer"].get(
+                                    "interjections", []
+                                )
+                            ]
+                        },
                         "rawAuthor": {
                             "connectOrCreate": {
                                 "where": {"name": document["answer"]["author"]},
@@ -73,6 +106,21 @@ async def insert_document(db, document, raw_document_id):
         await db.document.create(
             data={
                 "text": document["text"],
+                "interjections": {
+                    "create": [
+                        {
+                            "text": inter["text"],
+                            "sequence": inter["sequence"],
+                            "rawAuthor": {
+                                "connectOrCreate": {
+                                    "where": {"name": inter["author"]},
+                                    "create": {"name": inter["author"]},
+                                }
+                            },
+                        }
+                        for inter in document.get("interjections", [])
+                    ]
+                },
                 "date": datetime.datetime.strptime(
                     document["date"], "%Y-%m-%d"
                 ),
@@ -262,6 +310,8 @@ async def reparse_all_sources(db: Client) -> None:
 
     sources = await db.source.find_many()
 
+    await db.query_raw('TRUNCATE "Document" CASCADE;')
+
     for source in sources:
         log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
 
@@ -280,15 +330,13 @@ async def reparse_all_sources(db: Client) -> None:
             for raw_doc in raw_documents:
                 try:
                     documents = parser(raw_doc.text)
-                    await db.document.delete_many(
-                        where={"rawDocumentId": raw_doc.id}
-                    )
                     for document in documents:
                         await insert_document(db, document, raw_doc.id)
                 except Exception as e:
                     console.print(
                         f"[red]Error re-parsing {raw_doc.name}: {e}[/red]"
                     )
+                    print(json.dumps(documents, indent=2))
                     raise e
                 progress.advance(task_docs)
 

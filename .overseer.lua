@@ -41,7 +41,7 @@ return {
         name = "Reparse DB",
         builder = function(_)
             return {
-                cmd = { "docker", "compose", "run", "update", "scripts/update.py", "--reparse" },
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--reparse" },
                 components = { "default" },
             }
         end,

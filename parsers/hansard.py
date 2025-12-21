@@ -191,35 +191,50 @@ class HansardSpeechExtractor:
                 valid_question = self._extract_text(elem["question"])
                 valid_answer = self._extract_text(elem["answer"])
                 if valid_question and valid_answer:
+                    q_interjections, q_text = self._extract_text(
+                        elem["question"]
+                    )
+                    a_interjections, a_text = self._extract_text(elem["answer"])
+
                     entry = {
                         "type": "question",
+                        "interjections": q_interjections,
+                        "text": q_text,
                         "author": self._extract_talker(elem["question"]),
-                        "text": self._extract_text(elem["question"]),
-                        "date": self.date,
                         "title": self._get_debate_info(elem["question"]),
+                        "date": self.date,
                         "answer": {
                             "type": "answer",
                             "author": self._extract_talker(elem["answer"]),
-                            "text": self._extract_text(elem["answer"]),
+                            "text": a_text,
+                            "interjections": a_interjections,
                             "date": self.date,
                             "title": self._get_debate_info(elem["answer"]),
                         },
                     }
                     results.append(entry)
                 elif valid_answer and not valid_question:
+                    a_interjections, a_text = self._extract_text(elem["answer"])
                     entry = {
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
-                        "text": self._extract_text(elem["answer"]),
+                        "text": a_text,
+                        "interjections": a_interjections,
                         "date": self.date,
                         "title": self._get_debate_info(elem["answer"]),
                     }
                     results.append(entry)
                 elif valid_question and not valid_answer:
+
+                    q_interjections, q_text = self._extract_text(
+                        elem["question"]
+                    )
+
                     entry = {
                         "type": "question",
                         "author": self._extract_talker(elem["question"]),
-                        "text": self._extract_text(elem["question"]),
+                        "text": q_text,
+                        "interjections": q_interjections,
                         "date": self.date,
                         "title": self._get_debate_info(elem["question"]),
                     }
@@ -227,12 +242,14 @@ class HansardSpeechExtractor:
 
             else:
                 if self._extract_text(elem["element"]):
+                    interjections, text = self._extract_text(elem["element"])
                     entry = {
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
-                        "text": self._extract_text(elem["element"]),
                         "date": self.date,
                         "title": self._get_debate_info(elem["element"]),
+                        "text": text,
+                        "interjections": interjections,
                     }
                     results.append(entry)
 
@@ -243,42 +260,54 @@ class HansardSpeechExtractor:
         while el in self.parent_map:
             parent = self.parent_map[el]
             # Look for an info element directly under this parent
-            info = parent.find("debateinfo") or parent.find("subdebateinfo")
-            if info is not None:
-                title = info.findtext("title")
-                if title is not None:
-                    titles.append(title.strip())
+            for tag in ["debateinfo", "subdebateinfo", "title"]:
+                info = parent.find(tag)
+                if info is not None:
+                    if info.tag == "title":
+                        titles.append(
+                            re.sub(
+                                r"\s+", " ", "".join(info.itertext())
+                            ).strip()
+                        )
+                    else:
+                        title = info.findtext("title")
+                        if title is not None:
+                            titles.append(title.strip())
+                    break
             el = parent
         # Reverse so it's top-down order (debate → subdebate.1 → subdebate.2)
         titles.reverse()
         return ", ".join(titles)
 
     def _clean_element(self, el):
-        for interjection in el.xpath(".//interjection"):
-            parent = interjection.getparent()
-            if parent is not None:
-                parent.remove(interjection)
         return el
 
     def _extract_talker(self, elem):
-        try:
-            names = elem.xpath(".//name.id/text()")
-            unique_names = set(names)
-            return list(unique_names)[0]
-        except:
-            pass
-        try:
-            nameids = elem.xpath(".//NAME/@NAMEID")
-            unique_nameids = set(nameids)
-            return list(unique_nameids)[0]
-        except:
-            pass
-        try:
-            nameids = elem.xpath(".//@nameid")
-            unique_nameids = set(nameids)
-            return list(unique_nameids)[0]
-        except:
-            pass
+        name = elem.get("nameid")
+        if name and name.lower() != "null":
+            return name
+        for xpath_expr in [
+            "talk.start/talker/name.id",
+            ".//name.id/text()",
+            ".//NAME/@NAMEID",
+            ".//@nameid",
+        ]:
+            try:
+                if "text()" in xpath_expr or "@" in xpath_expr:
+                    result = elem.xpath(xpath_expr)
+                else:
+                    result = elem.find(xpath_expr)
+                if result is not None:
+                    if isinstance(result, list):
+                        unique = set(r for r in result if r.lower() != "null")
+                        if len(unique) == 1:
+                            return unique.pop()
+                    else:
+                        if result.text and result.text.lower() != "null":
+                            return result.text
+            except:
+                pass
+        return ""
 
         # try:
         #     names = elem.xpath('.//name[@role="metadata"]/text()')
@@ -318,18 +347,75 @@ class HansardSpeechExtractor:
 
         raise FailedTalkerExtractionException(elem)
 
-    def _extract_text(self, elem):
-        texts = []
-        # Extract all <para> or <p>
-        elements = elem.xpath(".//para | .//p")
-        for p in elements:
-            para_text = re.sub(r"\s+", " ", "".join(p.itertext())).strip()
-            if para_text:
-                texts.append(para_text)
+    def _pull_paras(self, elem):
+        if elem.find("talk.start") is not None:
+            return self._pull_paras(elem.find("talk.start"))
 
-        # If text was found in <para>/<p>, return it
-        if texts:
-            return "\n".join(texts)
+        texts = []
+        if elem.tag.lower() in ("p", "para"):
+            return re.sub(r"\s+", " ", "".join(elem.itertext())).strip()
+        for p in elem.getchildren():
+            if p.tag.lower() in ("p", "para"):
+                para_text = re.sub(r"\s+", " ", "".join(p.itertext())).strip()
+                if para_text:
+                    texts.append(para_text)
+        return "\n".join(texts)
+
+    def _is_interjection_element(self, et_elem):
+        # Check element tag
+        if et_elem.tag.lower() in {"interject", "interjection"}:
+            return True
+        # Check all attribute values
+        if any(
+            [
+                "interject" in x.get("class", "").lower()
+                and not "general" in x.get("class", "").lower()
+                for x in et_elem.xpath(".//span")
+            ]
+        ):
+            return True
+        return False
+
+    def _extract_text(self, elem):
+        children = elem.getchildren()
+        ## Fix for when we have the embedded interjections
+        if "talk.text" in [x.tag for x in children]:
+            interjections, text = self._extract_text(elem.find("talk.text"))
+            interjection_obj = elem.findall("interjection")
+            if interjection_obj:
+                if len(interjection_obj) == len(interjections):
+                    for i in range(len(interjections)):
+                        interjections[i]["author"] = self._extract_talker(
+                            interjection_obj[i]
+                        )
+                else :
+                    for i in range(len(interjections)):
+                        interjections[i]["author"] = ""
+            return interjections, text
+
+        interjections = []
+        out_text = []
+        interj_count = 1
+
+        for child in children:
+            # Collect all consecutive interjections
+            if self._is_interjection_element(child):
+                key = f"INTERJECTION{interj_count:02d}"
+                interjections.append(
+                    {
+                        "text": self._pull_paras(child),
+                        "author": self._extract_talker(child),
+                        "sequence": interj_count,
+                    }
+                )
+                out_text.append(f"[{key}]")
+                interj_count += 1
+            # If it's a continues, append its text
+            else:
+                out_text.append(self._pull_paras(child))
+
+        final_main_text = " ".join(out_text)
+        return interjections, final_main_text
 
 
 def print_tag_tree(element, max_depth, indent=0):
@@ -349,3 +435,10 @@ def parse(file_text):
     except HansardNoElementsException:
         results = []
     return results
+
+
+# self = HansardSpeechExtractor("test5.xml", from_file=True)
+# docs = self.extract()
+
+# [doc for doc in docs if doc.get("interjections")]
+# [doc for doc in docs if not doc.get("text")]

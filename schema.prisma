@@ -102,20 +102,32 @@ model rawAuthor {
     parliamentarian   Parliamentarian? @relation(fields: [parliamentarianId], references: [id])
     parliamentarianId String?
     Document          Document[]
+    interjections     Interjection[]
 }
 
 model Document {
-    id            Int         @id @default(autoincrement())
+    id            Int            @id @default(autoincrement())
     text          String
     date          DateTime
     title         String
     type          String
-    rawAuthor     rawAuthor   @relation(fields: [rawAuthorId], references: [id])
+    rawAuthor     rawAuthor?     @relation(fields: [rawAuthorId], references: [id])
     rawDocumentId Int
-    dateAdded     DateTime    @default(now())
-    dateModified  DateTime    @updatedAt
-    rawDocument   RawDocument @relation(fields: [rawDocumentId], references: [id])
-    citedBy       Document[]  @relation("RelatedDocuments")
-    references    Document[]  @relation("RelatedDocuments")
-    rawAuthorId   Int
+    dateAdded     DateTime       @default(now())
+    dateModified  DateTime       @updatedAt
+    rawDocument   RawDocument    @relation(fields: [rawDocumentId], references: [id])
+    citedBy       Document[]     @relation("RelatedDocuments")
+    references    Document[]     @relation("RelatedDocuments")
+    rawAuthorId   Int?
+    interjections Interjection[]
+}
+
+model Interjection {
+    id          Int       @id @default(autoincrement())
+    text        String
+    rawAuthor   rawAuthor @relation(fields: [rawAuthorId], references: [id])
+    document    Document? @relation(fields: [documentId], references: [id])
+    documentId  Int?
+    rawAuthorId Int
+    sequence    Int
 }
