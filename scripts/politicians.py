@@ -36,8 +36,8 @@ def add_party_affiliation(
     phid,
     term_start,
     term_end,
-    party_name="Australian Labor Party",
-    party_id=1,
+    party_name,
+    party_id,
 ):
     """
     Add or correct the party affiliation for a given individual's term.
@@ -393,6 +393,94 @@ def format_politician(politician, party_dict, parliament_intervals):
                             }
                         )
     return format_dict
+
+
+def fetch_ministries():
+
+    return_list = []
+    ministries = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/Ministries"
+    ).json()
+    shadow_ministries = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/ShadowMinistries"
+    ).json()
+
+    ministers = requests.get(
+        "https://handbookapi.aph.gov.au/api/ministryrecords"
+    ).json()["value"]
+    shadow_ministers = requests.get(
+        "https://handbookapi.aph.gov.au/api/shadowministryrecords"
+    ).json()["value"]
+
+    for ministry in ministries:
+        ministry_members = [x for x in ministers if x["MID"] == ministry["Id"]]
+        return_list.append(
+            {
+                "leader": ministry["LeaderPHID"],
+                "name": ministry["MinistryName"],
+                "firstDate": ministry["DateStart"],
+                "lastDate": ministry["DateEnd"],
+                "isShadow": False,
+                "ministers": [
+                    {
+                        "firstDate": x["MDateStart"],
+                        "LastDate": x["RDateEnd"],
+                        "role": x["Role"],
+                        "portfolio": x["Entity"],
+                        "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
+                        "parliamentarian": x["PHID"],
+                    }
+                    for x in ministry_members
+                ],
+            }
+        )
+    for ministry in shadow_ministries:
+        ministry_members = [
+            x for x in shadow_ministers if x["SMID"] == ministry["Id"]
+        ]
+        return_list.append(
+            {
+                "leader": ministry["LeaderPHID"],
+                "name": ministry["MinistryName"],
+                "firstDate": ministry["DateStart"],
+                "lastDate": ministry["DateEnd"],
+                "isShadow": True,
+                "ministers": [
+                    {
+                        "firstDate": x["MDateStart"],
+                        "LastDate": x["RDateEnd"],
+                        "role": x["Role"],
+                        "portfolio": x["Entity"],
+                        "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
+                        "parliamentarian": x["PHID"],
+                    }
+                    for x in ministry_members
+                ],
+            }
+        )
+
+def fetch_raw_ministries():
+    data = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/Ministries"
+    ).json()
+
+
+def fetch_raw_shadowministries():
+    data = requests.get(
+        "https://handbookapi.aph.gov.au/api/StatisticalInformation/ShadowMinistries"
+    ).json()
+
+
+def fetch_raw_shadowministers():
+    data = requests.get(
+        "https://handbookapi.aph.gov.au/api/shadowministryrecords"
+    ).json()
+
+
+def fetch_raw_shadowministers():
+    data = requests.get(
+        "https://handbookapi.aph.gov.au/api/recordsofservice?$select=PHID,Value1,Value2,DateStart1,DateEnd1&$apply=filter(ROSTypeID%20eq%202)&$orderby=DateStart1,Value1,Value2"
+    ).json()
 
 
 def main():
