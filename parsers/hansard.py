@@ -56,9 +56,54 @@ class HansardSpeechExtractor:
         cleaned_string = self._clean_hansard(hansard_string)
         self.root = ET.fromstring(cleaned_string)
 
-        # Build child → parent map
-        self.parent_map = {
-            child: parent for parent in self.root.iter() for child in parent
+    def extract(self):
+        info_dict = self.get_session_info()
+        info_dict["chambers"] = {}
+        chambers = self._get_distinct_chambers()
+        for key, el in chambers.items():
+            parser = ChamberSpeechExtractor(el)
+            info_dict["chambers"][key] = parser.extract()
+        return info_dict
+
+    def _get_distinct_chambers(self):
+        return {
+            x.tag.replace(".xscript", ""): x
+            for x in self.root.getchildren()
+            if "chamb" in x.tag
+        }
+
+    def get_session_info(self):
+        info = self.root.find("session.header")
+        if info is not None:
+            date = "".join(info.findtext("date", ""))
+            parliament = "".join(info.findtext("parliament.no", ""))
+            session = "".join(info.findtext("session.no", ""))
+            period = "".join(info.findtext("period.no", ""))
+            chamber = "".join(info.findtext("chamber", ""))
+        else:
+            date = self.root.get("DATE") or ""
+            parliament = self.root.get("PARLIAMENT.NO") or ""
+            session = self.root.get("SESSION.NO") or ""
+            period = self.root.get("PERIOD.NO") or ""
+            chamber = self.root.get("CHAMBER") or ""
+
+        if all(x == "" for x in [date, parliament, session]):
+            raise ValueError("Missing session info")
+
+        # Try parsing multiple formats
+        for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
+            try:
+                date = datetime.datetime.strptime(date, fmt)
+                date = date.strftime("%Y-%m-%d")
+            except ValueError:
+                continue
+
+        return {
+            "date": date,
+            "parliament": parliament,
+            "session": session,
+            "period": period,
+            "chamber": chamber,
         }
 
     def _clean_hansard(self, string):
@@ -131,6 +176,17 @@ class HansardSpeechExtractor:
         # If no valid date found, raise an error
         raise ValueError("No valid session date found in the XML.")
 
+
+class ChamberSpeechExtractor:
+
+    def __init__(self, element):
+        self.root = element
+
+        # Build child → parent map
+        self.parent_map = {
+            child: parent for parent in self.root.iter() for child in parent
+        }
+
     def _extract_elements(self):
         check_elements = self.root.xpath(".//speech | .//question | .//answer")
 
@@ -183,7 +239,6 @@ class HansardSpeechExtractor:
 
     def extract(self):
         self._extract_elements()
-        self.date = self._find_session_date()
         results = []
         for elem in self.elements:
             if elem["type"] == "question" and "answer" in elem.keys():
@@ -202,13 +257,11 @@ class HansardSpeechExtractor:
                         "text": q_text,
                         "author": self._extract_talker(elem["question"]),
                         "title": self._get_debate_info(elem["question"]),
-                        "date": self.date,
                         "answer": {
                             "type": "answer",
                             "author": self._extract_talker(elem["answer"]),
                             "text": a_text,
                             "interjections": a_interjections,
-                            "date": self.date,
                             "title": self._get_debate_info(elem["answer"]),
                         },
                     }
@@ -220,7 +273,6 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["answer"]),
                         "text": a_text,
                         "interjections": a_interjections,
-                        "date": self.date,
                         "title": self._get_debate_info(elem["answer"]),
                     }
                     results.append(entry)
@@ -235,7 +287,6 @@ class HansardSpeechExtractor:
                         "author": self._extract_talker(elem["question"]),
                         "text": q_text,
                         "interjections": q_interjections,
-                        "date": self.date,
                         "title": self._get_debate_info(elem["question"]),
                     }
                     results.append(entry)
@@ -246,7 +297,6 @@ class HansardSpeechExtractor:
                     entry = {
                         "type": elem["type"],
                         "author": self._extract_talker(elem["element"]),
-                        "date": self.date,
                         "title": self._get_debate_info(elem["element"]),
                         "text": text,
                         "interjections": interjections,
@@ -388,7 +438,7 @@ class HansardSpeechExtractor:
                         interjections[i]["author"] = self._extract_talker(
                             interjection_obj[i]
                         )
-                else :
+                else:
                     for i in range(len(interjections)):
                         interjections[i]["author"] = ""
             return interjections, text
@@ -437,8 +487,10 @@ def parse(file_text):
     return results
 
 
-# self = HansardSpeechExtractor("test5.xml", from_file=True)
+# self = HansardSpeechExtractor("test.xml", from_file=True)
+# print_tag_tree(self.root, 2)
 # docs = self.extract()
-
+# info = self.root.find("session.header")
+# print_tag_tree(info, 2)
 # [doc for doc in docs if doc.get("interjections")]
 # [doc for doc in docs if not doc.get("text")]
