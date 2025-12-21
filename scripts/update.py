@@ -32,14 +32,12 @@ def log(msg: str) -> None:
 
 
 # -------------------- DB Operations --------------------
-async def insert_document(db, document, raw_document_id):
+async def insert_document(db, document, raw_document_id, sitting_day_id):
     if document["type"] == "question" and "answer" in document:
         await db.document.create(
             data={
                 "text": document["text"],
-                "date": datetime.datetime.strptime(
-                    document["date"], "%Y-%m-%d"
-                ),
+                "date": {"connect": {"id": sitting_day_id}},
                 "type": document["type"],
                 "title": document["title"],
                 "rawAuthor": {
@@ -67,9 +65,7 @@ async def insert_document(db, document, raw_document_id):
                 "citedBy": {
                     "create": {
                         "text": document["answer"]["text"],
-                        "date": datetime.datetime.strptime(
-                            document["answer"]["date"], "%Y-%m-%d"
-                        ),
+                        "date": {"connect": {"id": sitting_day_id}},
                         "type": document["answer"]["type"],
                         "title": document["answer"]["title"],
                         "interjections": {
@@ -106,6 +102,7 @@ async def insert_document(db, document, raw_document_id):
         await db.document.create(
             data={
                 "text": document["text"],
+                "date": {"connect": {"id": sitting_day_id}},
                 "interjections": {
                     "create": [
                         {
@@ -121,9 +118,6 @@ async def insert_document(db, document, raw_document_id):
                         for inter in document.get("interjections", [])
                     ]
                 },
-                "date": datetime.datetime.strptime(
-                    document["date"], "%Y-%m-%d"
-                ),
                 "type": document["type"],
                 "rawAuthor": {
                     "connectOrCreate": {
@@ -135,6 +129,20 @@ async def insert_document(db, document, raw_document_id):
                 "title": document["title"],
             }
         )
+
+
+async def create_sitting_day(db, info) -> None:
+    sitting_day = await db.sittingday.create(
+        data={
+            "date": datetime.datetime.strptime(info["date"], "%Y-%m-%d"),
+            "house": info["house"],
+            "chamber": info["chamber"],
+            "parliament": info["parliament"],
+            "session": info["session"],
+            "period": info["period"],
+        }
+    )
+    return sitting_day.id
 
 
 async def reset_politician_links(db: Client) -> None:
@@ -241,11 +249,18 @@ async def scrape_and_parse_sources(db: Client) -> None:
                                 "sourceId": source.id,
                             }
                         )
-                        raw_document_id = raw_inserted_document.id
-                        documents: dict = parser(raw_document)
-                        for document in documents:
-                            await insert_document(db, document, raw_document_id)
-
+                        parsed_document = parser(raw_document.text)
+                        for extract in parsed_document:
+                            sitting_day_id = await create_sitting_day(
+                                db, extract
+                            )
+                            for document in extract["documents"]:
+                                await insert_document(
+                                    db,
+                                    document,
+                                    raw_document.id,
+                                    sitting_day_id,
+                                )
                         progress.advance(task_docs)
 
                     except Exception as e:
@@ -311,6 +326,7 @@ async def reparse_all_sources(db: Client) -> None:
     sources = await db.source.find_many()
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
+    await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
 
     for source in sources:
         log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
@@ -329,14 +345,17 @@ async def reparse_all_sources(db: Client) -> None:
 
             for raw_doc in raw_documents:
                 try:
-                    documents = parser(raw_doc.text)
-                    for document in documents:
-                        await insert_document(db, document, raw_doc.id)
+                    parsed_document = parser(raw_doc.text)
+                    for extract in parsed_document:
+                        sitting_day_id = await create_sitting_day(db, extract)
+                        for document in extract["documents"]:
+                            await insert_document(
+                                db, document, raw_doc.id, sitting_day_id
+                            )
                 except Exception as e:
                     console.print(
                         f"[red]Error re-parsing {raw_doc.name}: {e}[/red]"
                     )
-                    print(json.dumps(documents, indent=2))
                     raise e
                 progress.advance(task_docs)
 
