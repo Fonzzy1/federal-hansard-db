@@ -198,7 +198,7 @@ async def load_politician_metadata(db: Client) -> None:
     await db.query_raw('TRUNCATE "Ministry" CASCADE;')
     await db.query_raw('TRUNCATE "Minister" CASCADE;')
     with Progress(console=console, transient=False) as progress:
-        task = progress.add_task("Ministries", total=len(politicians))
+        task = progress.add_task("Ministries", total=len(ministries))
         for x in ministries:
             await db.ministry.create(
                 data={
@@ -208,17 +208,19 @@ async def load_politician_metadata(db: Client) -> None:
                     "lastDate": x["lastDate"],
                     "isShadow": x["isShadow"],
                     "ministers": {
-                        "create_many": {
-                            "data": [
-                                {
-                                    **y,
-                                    "parliamentarian": {
-                                        "connect": {"id": y["parliamentarian"]}
-                                    },
-                                }
-                                for y in x["ministers"]
-                            ]
-                        }
+                        "create": [
+                            {
+                                **{
+                                    k: v
+                                    for k, v in y.items()
+                                    if k != "parliamentarian"
+                                },
+                                "parliamentarianId": y[
+                                    "parliamentarian"
+                                ],  # Use parliamentarianId
+                            }
+                            for y in x["ministers"]
+                        ]
                     },
                 }
             )

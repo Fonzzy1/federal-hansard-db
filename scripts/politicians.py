@@ -418,13 +418,13 @@ def fetch_ministries():
             {
                 "leader": ministry["LeaderPHID"],
                 "name": ministry["MinistryName"],
-                "firstDate": ministry["DateStart"],
-                "lastDate": ministry["DateEnd"],
+                "firstDate": date_parse(ministry["DateStart"]),
+                "lastDate": date_parse(ministry["DateEnd"]),
                 "isShadow": False,
                 "ministers": [
                     {
-                        "firstDate": x["MDateStart"],
-                        "LastDate": x["RDateEnd"],
+                        "firstDate": date_parse(x["MDateStart"]),
+                        "lastDate": date_parse(x["RDateEnd"]),
                         "role": x["Role"],
                         "portfolio": x["Entity"],
                         "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
@@ -435,29 +435,44 @@ def fetch_ministries():
             }
         )
     for ministry in shadow_ministries:
-        ministry_members = [
-            x for x in shadow_ministers if x["SMID"] == ministry["Id"]
-        ]
-        return_list.append(
-            {
-                "leader": ministry["LeaderPHID"],
-                "name": ministry["MinistryName"],
-                "firstDate": ministry["DateStart"],
-                "lastDate": ministry["DateEnd"],
-                "isShadow": True,
-                "ministers": [
-                    {
-                        "firstDate": x["MDateStart"],
-                        "LastDate": x["RDateEnd"],
-                        "role": x["Role"],
-                        "portfolio": x["Entity"],
-                        "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
-                        "parliamentarian": x["PHID"],
-                    }
-                    for x in ministry_members
-                ],
-            }
-        )
+        if ministry["LeaderPHID"]:
+            ministry_members = [
+                x for x in shadow_ministers if x["SMID"] == ministry["Id"]
+            ]
+            return_list.append(
+                {
+                    "leader": ministry["LeaderPHID"],
+                    "name": ministry["MinistryName"],
+                    "firstDate": date_parse(ministry["DateStart"]),
+                    "lastDate": date_parse(ministry["DateEnd"]),
+                    "isShadow": True,
+                    "ministers": [
+                        {
+                            "firstDate": date_parse(x["MDateStart"]),
+                            "lastDate": date_parse(x["RDateEnd"]),
+                            "role": x["Role"],
+                            "portfolio": x["Entity"],
+                            "displayString": f'{x["Role"]} {x["Prep"]} {x["Entity"]}',
+                            "parliamentarian": x["PHID"],
+                        }
+                        for x in ministry_members
+                    ],
+                }
+            )
+        else:
+            pass
+    return return_list
+
+
+def date_parse(date_str):
+    if not date_str:
+        return None
+    if len(date_str) == 4:
+        return datetime.datetime.strptime(date_str, "%Y")
+    elif len(date_str) >= 10:
+        return datetime.datetime.strptime(date_str[:10], "%Y-%m-%d")
+    else:
+        return datetime.datetime.strptime(date_str[:7], "%Y-%m")
 
 
 def main():

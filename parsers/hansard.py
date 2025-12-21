@@ -492,7 +492,7 @@ def parse(file_text):
     return results
 
 
-self = HansardSpeechExtractor("test2.xml", from_file=True)
+# self = HansardSpeechExtractor("test2.xml", from_file=True)
 # print_tag_tree(self.root, 2)
 # docs = self.extract()
 # info = self.root.find("session.header")

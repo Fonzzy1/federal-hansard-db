@@ -46,7 +46,7 @@ model SourceGroup {
 }
 
 model Parliamentarian {
-    id                   String             @id
+    id                   String      @id
     altId                String[]
     firstName            String
     lastName             String
@@ -56,19 +56,18 @@ model Parliamentarian {
     image                String
     gender               Int
     dob                  DateTime?
-    dateAdded            DateTime           @default(now())
-    dateModified         DateTime           @updatedAt
+    dateAdded            DateTime    @default(now())
+    dateModified         DateTime    @updatedAt
     services             Service[]
     rawAuthors           rawAuthor[]
     ministerialPositions Minister[]
     ministriesLed        Ministry[]
-    committeeMemberships CommitteeMembers[]
 }
 
 model Minister {
     id                Int             @id @default(autoincrement())
     firstDate         DateTime
-    LastDate          DateTime?
+    lastDate          DateTime?
     role              String
     portfolio         String
     displayString     String
@@ -84,19 +83,8 @@ model Ministry {
     name      String
     ministers Minister[]
     firstDate DateTime
-    lastDate  DateTime
+    lastDate  DateTime?
     isShadow  Boolean
-
-    parliamentarianId String
-}
-
-model CommitteeMembers {
-    id              Int             @id @default(autoincrement())
-    type            String
-    name            String
-    firstDate       DateTime
-    lastDate        DateTime
-    parliamentarian Parliamentarian @relation(fields: [parliamentarianId], references: [id])
 
     parliamentarianId String
 }
