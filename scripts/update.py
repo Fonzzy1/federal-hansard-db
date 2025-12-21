@@ -37,9 +37,7 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
         await db.document.create(
             data={
                 "text": document["text"],
-                "date": datetime.datetime.strptime(
-                    document["date"], "%Y-%m-%d"
-                ),
+                "date": {"connect": {"id": sitting_day_id}},
                 "type": document["type"],
                 "title": document["title"],
                 "rawAuthor": {
@@ -67,9 +65,7 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
                 "citedBy": {
                     "create": {
                         "text": document["answer"]["text"],
-                        "date": datetime.datetime.strptime(
-                            document["answer"]["date"], "%Y-%m-%d"
-                        ),
+                        "date": {"connect": {"id": sitting_day_id}},
                         "type": document["answer"]["type"],
                         "title": document["answer"]["title"],
                         "interjections": {
@@ -106,6 +102,7 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
         await db.document.create(
             data={
                 "text": document["text"],
+                "date": {"connect": {"id": sitting_day_id}},
                 "interjections": {
                     "create": [
                         {
@@ -121,9 +118,6 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
                         for inter in document.get("interjections", [])
                     ]
                 },
-                "date": datetime.datetime.strptime(
-                    document["date"], "%Y-%m-%d"
-                ),
                 "type": document["type"],
                 "rawAuthor": {
                     "connectOrCreate": {
@@ -140,11 +134,12 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
 async def create_sitting_day(db, info) -> None:
     sitting_day = await db.sittingday.create(
         data={
-            "date": info["date"],
+            "date": datetime.datetime.strptime(info["date"], "%Y-%m-%d"),
+            "house": info["house"],
             "chamber": info["chamber"],
-            "parliament": info.get("parliament"),
-            "session": info.get("session"),
-            "period": info.get("period"),
+            "parliament": info["parliament"],
+            "session": info["session"],
+            "period": info["period"],
         }
     )
     return sitting_day.id
@@ -254,11 +249,18 @@ async def scrape_and_parse_sources(db: Client) -> None:
                                 "sourceId": source.id,
                             }
                         )
-                        raw_document_id = raw_inserted_document.id
-                        documents: dict = parser(raw_document)
-                        for document in documents:
-                            await insert_document(db, document, raw_document_id)
-
+                        parsed_document = parser(raw_document.text)
+                        for extract in parsed_document:
+                            sitting_day_id = await create_sitting_day(
+                                db, extract
+                            )
+                            for document in extract["documents"]:
+                                await insert_document(
+                                    db,
+                                    document,
+                                    raw_document.id,
+                                    sitting_day_id,
+                                )
                         progress.advance(task_docs)
 
                     except Exception as e:

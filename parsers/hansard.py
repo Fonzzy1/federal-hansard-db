@@ -75,36 +75,30 @@ class HansardSpeechExtractor:
 
     def get_session_info(self):
         info = self.root.find("session.header")
-        if info is not None:
-            date = "".join(info.findtext("date", ""))
-            parliament = "".join(info.findtext("parliament.no", ""))
-            session = "".join(info.findtext("session.no", ""))
-            period = "".join(info.findtext("period.no", ""))
-            chamber = "".join(info.findtext("chamber", ""))
-        else:
-            date = self.root.get("DATE") or ""
-            parliament = self.root.get("PARLIAMENT.NO") or ""
-            session = self.root.get("SESSION.NO") or ""
-            period = self.root.get("PERIOD.NO") or ""
-            chamber = self.root.get("CHAMBER") or ""
+        date = (info.findtext("date") if info is not None else None) or self.root.get("date")
+        parliament = (info.findtext("parliament.no") if info is not None else None) or self.root.get("parliament.no")
+        session = (info.findtext("session.no") if info is not None else None) or self.root.get("session.no")
+        period = (info.findtext("period.no") if info is not None else None) or self.root.get("period.no")
+        house = (info.findtext("chamber") if info is not None else None) or self.root.get("chamber")
 
-        if all(x == "" for x in [date, chamber]):
+        if all(x is None for x in [date, house]):
             raise ValueError("Missing session info")
 
-        # Try parsing multiple formats
-        for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
-            try:
-                date = datetime.datetime.strptime(date, fmt)
-                date = date.strftime("%Y-%m-%d")
-            except ValueError:
-                continue
+        if date is not None:
+            for fmt in ("%d/%m/%Y", "%d/%m/%y", "%Y-%m-%d"):
+                try:
+                    date = datetime.datetime.strptime(date, fmt)
+                    date = date.strftime("%Y-%m-%d")
+                    break
+                except ValueError:
+                    continue
 
         return {
             "date": date,
-            "parliament": parliament,
-            "session": session,
-            "period": period,
-            "chamber": chamber,
+            "parliament": int(parliament) if parliament is not None else None,
+            "session": int(session) if session is not None else None,
+            "period": int(period) if period is not None else None,
+            "house": house,
         }
 
     def _clean_hansard(self, string):
@@ -488,7 +482,7 @@ def parse(file_text):
     return results
 
 
-# self = HansardSpeechExtractor("test.xml", from_file=True)
+self = HansardSpeechExtractor("test2.xml", from_file=True)
 # print_tag_tree(self.root, 2)
 # docs = self.extract()
 # info = self.root.find("session.header")
