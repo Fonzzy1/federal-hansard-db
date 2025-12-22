@@ -60,7 +60,7 @@ class HansardSpeechExtractor:
         chambers = self._get_distinct_chambers()
         info_dict = self.get_session_info()
         return_list = [info_dict.copy() for _ in chambers]
-        for i, (k,v) in enumerate(chambers.items()):
+        for i, (k, v) in enumerate(chambers.items()):
             parser = ChamberSpeechExtractor(chambers[v])
             return_list[i]["documents"] = parser.extract()
             return_list[i]["chamber"] = k
