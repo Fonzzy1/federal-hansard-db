@@ -59,9 +59,9 @@ class HansardSpeechExtractor:
     def extract(self):
         chambers = self._get_distinct_chambers()
         info_dict = self.get_session_info()
-        return_list = [info_dict] * len(chambers)
-        for i, (k, x) in enumerate(chambers.items()):
-            parser = ChamberSpeechExtractor(x)
+        return_list = [info_dict.copy() for _ in chambers]
+        for i, (k,v) in enumerate(chambers.items()):
+            parser = ChamberSpeechExtractor(chambers[v])
             return_list[i]["documents"] = parser.extract()
             return_list[i]["chamber"] = k
         return return_list
@@ -70,7 +70,7 @@ class HansardSpeechExtractor:
         return {
             x.tag.replace(".xscript", ""): x
             for x in self.root.getchildren()
-            if "chamb" in x.tag
+            if x.tag != "session.header"
         }
 
     def get_session_info(self):
@@ -197,7 +197,7 @@ class ChamberSpeechExtractor:
 
         # If no relevant elements found, raise an exception
         if not check_elements:
-            raise HansardNoElementsException(print_tag_tree(self.root, 1))
+            raise HansardNoElementsException(print_tag_tree(self.root, 2))
 
         self.elements = []
         # Iterate over document to get all the items
@@ -492,9 +492,12 @@ def parse(file_text):
     return results
 
 
-# self = HansardSpeechExtractor("test2.xml", from_file=True)
-# print_tag_tree(self.root, 2)
-# docs = self.extract()
+self = HansardSpeechExtractor("test2.xml", from_file=True)
+print_tag_tree(self.root, 2)
+docs = self.extract()
+
+[x["chamber"] for x in docs]
+
 # info = self.root.find("session.header")
 # print_tag_tree(info, 2)
 # [doc for doc in docs if doc.get("interjections")]
