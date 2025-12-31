@@ -219,7 +219,6 @@ Some ids are not linked to a specific parliamentarian, such as 10000 for the
 speaker or others for foreign dignitaries. These ids are identified during the
 parsing process to minimise warnings.
 
-
 ## Examples
 
 For more information on example queries, see
