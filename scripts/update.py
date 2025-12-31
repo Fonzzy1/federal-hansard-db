@@ -132,13 +132,15 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
 
 
 async def create_sitting_day(db, info, date_overide=None) -> None:
+
+    chamber_overide = json.load(open("fixes.json", "r"))["chamber_overide"]
     sitting_day = await db.sittingday.create(
         data={
             "date": datetime.datetime.strptime(
                 date_overide if date_overide else info["date"], "%Y-%m-%d"
             ),
             "house": info["house"],
-            "chamber": info["chamber"],
+            "chamber": chamber_overide.get(info["chamber"], info["chamber"]),
             "parliament": info["parliament"],
             "session": info["session"],
             "period": info["period"],
