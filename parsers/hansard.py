@@ -70,7 +70,7 @@ class HansardSpeechExtractor:
         return {
             x.tag.replace(".xscript", ""): x
             for x in self.root.getchildren()
-            if x.tag != "session.header"
+            if not x.tag in ["session.header", "debate"]
         }
 
     def get_session_info(self):
@@ -492,11 +492,12 @@ def parse(file_text):
     return results
 
 
-self = HansardSpeechExtractor("test2.xml", from_file=True)
-print_tag_tree(self.root, 2)
-docs = self.extract()
 
-[x["chamber"] for x in docs]
+# self = HansardSpeechExtractor("test2.xml", from_file=True)
+# print_tag_tree(self.root, 2)
+# docs = self.extract()
+
+# [x["chamber"] for x in docs]
 
 # info = self.root.find("session.header")
 # print_tag_tree(info, 2)
