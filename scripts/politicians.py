@@ -4,6 +4,12 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 
 
+with open("fixes.json", "r") as f:
+    fixes = json.load(f)
+
+fetch_date = datetime.datetime.today().strftime("%Y-%m-%d")
+
+
 def update_personal_info(people, phid, updates):
     """
     Update Level 1 personal information for a given individual.
@@ -31,74 +37,6 @@ def add_alt_id(people, phid, alt_id):
             return
 
 
-def add_party_affiliation(
-    people,
-    phid,
-    term_start,
-    term_end,
-    party_name="Australian Labor Party",
-    party_id=1,
-):
-    """
-    Add or correct the party affiliation for a given individual's term.
-
-    Parameters:
-    - data: dict from the Handbook API (with 'value' as the list of individuals)
-    - phid: PHID of the individual to modify
-    - term_start: YYYY-MM-DD string
-    - term_end: YYYY-MM-DD string
-    - party_name: party name to insert
-    - party_id: optional numeric ID forthe party
-    """
-
-    for person in people:
-        if person.get("PHID") != phid:
-            continue
-
-        service_list = person.get("PartyParliamentaryService", [])
-        for service in service_list:
-            if (
-                service.get("DateStart") == term_start
-                and service.get("DateEnd") == term_end
-            ):
-                if not service.get("SecondaryService"):
-                    service["SecondaryService"] = []
-
-                # Check if already added
-                for ss in service["SecondaryService"]:
-                    if (
-                        ss.get("RoSType") == "Parties Represented"
-                        and ss.get("DateStart") == term_start
-                        and ss.get("DateEnd") == term_end
-                        and ss.get("Value") == party_name
-                    ):
-                        print(
-                            f"Party already present for {phid} ({term_start} to {term_end})"
-                        )
-                        return
-
-                # Insert the missing party
-                correction = {
-                    "RoSId": 0,
-                    "RoSType": "Parties Represented",
-                    "ROSTypeID": 0,
-                    "PHID": phid,
-                    "Value": party_name,
-                    "ValueID": party_id,
-                    "DateStart": term_start,
-                    "DateEnd": term_end,
-                    "SecondaryService": [],
-                }
-
-                service["SecondaryService"].append(correction)
-                return
-
-        print(f"No matching term found for {phid} ({term_start} to {term_end})")
-        return
-
-    print(f"PHID {phid} not found in dataset")
-
-
 def fetch_raw_parliament_data():
     parliament_data = requests.get(
         "https://handbookapi.aph.gov.au/api/parliaments"
@@ -115,19 +53,6 @@ def fetch_raw_data():
     with open("fixes.json", "r") as f:
         fixes = json.load(f)
 
-    # Apply party affiliations
-    today_str = datetime.datetime.today().strftime("%Y-%m-%d")
-    for p in fixes["party_affiliations"]:
-        term_end = p["term_end"] or today_str
-        add_party_affiliation(
-            data,
-            phid=p["phid"],
-            term_start=p["term_start"],
-            term_end=term_end,
-            party_name=p["party_name"],
-            party_id=p.get("party_id", 0),
-        )
-
     # Apply preferred names
     for phid, name in fixes["preferred_name_updates"].items():
         update_personal_info(data, phid, {"PreferredName": name})
@@ -139,13 +64,10 @@ def fetch_raw_data():
     return data
 
 
-def string_to_date(str, fetch_date_str):
-    if (
-        str == fetch_date_str
-        or str == ""
-        or len(str) != 10
-        or str == "1900-01-01"
-    ):
+def string_to_date(str):
+    if not str:
+        return None
+    if str == fetch_date or str == "" or len(str) != 10 or str == "1900-01-01":
         return None
     return datetime.datetime.strptime(str, "%Y-%m-%d")
 
@@ -167,11 +89,11 @@ def null_min(a, b):
     return min(a, b)
 
 
-def overlaps(service_list, start, end, fetch_date_str):
+def overlaps(service_list, start, end):
     overlapping = []
     for start_string, end_string, service in service_list:
-        service_start = string_to_date(start_string, fetch_date_str)
-        service_end = string_to_date(end_string, fetch_date_str)
+        service_start = string_to_date(start_string)
+        service_end = string_to_date(end_string)
         # both haven't ended, then always include
         if end == None and service_end == None:
             sub_service_start = null_max(service_start, start)
@@ -203,7 +125,13 @@ def overlaps(service_list, start, end, fetch_date_str):
 
 
 def extract_seat(politician):
+    seat_fixes = [x for x in fixes["seats"] if x["phid"] == politician["PHID"]]
     raw_services = {}
+    for seat_fix in seat_fixes:
+        raw_services[seat_fix["term_start"]] = [
+            seat_fix["term_end"],
+            seat_fix["seat_name"],
+        ]
     for service in politician["ElectorateService"]:
         electorate, start, end = (
             service["Electorate"],
@@ -216,6 +144,16 @@ def extract_seat(politician):
 
 def extract_party(politician):
     raw_services = {}
+    party_fixes = [
+        x
+        for x in fixes["party_affiliations"]
+        if x["phid"] == politician["PHID"]
+    ]
+    for party_fix in party_fixes:
+        raw_services[party_fix["term_start"]] = [
+            party_fix["term_end"],
+            party_fix["party_name"],
+        ]
     for service in politician["PartyParliamentaryService"]:
         secondary_service = service["SecondaryService"]
         for party_service in secondary_service:
@@ -226,6 +164,42 @@ def extract_party(politician):
             )
             raw_services[start] = [end, party]
     return [(s, e, party) for s, (e, party) in raw_services.items()]
+
+
+def merge_continuous(ints):
+    if not ints:
+        return []
+    # Convert date strings to date objects, handle None for end date
+    ints = [
+        (
+            string_to_date(s),
+            string_to_date(e),
+            p,
+        )
+        for s, e, p in ints
+    ]
+    ints.sort(key=lambda x: x[0])
+    merged = [ints[0]]
+    for start, end, party in ints[1:]:
+        last_start, last_end, last_party = merged[-1]
+        if party == last_party:
+            if last_end is None or end is None:
+                merged[-1] = (last_start, None, last_party)
+            elif start <= last_end + datetime.timedelta(days=1):
+                merged[-1] = (last_start, max(last_end, end), last_party)
+            else:
+                merged.append((start, end, party))
+        else:
+            merged.append((start, end, party))
+    # Convert date objects back to strings, handle None for end date
+    return [
+        (
+            s.strftime("%Y-%m-%d"),
+            e.strftime("%Y-%m-%d") if e is not None else None,
+            p,
+        )
+        for s, e, p in merged
+    ]
 
 
 def parse_dates(data, start_key, end_key):
@@ -295,8 +269,6 @@ def format_politician(politician, party_dict, parliament_intervals):
     Gaps in Electoral Service
     """
 
-    fetch_date = datetime.datetime.today().strftime("%Y-%m-%d")
-
     # if politician["PHID"]=="276714":
     #     politician
     #     break
@@ -323,7 +295,7 @@ def format_politician(politician, party_dict, parliament_intervals):
             else 2 if politician["Gender"] == "Female" else 9
         ),
         "services": {"create": []},
-        "dob": string_to_date(politician["DateOfBirth"], fetch_date),
+        "dob": string_to_date(politician["DateOfBirth"]),
     }
 
     isSenate = politician["ElectedSenatorNo"] > 0
@@ -331,9 +303,11 @@ def format_politician(politician, party_dict, parliament_intervals):
     parties = politician["RepresentedParties"]
     state = politician["State"]
     electorate = politician["RepresentedElectorates"]
-    parliaments = politician["RepresentedParliaments"]
-    start = string_to_date(politician["ServiceHistory_Start"], fetch_date)
-    end = string_to_date(politician["ServiceHistory_End"], fetch_date)
+    parliaments = fixes["parliaments"].get(
+        "PHID", politician["RepresentedParliaments"]
+    )
+    start = string_to_date(politician["ServiceHistory_Start"])
+    end = string_to_date(politician["ServiceHistory_End"])
 
     # Standard Case
     if isSenate != isHOR and len(parties) == 1 and len(electorate) < 2:
@@ -356,15 +330,13 @@ def format_politician(politician, party_dict, parliament_intervals):
     # and
     # Avoid because the data is really unclean and needs various fixes
     else:
-        party_intervals = extract_party(politician)
-        seat_intervals = extract_seat(politician)
+        party_intervals = merge_continuous(extract_party(politician))
+        seat_intervals = merge_continuous(extract_seat(politician))
         for s, e, p in parliament_intervals:
             if int(p["PID"]) in parliaments:
-                overlapping_party = overlaps(party_intervals, s, e, fetch_date)
+                overlapping_party = overlaps(party_intervals, s, e)
                 for ps, pe, party in overlapping_party:
-                    overlappping_seat = overlaps(
-                        seat_intervals, ps, pe, fetch_date
-                    )
+                    overlappping_seat = overlaps(seat_intervals, ps, pe)
                     # There is a seat
                     if len(overlappping_seat):
                         for ss, se, seat in overlappping_seat:
