@@ -131,22 +131,30 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
         )
 
 
-async def create_sitting_day(db, info, date_overide=None) -> None:
+async def create_sitting_day(db, info, date_override=None) -> None:
 
-    chamber_overide = json.load(open("fixes.json", "r"))["chamber_overide"]
-    sitting_day = await db.sittingday.create(
-        data={
-            "date": datetime.datetime.strptime(
-                date_overide if date_overide else info["date"], "%Y-%m-%d"
-            ),
-            "house": info["house"],
-            "chamber": chamber_overide.get(info["chamber"], info["chamber"]),
-            "parliament": info["parliament"],
-            "session": info["session"],
-            "period": info["period"],
-        }
-    )
-    return sitting_day.id
+    chamber_override = json.load(open("fixes.json", "r"))["chamber_override"]
+    try:
+        sitting_day = await db.sittingday.create(
+            data={
+                "date": datetime.datetime.strptime(
+                    date_override if date_override else info["date"], "%Y-%m-%d"
+                ),
+                "house": info["house"],
+                "chamber": chamber_override.get(
+                    info["chamber"], info["chamber"]
+                ),
+                "parliament": info["parliament"],
+                "session": info["session"],
+                "period": info["period"],
+            }
+        )
+        return sitting_day.id
+    except Exception as e:
+        log(
+            f"Cannot create sitting day for: {info['date']}, house: {info['house']}, chamber: {info['chamber']}"
+        )
+        raise e
 
 
 async def reset_politician_links(db: Client) -> None:
@@ -233,11 +241,14 @@ async def load_politician_metadata(db: Client) -> None:
     log("Finished loading metadata.")
 
 
-async def scrape_and_parse_sources(db: Client, sitting_day_overide) -> None:
+async def scrape_and_parse_sources(db: Client) -> None:
+
+    sitting_day_override = json.load(open("fixes.json", "r"))[
+        "sitting_day_override"
+    ]
     log("Scraping and parsing sources...")
 
     sources = await db.source.find_many()
-    sources.reverse()
 
     for source in sources:
         log(f"Processing source: [cyan]{source.name}[/cyan]")
@@ -245,7 +256,7 @@ async def scrape_and_parse_sources(db: Client, sitting_day_overide) -> None:
         module = importlib.import_module(source.scraperModule)
         parser = importlib.import_module(source.parserModule).parse
 
-        sitting_day_overide_for_source = sitting_day_overide.get(
+        sitting_day_override_for_source = sitting_day_override.get(
             str(source.id), {}
         )
 
@@ -290,13 +301,13 @@ async def scrape_and_parse_sources(db: Client, sitting_day_overide) -> None:
                                 "sourceId": source.id,
                             }
                         )
-                        overide = sitting_day_overide_for_source.get(
+                        override = sitting_day_override_for_source.get(
                             raw_inserted_document.name, None
                         )
                         parsed_document = parser(raw_inserted_document.text)
                         for extract in parsed_document:
                             sitting_day_id = await create_sitting_day(
-                                db, extract, overide
+                                db, extract, override
                             )
                             for document in extract["documents"]:
                                 await insert_document(
@@ -363,9 +374,13 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Finished joining authors.")
 
 
-async def reparse_all_sources(db: Client, sitting_day_overide) -> None:
+async def reparse_all_sources(db: Client) -> None:
     """Re-parse all existing raw documents."""
     log("Re-parsing all existing raw documents...")
+
+    sitting_day_override = json.load(open("fixes.json", "r"))[
+        "sitting_day_override"
+    ]
 
     sources = await db.source.find_many()
     sources.reverse()
@@ -382,7 +397,7 @@ async def reparse_all_sources(db: Client, sitting_day_overide) -> None:
             where={"sourceId": source.id},
         )
 
-        sitting_day_overide_for_source = sitting_day_overide.get(
+        sitting_day_override_for_source = sitting_day_override.get(
             str(source.id), {}
         )
 
@@ -396,11 +411,11 @@ async def reparse_all_sources(db: Client, sitting_day_overide) -> None:
                 try:
                     parsed_document = parser(raw_doc.text)
                     for extract in parsed_document:
-                        overide = sitting_day_overide_for_source.get(
+                        override = sitting_day_override_for_source.get(
                             raw_doc.name, None
                         )
                         sitting_day_id = await create_sitting_day(
-                            db, extract, overide
+                            db, extract, override
                         )
                         for document in extract["documents"]:
                             await insert_document(
@@ -414,6 +429,62 @@ async def reparse_all_sources(db: Client, sitting_day_overide) -> None:
                 progress.advance(task_docs)
 
     log("Finished re-parsing all sources.")
+
+
+async def check_authors_join(db):
+
+    docs = await db.query_raw(
+        """
+    SELECT
+        p.id                         AS parliamentarian_id,
+        p."firstName"                AS first_name,
+        p."lastName"                 AS last_name,
+
+        COUNT(d.id)                  AS outside_speech_count,
+        MIN(sd.date)                 AS first_outside_date,
+        MAX(sd.date)                 AS last_outside_date,
+
+        MIN(s_all."startDate")       AS min_service_start,
+        MAX(s_all."endDate")         AS max_service_end
+
+    FROM "Document" d
+    JOIN "SittingDay" sd
+        ON d."sittingDayId" = sd.id
+    JOIN "rawAuthor" ra
+        ON d."rawAuthorId" = ra.id
+    JOIN "Parliamentarian" p
+        ON ra."parliamentarianId" = p.id
+
+    -- Services that WOULD cover the document date
+    LEFT JOIN "Service" s_match
+        ON s_match."parliamentarianId" = p.id
+       AND s_match."startDate" <= sd.date
+       AND (s_match."endDate" IS NULL OR s_match."endDate" >= sd.date)
+
+    -- All services, only for bounds
+    LEFT JOIN "Service" s_all
+        ON s_all."parliamentarianId" = p.id
+
+    WHERE s_match.id IS NULL
+
+    GROUP BY
+        p.id,
+        p."firstName",
+        p."lastName"
+
+    ORDER BY
+        outside_speech_count DESC,
+        p."lastName";
+                               """
+    )
+
+    for doc in docs:
+        console.print(
+            f"[yellow]⚠[/yellow] Speeches allocated outside of service window for {doc['first_name']} {doc['last_name']} (ID: {doc['parliamentarian_id']})"
+        )
+        console.print(
+            f"Outside speech count: {doc['outside_speech_count']}, First outside date: {doc['first_outside_date'][:10]}, Last outside date: {doc['last_outside_date'][:10]}, Service window: {doc['min_service_start'][:10]} to {doc['max_service_end'][:10]}"
+        )
 
 
 async def main():
@@ -431,16 +502,14 @@ async def main():
     await reset_politician_links(db)
     await load_politician_metadata(db)
 
-    sitting_day_overide = json.load(open("fixes.json", "r"))[
-        "sitting_day_overide"
-    ]
-
     if args.reparse:
-        await reparse_all_sources(db, sitting_day_overide)
+        await reparse_all_sources(db)
     else:
-        await scrape_and_parse_sources(db, sitting_day_overide)
+        await scrape_and_parse_sources(db)
 
     await join_politicians_to_raw_authors(db)
+    await check_authors_join(db)
+
     await db.disconnect()
     console.rule("[bold blue]Pipeline Complete")
 
