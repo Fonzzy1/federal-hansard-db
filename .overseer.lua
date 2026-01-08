@@ -56,4 +56,17 @@ return {
             }
         end,
     },
+
+    {
+        name = "Open DB Client",
+        builder = function(_)
+            return {
+                cmd = { "pgcli", "postgresql://prisma_user:prisma_password@localhost:5432/prisma_db" },
+                components = {
+                    { "open_output", direction = "float", on_start = "always", focus = true },
+                    "default"
+                },
+            }
+        end,
+    },
 }
