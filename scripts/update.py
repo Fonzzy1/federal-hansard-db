@@ -14,6 +14,7 @@ import argparse
 import json
 
 console = Console()
+fixes = json.load(open("fixes.json", "r"))
 
 
 # -------------------- Helpers --------------------
@@ -133,7 +134,7 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
 
 async def create_sitting_day(db, info, date_override=None) -> None:
 
-    chamber_override = json.load(open("fixes.json", "r"))["chamber_override"]
+    chamber_override = fixes["chamber_override"]
     try:
         sitting_day = await db.sittingday.create(
             data={
@@ -243,9 +244,7 @@ async def load_politician_metadata(db: Client) -> None:
 
 async def scrape_and_parse_sources(db: Client) -> None:
 
-    sitting_day_override = json.load(open("fixes.json", "r"))[
-        "sitting_day_override"
-    ]
+    sitting_day_override = fixes["sitting_day_override"]
     log("Scraping and parsing sources...")
 
     sources = await db.source.find_many()
@@ -332,7 +331,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
 
 async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Joining raw authors to politicians...")
-    ignore_ids = json.load(open("fixes.json", "r"))["ignore_ids"]
+    ignore_ids = fixes["ignore_ids"]
 
     all_services = await db.parliamentarian.find_many()
     politicians = {normalize(p.id): p for p in all_services}
@@ -378,9 +377,7 @@ async def reparse_all_sources(db: Client) -> None:
     """Re-parse all existing raw documents."""
     log("Re-parsing all existing raw documents...")
 
-    sitting_day_override = json.load(open("fixes.json", "r"))[
-        "sitting_day_override"
-    ]
+    sitting_day_override = fixes["sitting_day_override"]
 
     sources = await db.source.find_many()
     sources.reverse()
