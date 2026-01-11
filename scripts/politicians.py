@@ -304,7 +304,7 @@ def format_politician(politician, party_dict, parliament_intervals):
     state = politician["State"]
     electorate = politician["RepresentedElectorates"]
     parliaments = fixes["parliaments"].get(
-        "PHID", politician["RepresentedParliaments"]
+        politician["PHID"], politician["RepresentedParliaments"]
     )
     start = string_to_date(politician["ServiceHistory_Start"])
     end = string_to_date(politician["ServiceHistory_End"])

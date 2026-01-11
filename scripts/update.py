@@ -16,7 +16,6 @@ import json
 console = Console()
 fixes = json.load(open("fixes.json", "r"))
 
-
 # -------------------- Helpers --------------------
 
 
@@ -32,116 +31,117 @@ def log(msg: str) -> None:
     console.print(f"[bold green]▶[/bold green] {msg}")
 
 
-# -------------------- DB Operations --------------------
-async def insert_document(db, document, raw_document_id, sitting_day_id):
+def apply_raw_author_fixes(author, sitting_day):
+    fix = fixes["raw_author_fixes"].get(author)
+    if not fix:
+        return author
+
+    before = fix.get("before")
+    after = fix.get("after")
+    house = fix.get("house")
+
+    # Convert sitting_day.date to string in yyyy-mm-dd format for comparison
+    sitting_date_str = sitting_day.date.strftime("%Y-%m-%d")
+
+    if house is not None and house.lower() != sitting_day.house.lower():
+        # House does not match, return author
+        return author
+
+    if before is not None:
+        if sitting_date_str >= before:
+            # Sitting date is not before the 'before' date, return author
+            return author
+
+    if after is not None:
+        if sitting_date_str <= after:
+            # Sitting date is not after the 'after' date, return author
+            return author
+
+    # All checks passed or not required, return fix id
+    return fix["id"]
+
+
+def raw_author_connect_or_create(name, sitting_day):
+    fixed_name = apply_raw_author_fixes(name, sitting_day)
+    return {
+        "connectOrCreate": {
+            "where": {"name": fixed_name},
+            "create": {"name": fixed_name},
+        }
+    }
+
+
+def build_interjections(interjections, sitting_day):
+    return {
+        "create": [
+            {
+                "text": inter["text"],
+                "sequence": inter["sequence"],
+                "rawAuthor": raw_author_connect_or_create(
+                    inter["author"], sitting_day
+                ),
+            }
+            for inter in interjections or []
+        ]
+    }
+
+
+def build_base_document_data(document, sitting_day, raw_document_id):
+    return {
+        "text": document["text"],
+        "title": document["title"],
+        "type": document["type"],
+        "date": {"connect": {"id": sitting_day.id}},
+        "rawDocument": {"connect": {"id": raw_document_id}},
+        "rawAuthor": raw_author_connect_or_create(
+            document["author"], sitting_day
+        ),
+        "interjections": build_interjections(
+            document.get("interjections"), sitting_day
+        ),
+    }
+
+
+def build_answer_data(answer, sitting_day, raw_document_id):
+    return {
+        "text": answer["text"],
+        "title": answer["title"],
+        "type": answer["type"],
+        "date": {"connect": {"id": sitting_day.id}},
+        "rawDocument": {"connect": {"id": raw_document_id}},
+        "rawAuthor": raw_author_connect_or_create(
+            answer["author"], sitting_day
+        ),
+        "interjections": build_interjections(
+            answer.get("interjections"), sitting_day
+        ),
+    }
+
+
+async def insert_document(db, document, raw_document_id, sitting_day):
+    data = build_base_document_data(document, sitting_day, raw_document_id)
+
     if document["type"] == "question" and "answer" in document:
-        await db.document.create(
-            data={
-                "text": document["text"],
-                "date": {"connect": {"id": sitting_day_id}},
-                "type": document["type"],
-                "title": document["title"],
-                "rawAuthor": {
-                    "connectOrCreate": {
-                        "where": {"name": document["author"]},
-                        "create": {"name": document["author"]},
-                    }
-                },
-                "interjections": {
-                    "create": [
-                        {
-                            "text": inter["text"],
-                            "sequence": inter["sequence"],
-                            "rawAuthor": {
-                                "connectOrCreate": {
-                                    "where": {"name": inter["author"]},
-                                    "create": {"name": inter["author"]},
-                                }
-                            },
-                        }
-                        for inter in document.get("interjections", [])
-                    ]
-                },
-                "rawDocument": {"connect": {"id": raw_document_id}},
-                "citedBy": {
-                    "create": {
-                        "text": document["answer"]["text"],
-                        "date": {"connect": {"id": sitting_day_id}},
-                        "type": document["answer"]["type"],
-                        "title": document["answer"]["title"],
-                        "interjections": {
-                            "create": [
-                                {
-                                    "text": inter["text"],
-                                    "sequence": inter["sequence"],
-                                    "rawAuthor": {
-                                        "connectOrCreate": {
-                                            "where": {"name": inter["author"]},
-                                            "create": {"name": inter["author"]},
-                                        }
-                                    },
-                                }
-                                for inter in document["answer"].get(
-                                    "interjections", []
-                                )
-                            ]
-                        },
-                        "rawAuthor": {
-                            "connectOrCreate": {
-                                "where": {"name": apply_raw_author_fixes(document["author"],sitting_day)},
-                                "create": {
-                                    "name": document["answer"]["author"]
-                                },
-                            }
-                        },
-                        "rawDocument": {"connect": {"id": raw_document_id}},
-                    }
-                },
-            }
-        )
-    else:
-        await db.document.create(
-            data={
-                "text": document["text"],
-                "date": {"connect": {"id": sitting_day_id}},
-                "interjections": {
-                    "create": [
-                        {
-                            "text": inter["text"],
-                            "sequence": inter["sequence"],
-                            "rawAuthor": {
-                                "connectOrCreate": {
-                                    "where": {"name": inter["author"]},
-                                    "create": {"name": inter["author"]},
-                                }
-                            },
-                        }
-                        for inter in document.get("interjections", [])
-                    ]
-                },
-                "type": document["type"],
-                "rawAuthor": {
-                    "connectOrCreate": {
-                        "where": {"name": document["author"]},
-                        "create": {"name": document["author"]},
-                    }
-                },
-                "rawDocument": {"connect": {"id": raw_document_id}},
-                "title": document["title"],
-            }
-        )
+        data["citedBy"] = {
+            "create": build_answer_data(
+                document["answer"], sitting_day, raw_document_id
+            )
+        }
+
+    await db.document.create(data=data)
 
 
 async def create_sitting_day(db, info, date_override=None) -> None:
 
     chamber_override = fixes["chamber_override"]
+    house_override = fixes["chamber_override"]
     try:
         sitting_day = await db.sittingday.create(
             data={
                 "date": datetime.datetime.strptime(
                     date_override if date_override else info["date"], "%Y-%m-%d"
                 ),
-                "house": info["house"],
+                "house": house_override.get(info["house"], info["house"]),
                 "chamber": chamber_override.get(
                     info["chamber"], info["chamber"]
                 ),
@@ -150,7 +150,7 @@ async def create_sitting_day(db, info, date_override=None) -> None:
                 "period": info["period"],
             }
         )
-        return sitting_day.id
+        return sitting_day
     except Exception as e:
         log(
             f"Cannot create sitting day for: {info['date']}, house: {info['house']}, chamber: {info['chamber']}"
@@ -305,7 +305,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
                         )
                         parsed_document = parser(raw_inserted_document.text)
                         for extract in parsed_document:
-                            sitting_day_id = await create_sitting_day(
+                            sitting_day = await create_sitting_day(
                                 db, extract, override
                             )
                             for document in extract["documents"]:
@@ -313,7 +313,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
                                     db,
                                     document,
                                     raw_inserted_document.id,
-                                    sitting_day_id,
+                                    sitting_day,
                                 )
                         progress.advance(task_docs)
 
@@ -411,12 +411,12 @@ async def reparse_all_sources(db: Client) -> None:
                         override = sitting_day_override_for_source.get(
                             raw_doc.name, None
                         )
-                        sitting_day_id = await create_sitting_day(
+                        sitting_day = await create_sitting_day(
                             db, extract, override
                         )
                         for document in extract["documents"]:
                             await insert_document(
-                                db, document, raw_doc.id, sitting_day_id
+                                db, document, raw_doc.id, sitting_day
                             )
                 except Exception as e:
                     console.print(
