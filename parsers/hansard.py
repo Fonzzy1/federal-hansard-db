@@ -61,7 +61,7 @@ class HansardSpeechExtractor:
         info_dict = self.get_session_info()
         return_list = [info_dict.copy() for _ in chambers]
         for i, (k, v) in enumerate(chambers.items()):
-            parser = ChamberSpeechExtractor(v)
+            parser = ChamberSpeechExtractor(v, info_dict['date'])
             return_list[i]["documents"] = parser.extract()
             return_list[i]["chamber"] = k
         return return_list
@@ -184,8 +184,9 @@ class HansardSpeechExtractor:
 
 class ChamberSpeechExtractor:
 
-    def __init__(self, element):
+    def __init__(self, element, date):
         self.root = element
+        self.date = date
 
         # Build child → parent map
         self.parent_map = {
@@ -490,7 +491,6 @@ def parse(file_text):
     except HansardNoElementsException:
         results = []
     return results
-
 
 
 # self = HansardSpeechExtractor("test2.xml", from_file=True)

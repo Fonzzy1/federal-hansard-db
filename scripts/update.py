@@ -88,7 +88,7 @@ async def insert_document(db, document, raw_document_id, sitting_day_id):
                         },
                         "rawAuthor": {
                             "connectOrCreate": {
-                                "where": {"name": document["answer"]["author"]},
+                                "where": {"name": apply_raw_author_fixes(document["author"],sitting_day)},
                                 "create": {
                                     "name": document["answer"]["author"]
                                 },
