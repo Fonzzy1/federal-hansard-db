@@ -1,0 +1,191 @@
+⚠ Speeches allocated outside of service window for William HAYDEN (ID: RK4)
+Outside speech count: 648, First outside date: 1988-08-22, Last outside date: 1988-08-22, Service window: 1962-02-20 to 1988-08-17
+⚠ Speeches allocated outside of service window for William SPOONER (ID: K7A)
+Outside speech count: 301, First outside date: 1950-02-23, Last outside date: 1950-04-20, Service window: 1950-04-22 to 1965-07-14
+⚠ Speeches allocated outside of service window for Barney COONEY (ID: SF4)
+Outside speech count: 231, First outside date: 1985-02-27, Last outside date: 1985-05-31, Service window: 1985-07-01 to 2002-06-30
+⚠ Speeches allocated outside of service window for John MOORE (ID: EI4)
+Outside speech count: 120, First outside date: 2001-02-06, Last outside date: 2001-02-07, Service window: 1976-02-17 to 2001-02-05
+⚠ Speeches allocated outside of service window for Amanda VANSTONE (ID: 7E4)
+Outside speech count: 120, First outside date: 1985-02-27, Last outside date: 1985-05-31, Service window: 1985-07-01 to 2007-04-26
+⚠ Speeches allocated outside of service window for Ian WOOD (ID: KBL)
+Outside speech count: 117, First outside date: 1950-03-15, Last outside date: 1950-06-15, Service window: 1950-07-01 to 1978-06-30
+⚠ Speeches allocated outside of service window for George BRANSON (ID: K2I)
+Outside speech count: 115, First outside date: 1959-02-17, Last outside date: 1959-05-14, Service window: 1959-07-01 to 1971-06-30
+⚠ Speeches allocated outside of service window for David BROWNHILL (ID: RD4)
+Outside speech count: 108, First outside date: 1985-02-28, Last outside date: 1985-05-28, Service window: 1985-07-01 to 2000-04-14
+⚠ Speeches allocated outside of service window for Jack DUNCAN-HUGHES (ID: JY7)
+Outside speech count: 108, First outside date: 1930-03-13, Last outside date: 1931-11-17, Service window: 1923-02-28 to 1943-07-07
+⚠ Speeches allocated outside of service window for Gough WHITLAM (ID: 6U4)
+Outside speech count: 108, First outside date: 1978-08-15, Last outside date: 1978-08-15, Service window: 1952-11-29 to 1978-07-31
+⚠ Speeches allocated outside of service window for Condon BYRNE (ID: K3R)
+Outside speech count: 104, First outside date: 1950-03-15, Last outside date: 1968-05-16, Service window: 1951-06-12 to 1974-04-11
+⚠ Speeches allocated outside of service window for John DALY (ID: JTL)
+Outside speech count: 84, First outside date: 1929-02-20, Last outside date: 1938-10-05, Service window: 1929-07-01 to 1935-06-30
+⚠ Speeches allocated outside of service window for Jim McKIERNAN (ID: 1I4)
+Outside speech count: 84, First outside date: 1985-02-26, Last outside date: 1985-05-30, Service window: 1985-07-01 to 2002-06-30
+⚠ Speeches allocated outside of service window for Donald JESSOP (ID: KKD)
+Outside speech count: 81, First outside date: 1987-05-06, Last outside date: 1987-06-05, Service window: 1967-02-21 to 1987-05-05
+⚠ Speeches allocated outside of service window for Terrence AULICH (ID: JE4)
+Outside speech count: 76, First outside date: 1985-02-27, Last outside date: 1985-05-30, Service window: 1985-07-01 to 1993-06-30
+⚠ Speeches allocated outside of service window for Micheal O'HALLORAN (ID: JZ6)
+Outside speech count: 76, First outside date: 1929-02-14, Last outside date: 1929-03-22, Service window: 1929-07-01 to 1935-06-30
+⚠ Speeches allocated outside of service window for Daniel MINOGUE (ID: JUX)
+Outside speech count: 64, First outside date: 1969-08-27, Last outside date: 1969-09-26, Service window: 1950-02-22 to 1969-06-26
+⚠ Speeches allocated outside of service window for John BUTTON (ID: 4F4)
+Outside speech count: 56, First outside date: 1993-05-04, Last outside date: 1993-05-04, Service window: 1974-07-09 to 1993-02-08
+⚠ Speeches allocated outside of service window for Susan KNOWLES (ID: TH4)
+Outside speech count: 56, First outside date: 1985-02-28, Last outside date: 1985-05-30, Service window: 1985-07-01 to 2005-06-30
+⚠ Speeches allocated outside of service window for John MILLEN (ID: KUP)
+Outside speech count: 54, First outside date: 1907-09-20, Last outside date: 1907-09-20, Service window: 1920-07-01 to 1938-06-30
+⚠ Speeches allocated outside of service window for John BLACK (ID: TE4)
+Outside speech count: 45, First outside date: 1985-02-26, Last outside date: 1985-05-31, Service window: 1985-07-01 to 1990-06-30
+⚠ Speeches allocated outside of service window for Joseph COOK (ID: F4S)
+Outside speech count: 33, First outside date: 1922-07-27, Last outside date: 1922-10-12, Service window: 1901-05-09 to 1921-11-11
+⚠ Speeches allocated outside of service window for Arthur DEVLIN (ID: JUI)
+Outside speech count: 33, First outside date: 1985-02-27, Last outside date: 1985-05-29, Service window: 1985-07-01 to 1990-06-30
+⚠ Speeches allocated outside of service window for Josephine VALLENTINE (ID: IG4)
+Outside speech count: 32, First outside date: 1992-02-25, Last outside date: 1992-02-25, Service window: 1985-07-01 to 1992-01-31
+⚠ Speeches allocated outside of service window for Robert BEST (ID: JPC)
+Outside speech count: 30, First outside date: 1926-02-03, Last outside date: 1927-11-10, Service window: 1901-05-09 to 1922-11-06
+⚠ Speeches allocated outside of service window for Michael YOUNG (ID: EV4)
+Outside speech count: 28, First outside date: 1988-02-18, Last outside date: 1988-02-18, Service window: 1974-07-09 to 1988-02-08
+⚠ Speeches allocated outside of service window for Bob BROWN (ID: QD4)
+Outside speech count: 24, First outside date: 2012-06-18, Last outside date: 2012-08-14, Service window: 1996-07-01 to 2012-06-15
+⚠ Speeches allocated outside of service window for Frederick BEERWORTH (ID: K1Q)
+Outside speech count: 22, First outside date: 1946-11-13, Last outside date: 1947-06-05, Service window: 1947-07-01 to 1951-03-19
+⚠ Speeches allocated outside of service window for Parker MOLONEY (ID: L4X)
+Outside speech count: 21, First outside date: 1934-12-05, Last outside date: 1939-05-31, Service window: 1910-07-01 to 1931-11-27
+⚠ Speeches allocated outside of service window for Andrew FISHER (ID: F4N)
+Outside speech count: 18, First outside date: 1919-08-21, Last outside date: 1925-09-03, Service window: 1901-05-09 to 1915-10-27
+⚠ Speeches allocated outside of service window for Joel GABB (ID: K0A)
+Outside speech count: 18, First outside date: 1926-07-23, Last outside date: 1928-05-31, Service window: 1920-02-26 to 1934-08-07
+⚠ Speeches allocated outside of service window for Peter RAE (ID: CAK)
+Outside speech count: 18, First outside date: 1986-02-11, Last outside date: 1986-02-11, Service window: 1968-07-01 to 1986-01-16
+⚠ Speeches allocated outside of service window for Stuart ROBERT (ID: HWT)
+Outside speech count: 18, First outside date: 2023-09-05, Last outside date: 2024-09-11, Service window: 2008-02-12 to 2023-05-18
+⚠ Speeches allocated outside of service window for Alfred DEAKIN (ID: 009MD)
+Outside speech count: 15, First outside date: 1915-07-22, Last outside date: 1915-11-11, Service window: 1901-05-09 to 1913-04-23
+⚠ Speeches allocated outside of service window for Graham RICHARDSON (ID: 4E4)
+Outside speech count: 15, First outside date: 1994-05-03, Last outside date: 1994-05-03, Service window: 1983-04-21 to 1994-03-25
+⚠ Speeches allocated outside of service window for Ben CHIFLEY (ID: A48)
+Outside speech count: 14, First outside date: 1934-07-25, Last outside date: 1938-10-05, Service window: 1929-02-06 to 1951-06-13
+⚠ Speeches allocated outside of service window for William IRVINE (ID: KJE)
+Outside speech count: 14, First outside date: 1918-05-24, Last outside date: 1928-03-07, Service window: 1907-02-20 to 1918-04-05
+⚠ Speeches allocated outside of service window for Norman MAKIN (ID: KLL)
+Outside speech count: 14, First outside date: 1967-04-13, Last outside date: 1967-04-13, Service window: 1920-02-26 to 1963-11-01
+⚠ Speeches allocated outside of service window for Walter MASSY-GREENE (ID: KNF)
+Outside speech count: 14, First outside date: 1923-08-10, Last outside date: 1923-08-10, Service window: 1910-07-01 to 1938-06-30
+⚠ Speeches allocated outside of service window for Stanley BRUCE (ID: F4B)
+Outside speech count: 12, First outside date: 1930-03-28, Last outside date: 1930-04-03, Service window: 1918-05-11 to 1933-10-06
+⚠ Speeches allocated outside of service window for John MULLAN (ID: KVH)
+Outside speech count: 12, First outside date: 1917-09-13, Last outside date: 1918-05-22, Service window: 1913-07-09 to 1917-06-30
+⚠ Speeches allocated outside of service window for William GIBSON (ID: KAY)
+Outside speech count: 11, First outside date: 1930-05-30, Last outside date: 1930-05-30, Service window: 1918-12-14 to 1947-06-30
+⚠ Speeches allocated outside of service window for Robert RAY (ID: UI4)
+Outside speech count: 11, First outside date: 2008-05-14, Last outside date: 2008-05-14, Service window: 1981-07-01 to 2008-05-05
+⚠ Speeches allocated outside of service window for George GEORGES (ID: 7V4)
+Outside speech count: 10, First outside date: 1967-03-01, Last outside date: 1967-03-01, Service window: 1968-07-01 to 1987-06-05
+⚠ Speeches allocated outside of service window for Michael MACKLIN (ID: 2I4)
+Outside speech count: 10, First outside date: 1990-08-21, Last outside date: 1990-08-21, Service window: 1981-07-01 to 1990-06-30
+⚠ Speeches allocated outside of service window for Charles MARR (ID: KMW)
+Outside speech count: 10, First outside date: 1930-11-20, Last outside date: 1930-11-20, Service window: 1920-02-26 to 1943-07-07
+⚠ Speeches allocated outside of service window for Peter COOK (ID: RF4)
+Outside speech count: 9, First outside date: 2005-08-09, Last outside date: 2005-08-09, Service window: 1983-04-21 to 2005-06-30
+⚠ Speeches allocated outside of service window for Francis FORDE (ID: F4U)
+Outside speech count: 9, First outside date: 1948-11-25, Last outside date: 1948-11-25, Service window: 1923-02-28 to 1946-08-16
+⚠ Speeches allocated outside of service window for Robert PATTEN (ID: KXU)
+Outside speech count: 9, First outside date: 1925-09-11, Last outside date: 1927-03-15, Service window: 1913-07-09 to 1917-03-26
+⚠ Speeches allocated outside of service window for Matthew REID (ID: K2L)
+Outside speech count: 9, First outside date: 1911-10-26, Last outside date: 1911-10-26, Service window: 1917-07-01 to 1935-06-30
+⚠ Speeches allocated outside of service window for William WATT (ID: KXG)
+Outside speech count: 9, First outside date: 1910-08-30, Last outside date: 1910-08-30, Service window: 1914-10-08 to 1929-07-05
+⚠ Speeches allocated outside of service window for Richard CASEY (ID: JWE)
+Outside speech count: 8, First outside date: 1948-11-04, Last outside date: 1948-11-04, Service window: 1932-02-17 to 1960-02-10
+⚠ Speeches allocated outside of service window for John DOOLEY (ID: JVF)
+Outside speech count: 8, First outside date: 1929-03-08, Last outside date: 1929-03-15, Service window: 1929-07-01 to 1935-06-30
+⚠ Speeches allocated outside of service window for Herbert EVATT (ID: DTN)
+Outside speech count: 8, First outside date: 1961-09-07, Last outside date: 1961-09-07, Service window: 1940-11-20 to 1960-02-10
+⚠ Speeches allocated outside of service window for Patrick KENNELLY (ID: KPK)
+Outside speech count: 8, First outside date: 1952-10-23, Last outside date: 1952-10-23, Service window: 1953-07-01 to 1971-06-30
+⚠ Speeches allocated outside of service window for Ken O'DOWD (ID: 139441)
+Outside speech count: 8, First outside date: 2022-09-05, Last outside date: 2022-11-23, Service window: 2010-09-28 to 2022-04-11
+⚠ Speeches allocated outside of service window for Ian ALLAN (ID: JLT)
+Outside speech count: 7, First outside date: 1952-09-18, Last outside date: 1952-09-18, Service window: 1953-12-19 to 1969-04-30
+⚠ Speeches allocated outside of service window for Robert COTTON (ID: JQR)
+Outside speech count: 7, First outside date: 1979-11-06, Last outside date: 1979-11-06, Service window: 1965-08-04 to 1978-07-13
+⚠ Speeches allocated outside of service window for Wal FIFE (ID: CG4)
+Outside speech count: 7, First outside date: 1970-05-15, Last outside date: 1970-05-15, Service window: 1976-02-17 to 1993-02-08
+⚠ Speeches allocated outside of service window for Gerry JONES (ID: LH4)
+Outside speech count: 7, First outside date: 1996-08-20, Last outside date: 1996-08-20, Service window: 1981-07-01 to 1996-06-30
+⚠ Speeches allocated outside of service window for John LATHAM (ID: KZO)
+Outside speech count: 7, First outside date: 1935-10-09, Last outside date: 1935-10-09, Service window: 1923-02-28 to 1934-08-07
+⚠ Speeches allocated outside of service window for Walter MARKS (ID: KMU)
+Outside speech count: 7, First outside date: 1932-03-17, Last outside date: 1932-03-17, Service window: 1920-02-26 to 1931-11-27
+⚠ Speeches allocated outside of service window for George FAIRBAIRN (ID: JYR)
+Outside speech count: 6, First outside date: 1930-11-19, Last outside date: 1930-11-19, Service window: 1907-02-20 to 1923-06-30
+⚠ Speeches allocated outside of service window for George FULLER (ID: JZF)
+Outside speech count: 6, First outside date: 1913-09-09, Last outside date: 1913-09-09, Service window: 1901-05-09 to 1913-04-23
+⚠ Speeches allocated outside of service window for Nola MARINO (ID: HWP)
+Outside speech count: 6, First outside date: 2025-09-01, Last outside date: 2025-09-01, Service window: 2008-02-12 to 2025-03-28
+⚠ Speeches allocated outside of service window for Alan MISSEN (ID: KUU)
+Outside speech count: 6, First outside date: 1986-04-08, Last outside date: 1986-04-08, Service window: 1974-07-09 to 1986-03-30
+⚠ Speeches allocated outside of service window for Charles MORGAN (ID: JVA)
+Outside speech count: 6, First outside date: 1949-06-02, Last outside date: 1949-06-02, Service window: 1940-11-20 to 1958-10-14
+⚠ Speeches allocated outside of service window for Josiah SYMON (ID: K7V)
+Outside speech count: 6, First outside date: 1930-04-09, Last outside date: 1930-04-09, Service window: 1901-05-09 to 1913-04-23
+⚠ Speeches allocated outside of service window for Ruth WEBBER (ID: 00AOT)
+Outside speech count: 6, First outside date: 2008-08-26, Last outside date: 2008-08-26, Service window: 2002-07-01 to 2008-06-30
+⚠ Speeches allocated outside of service window for Sue WEST (ID: 1X4)
+Outside speech count: 6, First outside date: 2002-08-19, Last outside date: 2002-08-19, Service window: 1987-02-11 to 2002-06-30
+⚠ Speeches allocated outside of service window for Lyn ALLISON (ID: 1M6)
+Outside speech count: 5, First outside date: 2008-08-26, Last outside date: 2008-08-26, Service window: 1996-07-01 to 2008-06-30
+⚠ Speeches allocated outside of service window for Vicki BOURNE (ID: TW4)
+Outside speech count: 5, First outside date: 2002-08-19, Last outside date: 2002-08-19, Service window: 1990-07-01 to 2002-06-30
+⚠ Speeches allocated outside of service window for Robert HARPER (ID: KNI)
+Outside speech count: 5, First outside date: 1913-10-22, Last outside date: 1913-10-22, Service window: 1901-05-09 to 1913-04-23
+⚠ Speeches allocated outside of service window for Graham MAGUIRE (ID: 7I4)
+Outside speech count: 5, First outside date: 1993-08-17, Last outside date: 1993-08-17, Service window: 1983-04-21 to 1993-06-30
+⚠ Speeches allocated outside of service window for Andrew MURRAY (ID: 3M6)
+Outside speech count: 5, First outside date: 2008-08-26, Last outside date: 2008-08-26, Service window: 1996-07-01 to 2008-06-30
+⚠ Speeches allocated outside of service window for George CHRISTENSEN (ID: 230485)
+Outside speech count: 4, First outside date: 2022-09-06, Last outside date: 2022-09-06, Service window: 2010-09-28 to 2022-04-11
+⚠ Speeches allocated outside of service window for Robert ELLICOTT (ID: YF6)
+Outside speech count: 4, First outside date: 1981-02-24, Last outside date: 1981-02-24, Service window: 1974-07-09 to 1981-02-17
+⚠ Speeches allocated outside of service window for Standish KEON (ID: KEJ)
+Outside speech count: 4, First outside date: 1972-02-24, Last outside date: 1972-02-24, Service window: 1950-02-22 to 1955-11-04
+⚠ Speeches allocated outside of service window for Thomas PLAYFORD (ID: K0X)
+Outside speech count: 4, First outside date: 1907-08-07, Last outside date: 1907-10-02, Service window: 1901-05-09 to 1906-11-05
+⚠ Speeches allocated outside of service window for Terri BUTLER (ID: 248006)
+Outside speech count: 3, First outside date: 2022-11-28, Last outside date: 2022-11-28, Service window: 2014-02-08 to 2022-04-11
+⚠ Speeches allocated outside of service window for Christabel CHAMARETTE (ID: SN5)
+Outside speech count: 3, First outside date: 1996-08-20, Last outside date: 1996-08-20, Service window: 1992-03-12 to 1996-06-30
+⚠ Speeches allocated outside of service window for Len HARRIS (ID: 8HC)
+Outside speech count: 3, First outside date: 2005-09-13, Last outside date: 2005-09-13, Service window: 1999-07-02 to 2005-06-30
+⚠ Speeches allocated outside of service window for Anthony ST LEDGER (ID: K78)
+Outside speech count: 3, First outside date: 1902-06-05, Last outside date: 1902-06-05, Service window: 1907-02-20 to 1913-04-23
+⚠ Speeches allocated outside of service window for Damian DRUM (ID: 56430)
+Outside speech count: 2, First outside date: 2023-03-27, Last outside date: 2023-03-27, Service window: 2016-08-30 to 2022-04-11
+⚠ Speeches allocated outside of service window for David HALL (ID: L6Z)
+Outside speech count: 2, First outside date: 1901-09-27, Last outside date: 1901-09-27, Service window: 1907-02-20 to 1912-04-01
+⚠ Speeches allocated outside of service window for Isaac ISAACS (ID: KJI)
+Outside speech count: 2, First outside date: 1909-09-21, Last outside date: 1909-09-21, Service window: 1901-05-09 to 1906-10-12
+⚠ Speeches allocated outside of service window for Jean JENKINS (ID: IH4)
+Outside speech count: 2, First outside date: 1990-09-11, Last outside date: 1990-09-11, Service window: 1987-09-14 to 1990-06-30
+⚠ Speeches allocated outside of service window for James McCAY (ID: KPM)
+Outside speech count: 2, First outside date: 1908-04-02, Last outside date: 1908-04-02, Service window: 1901-05-09 to 1906-11-05
+⚠ Speeches allocated outside of service window for Malcolm McEACHARN (ID: KQU)
+Outside speech count: 2, First outside date: 1905-12-07, Last outside date: 1905-12-07, Service window: 1901-05-09 to 1904-03-10
+⚠ Speeches allocated outside of service window for Allan McLEAN (ID: KRO)
+Outside speech count: 2, First outside date: 1907-09-11, Last outside date: 1907-09-11, Service window: 1901-05-09 to 1906-11-05
+⚠ Speeches allocated outside of service window for David WATSON (ID: 070E)
+Outside speech count: 2, First outside date: 1918-06-13, Last outside date: 1918-06-13, Service window: 1914-10-08 to 1917-06-30
+⚠ Speeches allocated outside of service window for Francis BAKER (ID: JNR)
+Outside speech count: 1, First outside date: 1944-03-07, Last outside date: 1944-03-07, Service window: 1940-11-20 to 1943-07-07
+⚠ Speeches allocated outside of service window for Edward BRADDON (ID: JRR)
+Outside speech count: 1, First outside date: 1909-09-21, Last outside date: 1909-09-21, Service window: 1901-05-09 to 1903-11-23
+⚠ Speeches allocated outside of service window for Francis McLEAN (ID: KRP)
+Outside speech count: 1, First outside date: 1909-09-07, Last outside date: 1909-09-07, Service window: 1901-05-09 to 1903-11-23
+────────────────────────────────────────────────────────────────────────────────────────────── Pipeline Complete ──────────────────────────────────────────────────────────────────────────────────────────────
+
+[Process exited 0]

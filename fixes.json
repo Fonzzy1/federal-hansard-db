@@ -14,6 +14,14 @@
         "chamber": "Primary Chamber",
         "debate": "Answers Upon Notice"
     },
+    "house_override": {
+        "Reps": "House of Representatives",
+        "REPS": "House of Representatives",
+        "House of Reps": "House of Representatives",
+        "SEN": "Senate",
+        "Senate": "Senate",
+        "SENATE": "Senate"
+    },
     "preferred_name_updates": {
         "5U4": "(Jim)",
         "JWX": "(Jim)",
@@ -21,6 +29,17 @@
         "K9M": "(Les)",
         "K0O": "(Rex)",
         "BU4": "(Doug)"
+    },
+    "raw_author_fixes": {
+        "8H7": {
+            "id": "KPO",
+            "after": "1975-11-11"
+        },
+        "JF7": {
+            "comment": "https: //parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1942-05-27/toc_pdf/19420527_reps_16_171.pdf;fileType=application%2Fpdf#search=%221942%201940s%201942%2005%2027%22",
+            "id": "JOM",
+            "before": "1945-08-18"
+        }
     },
     "alt_ids": {
         "KIM": [
@@ -64,9 +83,6 @@
         ],
         "KVM": [
             "FS7"
-        ],
-        "KSJ": [
-            "014"
         ],
         "KVY": [
             "ZS7"
@@ -405,15 +421,68 @@
     },
     "party_affiliations": [
         {
+            "phid": "6U4",
+            "term_start": "1978-07-31",
+            "term_end": "1978-08-15",
+            "comment": "auto-fix",
+            "party_name": "Australian Labor Party"
+        },
+        {
+            "phid": "KV8",
+            "term_start": "1926-07-22",
+            "term_end": "1926-08-12",
+            "comment": "auto-fix",
+            "party_name": "Australian Country Party"
+        },
+        {
+            "phid": "EV4",
+            "term_start": "1988-02-08",
+            "term_end": "1988-02-18",
+            "comment": "auto-fix",
+            "party_name": "Australian Labor Party"
+        },
+        {
+            "phid": "YF6",
+            "term_start": "1981-02-17",
+            "term_end": "1981-02-24",
+            "comment": "auto-fix",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "GH4",
+            "term_start": "1989-02-24",
+            "term_end": "1989-02-28",
+            "comment": "auto-fix",
+            "party_name": "National Party of Australia"
+        },
+        {
             "phid": "KLL",
             "term_start": "1943-09-21",
             "term_end": "1946-08-14",
             "party_name": "Australian Labor Party"
         },
         {
+            "phid": "JZ6",
+            "term_start": "1929-02-14",
+            "term_end": "1929-07-01",
+            "party_name": "Australian Labor Party"
+        },
+        {
             "phid": "291406",
             "term_start": "2025-05-03",
             "term_end": null,
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "KBL",
+            "term_start": "1950-03-15",
+            "term_end": "1950-07-02",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "EI4",
+            "term_start": "2001-02-06",
+            "term_end": "2001-02-07",
             "party_name": "Liberal Party of Australia"
         },
         {
@@ -424,23 +493,145 @@
             "party_name": "Nationalist Party"
         },
         {
+            "phid": "RK4",
+            "term_start": "1988-08-17",
+            "term_end": "1988-08-22",
+            "party_name": "Australian Labor Party"
+        },
+        {
+            "phid": "SF4",
+            "term_start": "1985-02-27",
+            "term_end": "1985-07-02",
+            "party_name": "Australian Labor Party"
+        },
+        {
             "phid": "K8L",
             "term_start": "1917-06-04",
             "term_end": "1922-11-06",
             "comment": "https://adb.anu.edu.au/biography/thomas-josiah-8779",
             "party_name": "Nationalist Party"
+        },
+        {
+            "phid": "JRW",
+            "term_start": "1917-06-04",
+            "term_end": "1920-07-01",
+            "comment": "https://biography.senate.gov.au/crawford-thomas-william/",
+            "party_name": "Nationalist Party"
+        },
+        {
+            "phid": "K7A",
+            "term_start": "1950-02-22",
+            "term_end": "1950-04-20",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "7E4",
+            "term_start": "1985-02-27",
+            "term_end": "1985-07-02",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "EI4",
+            "term_start": "2001-02-05",
+            "term_end": "2001-02-07",
+            "comment": "auto-fix",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "K7A",
+            "term_start": "1950-02-22",
+            "term_end": "1950-04-20",
+            "party_name": "Liberal Party of Australia"
+        },
+        {
+            "phid": "F4P",
+            "term_start": "1909-01-01",
+            "term_end": "1909-12-01",
+            "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
+            "party_name": "Anti-Socialist Party"
         }
     ],
     "seats": [
+        {
+            "phid": "6U4",
+            "term_start": "1978-07-31",
+            "term_end": "1978-08-15",
+            "comment": "auto-fix",
+            "seat_name": "Werriwa"
+        },
+        {
+            "phid": "KV8",
+            "term_start": "1926-07-22",
+            "term_end": "1926-08-12",
+            "comment": "auto-fix",
+            "seat_name": "Wimmera"
+        },
+        {
+            "phid": "EV4",
+            "term_start": "1988-02-08",
+            "term_end": "1988-02-18",
+            "comment": "auto-fix",
+            "seat_name": "Port Adelaide"
+        },
+        {
+            "phid": "GH4",
+            "term_start": "1989-02-24",
+            "term_end": "1989-02-28",
+            "comment": "auto-fix",
+            "seat_name": "Gwydir"
+        },
+        {
+            "phid": "YF6",
+            "term_start": "1981-02-17",
+            "term_end": "1981-02-24",
+            "comment": "auto-fix",
+            "seat_name": "Wentworth"
+        },
+        {
+            "phid": "EI4",
+            "term_start": "2001-02-05",
+            "term_end": "2001-02-07",
+            "comment": "auto-fix",
+            "seat_name": "Ryan"
+        },
+        {
+            "phid": "F4P",
+            "term_start": "1909-01-01",
+            "term_end": "1909-12-01",
+            "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
+            "seat_name": "East Sydney"
+        },
         {
             "phid": "F4S",
             "term_start": "1921-01-01",
             "term_end": "1921-11-11",
             "comment": "https://www.naa.gov.au/explore-collection/australias-prime-ministers/joseph-cook/timeline#1920%20to%201929",
             "seat_name": "Parramatta"
+        },
+        {
+            "phid": "RK4",
+            "term_start": "1988-08-17",
+            "term_end": "1988-08-22",
+            "seat_name": "Oxley"
+        },
+        {
+            "phid": "EI4",
+            "term_start": "2001-02-06",
+            "term_end": "2001-02-07",
+            "seat_name": "Ryan"
         }
     ],
-    "parliaments": {},
+    "parliaments": {
+        "K3E": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+        ]
+    },
     "ignore_ids": [
         "10000",
         "20000",
