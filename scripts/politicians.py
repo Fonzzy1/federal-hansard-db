@@ -310,60 +310,60 @@ def format_politician(politician, party_dict, parliament_intervals):
     end = string_to_date(politician["ServiceHistory_End"])
 
     # Standard Case
-    if isSenate != isHOR and len(parties) == 1 and len(electorate) < 2:
-        for s, e, p in parliament_intervals:
-            if int(p["PID"]) in parliaments:
-                true_start = null_max(start, s)
-                true_end = null_min(end, e)
-                format_dict["services"]["create"].append(
-                    {
-                        "startDate": true_start,
-                        "endDate": true_end,
-                        "isSenate": isSenate,
-                        "seat": electorate[0] if len(electorate) else None,
-                        "state": state,
-                        "party": {"connect": {"name": parties[0]}},
-                        "parliament": {"connect": {"id": p["PID"]}},
-                    }
-                )
-    # The special Case where they rep various parties, seats or both senate
-    # and
-    # Avoid because the data is really unclean and needs various fixes
-    else:
-        party_intervals = merge_continuous(extract_party(politician))
-        seat_intervals = merge_continuous(extract_seat(politician))
-        for s, e, p in parliament_intervals:
-            if int(p["PID"]) in parliaments:
-                overlapping_party = overlaps(party_intervals, s, e)
-                for ps, pe, party in overlapping_party:
-                    overlappping_seat = overlaps(seat_intervals, ps, pe)
-                    # There is a seat
-                    if len(overlappping_seat):
-                        for ss, se, seat in overlappping_seat:
-                            format_dict["services"]["create"].append(
-                                {
-                                    "startDate": ss,
-                                    "endDate": se,
-                                    "isSenate": False,
-                                    "seat": seat,
-                                    "state": state,
-                                    "party": {"connect": {"name": party}},
-                                    "parliament": {"connect": {"id": p["PID"]}},
-                                }
-                            )
-                    # If no seat then its a senate seat
-                    else:
+    # if isSenate != isHOR and len(parties) == 1 and len(electorate) < 2:
+    #     for s, e, p in parliament_intervals:
+    #         if int(p["PID"]) in parliaments:
+    #             true_start = null_max(start, s)
+    #             true_end = null_min(end, e)
+    #             format_dict["services"]["create"].append(
+    #                 {
+    #                     "startDate": true_start,
+    #                     "endDate": true_end,
+    #                     "isSenate": isSenate,
+    #                     "seat": electorate[0] if len(electorate) else None,
+    #                     "state": state,
+    #                     "party": {"connect": {"name": parties[0]}},
+    #                     "parliament": {"connect": {"id": p["PID"]}},
+    #                 }
+    #             )
+    # # The special Case where they rep various parties, seats or both senate
+    # # and
+    # # Avoid because the data is really unclean and needs various fixes
+    # else:
+    party_intervals = merge_continuous(extract_party(politician))
+    seat_intervals = merge_continuous(extract_seat(politician))
+    for s, e, p in parliament_intervals:
+        if int(p["PID"]) in parliaments:
+            overlapping_party = overlaps(party_intervals, s, e)
+            for ps, pe, party in overlapping_party:
+                overlappping_seat = overlaps(seat_intervals, ps, pe)
+                # There is a seat
+                if len(overlappping_seat):
+                    for ss, se, seat in overlappping_seat:
                         format_dict["services"]["create"].append(
                             {
-                                "startDate": ps,
-                                "endDate": pe,
-                                "isSenate": True,
-                                "seat": None,
+                                "startDate": ss,
+                                "endDate": se,
+                                "isSenate": False,
+                                "seat": seat,
                                 "state": state,
                                 "party": {"connect": {"name": party}},
                                 "parliament": {"connect": {"id": p["PID"]}},
                             }
                         )
+                # If no seat then its a senate seat
+                else:
+                    format_dict["services"]["create"].append(
+                        {
+                            "startDate": ps,
+                            "endDate": pe,
+                            "isSenate": True,
+                            "seat": None,
+                            "state": state,
+                            "party": {"connect": {"name": party}},
+                            "parliament": {"connect": {"id": p["PID"]}},
+                        }
+                    )
     return format_dict
 
 

@@ -5,7 +5,6 @@ from prisma import Client
 
 # ---- configuration ----
 ERROR_FILE = "errors.txt"
-TOLERANCE_DAYS = 40  # two months
 
 
 # regex pattern for each error block
@@ -26,20 +25,14 @@ def parse_date(s):
 
 
 def is_high_priority(record):
-    first = parse_date(record["first"])
-    last = parse_date(record["last"])
-    start = parse_date(record["start"])
-    end = parse_date(record["end"])
+    return False
 
-    # allowable buffer around service window
-    buffered_start = start - timedelta(days=TOLERANCE_DAYS)
-    buffered_end = end + timedelta(days=TOLERANCE_DAYS)
 
-    # HIGH priority only if *all* outside speeches are beyond buffer
-    entirely_before_buffer = last < buffered_start
-    entirely_after_buffer = first > buffered_end
-
-    return entirely_before_buffer or entirely_after_buffer
+def print_services(services):
+    for s in services:
+        start = s.startDate.replace(tzinfo=None).date()
+        end = s.endDate.replace(tzinfo=None).date()
+        print(f"  - {start} → {end} | Seat: {s.seat} | Party: {s.party.name}")
 
 
 def window_distance(service_start, service_end, outside_first, outside_last):
@@ -169,6 +162,11 @@ for record in records:
     print(
         f"  {record['first']} → {record['last']}  ({record['count']} speeches)"
     )
+
+    print()
+    print("All services on record:")
+    print_services(services)
+    print()
     print()
     print("Closest service:")
     print(f"  {service_start.date()} → {service_end.date()}")

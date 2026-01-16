@@ -462,7 +462,8 @@ async def check_authors_join(db):
     LEFT JOIN "Service" s_all
         ON s_all."parliamentarianId" = p.id
 
-    WHERE s_match.id IS NULL
+    WHERE s_match.id IS NULL 
+       AND sd."chamber" <> 'Answers Upon Notice'
 
     GROUP BY
         p.id,
