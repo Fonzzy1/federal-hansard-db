@@ -61,7 +61,7 @@ class HansardSpeechExtractor:
         info_dict = self.get_session_info()
         return_list = [info_dict.copy() for _ in chambers]
         for i, (k, v) in enumerate(chambers.items()):
-            parser = ChamberSpeechExtractor(v, info_dict['date'])
+            parser = ChamberSpeechExtractor(v, info_dict["date"])
             return_list[i]["documents"] = parser.extract()
             return_list[i]["chamber"] = k
         return return_list
@@ -198,7 +198,7 @@ class ChamberSpeechExtractor:
 
         # If no relevant elements found, raise an exception
         if not check_elements:
-            raise HansardNoElementsException(print_tag_tree(self.root, 2))
+            raise HansardNoElementsException("No parsable Elements")
 
         self.elements = []
         # Iterate over document to get all the items
