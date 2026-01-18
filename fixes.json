@@ -526,13 +526,6 @@
             "term_end": "2025-03-25",
             "comment": "auto-fix",
             "party_name": "Liberal Party of Australia"
-        },
-        {
-            "phid": "KLL",
-            "term_start": "1943-07-07",
-            "term_end": "1946-08-14",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
-            "seat_name": "Hindmarsh"
         }
     ],
     "seats": [
@@ -542,6 +535,13 @@
             "term_end": "2025-03-25",
             "comment": "auto-fix",
             "seat_name": "Hughes"
+        },
+        {
+            "phid": "KLL",
+            "term_start": "1943-07-07",
+            "term_end": "1946-08-14",
+            "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
+            "seat_name": "Hindmarsh"
         },
         {
             "phid": "KV8",
