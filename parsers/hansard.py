@@ -67,11 +67,18 @@ class HansardSpeechExtractor:
         return return_list
 
     def _get_distinct_chambers(self):
-        return {
+        raw_chambers = {
             x.tag.replace(".xscript", ""): x
             for x in self.root.getchildren()
             if not x.tag in ["session.header", "debate"]
         }
+        hanging_debates = [
+            x for x in self.root.getchildren() if x.tag == "debate"
+        ]
+
+        # TODO sort this shit out
+
+        return {}
 
     def get_session_info(self):
         info = self.root.find("session.header")

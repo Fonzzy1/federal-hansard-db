@@ -1,11 +1,3 @@
-⚠ Speeches allocated outside of service window for John MILLEN (ID: KUP)
-Outside speech count: 54, First outside date: 1907-09-20, Last outside date: 1907-09-20, Service window: 1920-07-01 to 1938-06-30
-⚠ Speeches allocated outside of service window for Joseph COOK (ID: F4S)
-Outside speech count: 33, First outside date: 1922-07-27, Last outside date: 1922-10-12, Service window: 1901-05-09 to 1921-11-11
-⚠ Speeches allocated outside of service window for Robert BEST (ID: JPC)
-Outside speech count: 30, First outside date: 1926-02-03, Last outside date: 1927-11-10, Service window: 1901-05-09 to 1922-11-06
-⚠ Speeches allocated outside of service window for Bob BROWN (ID: QD4)
-Outside speech count: 24, First outside date: 2012-06-18, Last outside date: 2012-08-14, Service window: 1996-07-01 to 2012-06-15
 ⚠ Speeches allocated outside of service window for Parker MOLONEY (ID: L4X)
 Outside speech count: 21, First outside date: 1934-12-05, Last outside date: 1939-05-31, Service window: 1910-07-01 to 1931-11-27
 ⚠ Speeches allocated outside of service window for Andrew FISHER (ID: F4N)
