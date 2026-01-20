@@ -380,7 +380,6 @@ async def reparse_all_sources(db: Client) -> None:
     sitting_day_override = fixes["sitting_day_override"]
 
     sources = await db.source.find_many()
-    sources.reverse()
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
     await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
@@ -476,13 +475,22 @@ async def check_authors_join(db):
                                """
     )
 
+
     for doc in docs:
-        console.print(
-            f"[yellow]⚠[/yellow] Speeches allocated outside of service window for {doc['first_name']} {doc['last_name']} (ID: {doc['parliamentarian_id']})"
-        )
-        console.print(
-            f"Outside speech count: {doc['outside_speech_count']}, First outside date: {doc['first_outside_date'][:10]}, Last outside date: {doc['last_outside_date'][:10]}, Service window: {doc['min_service_start'][:10]} to {doc['max_service_end'][:10]}"
-        )
+        ignore = [
+            x
+            for x in fixes["ignore_periods"]
+            if x["id"] == doc["parliamentarian_id"]
+            and doc["first_outside_date"][:10] >= x["start"]
+            and doc["last_outside_date"][:10] <= x["end"]
+        ]
+        if not ignore:
+            console.print(
+                f"[yellow]⚠[/yellow] Speeches allocated outside of service window for {doc['first_name']} {doc['last_name']} (ID: {doc['parliamentarian_id']})"
+            )
+            console.print(
+                f"outside speech count: {doc['outside_speech_count']}, first outside date: {doc['first_outside_date'][:10]}, last outside date: {doc['last_outside_date'][:10]}, service window: {doc['min_service_start'][:10]} to {doc['max_service_end'][:10]}"
+            )
 
 
 async def main():

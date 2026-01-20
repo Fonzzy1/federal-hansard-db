@@ -70,15 +70,30 @@ class HansardSpeechExtractor:
         raw_chambers = {
             x.tag.replace(".xscript", ""): x
             for x in self.root.getchildren()
-            if not x.tag in ["session.header", "debate"]
+            if not x.tag in ["session.header", "debate", "para"]
         }
         hanging_debates = [
             x for x in self.root.getchildren() if x.tag == "debate"
         ]
 
-        # TODO sort this shit out
+        for element in hanging_debates:
+            debate_info = element.find("debateinfo")
+            if (
+                "answer" in debate_info.findtext("title").lower()
+                or "question" in debate_info.findtext("title").lower()
+            ):
+                if "answers.to.questions" in raw_chambers.keys():
+                    raw_chambers["answers.to.questions"].append(element)
+                else:
+                    raw_chambers["answers.to.questions"] = ET.Element(
+                        "answers.to.questions"
+                    )
+                    raw_chambers["answers.to.questions"].append(element)
+            else:
+                raw_chambers["chamber"].append(element)
 
-        return {}
+
+        return raw_chambers
 
     def get_session_info(self):
         info = self.root.find("session.header")
@@ -388,7 +403,7 @@ class ChamberSpeechExtractor:
         #     names = elem.xpath(".//name/text()")
         #     unique_names = set(names)
         #     return list(unique_names)[0]
-        # except:
+        # except:gb
         #     pass
 
         # if "speaker" in elem.attrib:
@@ -418,10 +433,9 @@ class ChamberSpeechExtractor:
         if elem.tag.lower() in ("p", "para"):
             return re.sub(r"\s+", " ", "".join(elem.itertext())).strip()
         for p in elem.getchildren():
-            if p.tag.lower() in ("p", "para"):
-                para_text = re.sub(r"\s+", " ", "".join(p.itertext())).strip()
-                if para_text:
-                    texts.append(para_text)
+            para_text = self._pull_paras(p)
+            if para_text:
+                texts.append(para_text)
         return "\n".join(texts)
 
     def _is_interjection_element(self, et_elem):
@@ -500,7 +514,7 @@ def parse(file_text):
     return results
 
 
-# self = HansardSpeechExtractor("test2.xml", from_file=True)
+# self = HansardSpeechExtractor("test.xml", from_file=True)
 # print_tag_tree(self.root, 2)
 # docs = self.extract()
 
