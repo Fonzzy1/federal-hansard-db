@@ -475,7 +475,6 @@ async def check_authors_join(db):
                                """
     )
 
-
     for doc in docs:
         ignore = [
             x

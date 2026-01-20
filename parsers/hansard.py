@@ -92,7 +92,6 @@ class HansardSpeechExtractor:
             else:
                 raw_chambers["chamber"].append(element)
 
-
         return raw_chambers
 
     def get_session_info(self):
