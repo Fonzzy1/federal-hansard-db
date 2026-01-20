@@ -1,3 +1,15 @@
+⚠ Speeches allocated outside of service window for Gordon BROWN (ID: K6P)
+Outside speech count: 182, First outside date: 1959-02-19, Last outside date: 1959-04-07, Service window: 1932-07-01 to 1965-06-30
+⚠ Speeches allocated outside of service window for Daniel MINOGUE (ID: JUX)
+Outside speech count: 64, First outside date: 1969-08-27, Last outside date: 1969-09-26, Service window: 1950-02-22 to 1969-06-26
+⚠ Speeches allocated outside of service window for John MILLEN (ID: KUP)
+Outside speech count: 54, First outside date: 1907-09-20, Last outside date: 1907-09-20, Service window: 1920-07-01 to 1938-06-30
+⚠ Speeches allocated outside of service window for Joseph COOK (ID: F4S)
+Outside speech count: 33, First outside date: 1922-07-27, Last outside date: 1922-10-12, Service window: 1901-05-09 to 1921-11-11
+⚠ Speeches allocated outside of service window for Robert BEST (ID: JPC)
+Outside speech count: 30, First outside date: 1926-02-03, Last outside date: 1927-11-10, Service window: 1901-05-09 to 1922-11-06
+⚠ Speeches allocated outside of service window for Bob BROWN (ID: QD4)
+Outside speech count: 24, First outside date: 2012-06-18, Last outside date: 2012-08-14, Service window: 1996-07-01 to 2012-06-15
 ⚠ Speeches allocated outside of service window for Parker MOLONEY (ID: L4X)
 Outside speech count: 21, First outside date: 1934-12-05, Last outside date: 1939-05-31, Service window: 1910-07-01 to 1931-11-27
 ⚠ Speeches allocated outside of service window for Andrew FISHER (ID: F4N)
@@ -34,6 +46,8 @@ Outside speech count: 9, First outside date: 1925-09-11, Last outside date: 1927
 Outside speech count: 9, First outside date: 1911-10-26, Last outside date: 1911-10-26, Service window: 1917-07-01 to 1935-06-30
 ⚠ Speeches allocated outside of service window for William WATT (ID: KXG)
 Outside speech count: 9, First outside date: 1910-08-30, Last outside date: 1910-08-30, Service window: 1914-10-08 to 1929-07-05
+⚠ Speeches allocated outside of service window for Condon BYRNE (ID: K3R)
+Outside speech count: 8, First outside date: 1968-05-16, Last outside date: 1968-05-16, Service window: 1951-06-12 to 1974-04-11
 ⚠ Speeches allocated outside of service window for Richard CASEY (ID: JWE)
 Outside speech count: 8, First outside date: 1948-11-04, Last outside date: 1948-11-04, Service window: 1932-02-17 to 1960-02-10
 ⚠ Speeches allocated outside of service window for Herbert EVATT (ID: DTN)
