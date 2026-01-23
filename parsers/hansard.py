@@ -79,8 +79,9 @@ class HansardSpeechExtractor:
         for element in hanging_debates:
             debate_info = element.find("debateinfo")
             if (
-                "answer" in debate_info.findtext("title").lower()
-                or "question" in debate_info.findtext("title").lower()
+                debate_info is not None
+                and debate_info.findtext("type")
+                and "notice" in debate_info.findtext("type").lower()
             ):
                 if "answers.to.questions" in raw_chambers.keys():
                     raw_chambers["answers.to.questions"].append(element)
@@ -91,6 +92,28 @@ class HansardSpeechExtractor:
                     raw_chambers["answers.to.questions"].append(element)
             else:
                 raw_chambers["chamber"].append(element)
+
+        # Special check for qeustions on notice
+        main_element = raw_chambers.get("chamber")
+        if main_element is not None:
+            debates = [
+                x for x in list(main_element) if x.tag.lower() == "debate"
+            ]
+            for element in debates:
+                debate_info = element.find("debateinfo")
+                if (
+                    debate_info is not None
+                    and debate_info.findtext("type")
+                    and "notice" in debate_info.findtext("type").lower()
+                ):
+                    raw_chambers["chamber"].remove(element)
+                    if "answers.to.questions" in raw_chambers.keys():
+                        raw_chambers["answers.to.questions"].append(element)
+                    else:
+                        raw_chambers["answers.to.questions"] = ET.Element(
+                            "answers.to.questions"
+                        )
+                        raw_chambers["answers.to.questions"].append(element)
 
         return raw_chambers
 
