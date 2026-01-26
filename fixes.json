@@ -1,636 +1,443 @@
 {
-    "sitting_day_override": {
-        "3": {
-            "2009-06-03": "2009-06-03"
-        },
-        "4": {
-            "2010-02-23": "2010-02-23"
-        }
+  "sitting_day_override": {
+    "3": {
+      "2009-06-03": "2009-06-03"
     },
-    "chamber_override": {
-        "maincomm": "Federation Chamber",
-        "fedchamb": "Federation Chamber",
-        "answers.to.questions": "Answers Upon Notice",
-        "chamber": "Primary Chamber"
+    "4": {
+      "2010-02-23": "2010-02-23"
+    }
+  },
+  "chamber_override": {
+    "maincomm": "Federation Chamber",
+    "fedchamb": "Federation Chamber",
+    "answers.to.questions": "Answers Upon Notice",
+    "chamber": "Primary Chamber"
+  },
+  "house_override": {
+    "Reps": "House of Representatives",
+    "REPS": "House of Representatives",
+    "House of Reps": "House of Representatives",
+    "SEN": "Senate",
+    "Senate": "Senate",
+    "SENATE": "Senate"
+  },
+  "preferred_name_updates": {
+    "5U4": "(Jim)",
+    "JWX": "(Jim)",
+    "ZG4": "(Ted)",
+    "K9M": "(Les)",
+    "K0O": "(Rex)",
+    "BU4": "(Doug)"
+  },
+  "ignore_periods": [
+
+{ "id": "F4B", "start":"1929-09-16", "end":"1930-04-03", "comment": "quote"  },
+    {
+      "id": "KNF",
+      "start": "1923-08-10",
+      "end": "1923-10-17",
+      "comment": "quote"
     },
-    "house_override": {
-        "Reps": "House of Representatives",
-        "REPS": "House of Representatives",
-        "House of Reps": "House of Representatives",
-        "SEN": "Senate",
-        "Senate": "Senate",
-        "SENATE": "Senate"
+    {
+      "id": "KLL",
+      "start": "1963-11-01",
+      "end": "1967-04-13",
+      "comment": "auto-fix"
     },
-    "preferred_name_updates": {
-        "5U4": "(Jim)",
-        "JWX": "(Jim)",
-        "ZG4": "(Ted)",
-        "K9M": "(Les)",
-        "K0O": "(Rex)",
-        "BU4": "(Doug)"
+    {
+      "id": "KJE",
+      "start": "1918-04-05",
+      "end": "1928-03-07",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1928-03-07/toc_pdf/19280307_reps_10_117.pdf;fileType=application%2Fpdf"
     },
-    "ignore_periods": [
-        {
-            "start": "1922-07-27",
-            "end": "1922-10-12",
-            "id": "F4S",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;adv=yes;orderBy=customrank;page=0;query=Date%3A27%2F07%2F1922%20Dataset%3Ahansardr,hansardr80,hansardrIndex,hansards,hansards80,hansardsIndex;rec=0;resCount=Default"
-        },
-        {
-            "start": "1926-02-03",
-            "end": "1927-11-10",
-            "id": "JPC",
-            "comment": "Quotes in parliament"
-        }
-    ],
-    "raw_author_fixes": {
-        "8H7": {
-            "id": "KPO",
-            "after": "1975-11-11"
-        },
-        "KUP": {
-            "id": "KUL",
-            "before": "19020-01-01",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;adv=yes;orderBy=customrank;page=0;query=Date%3A20%2F09%2F1907%20Dataset%3Ahansardr,hansardr80,hansardrIndex,hansards,hansards80,hansardsIndex%20SearchCategory_Phrase%3A%22senate%22;rec=0;resCount=Default"
-        },
-        "JF7": {
-            "comment": "https: //parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1942-05-27/toc_pdf/19420527_reps_16_171.pdf;fileType=application%2Fpdf#search=%221942%201940s%201942%2005%2027%22",
-            "id": "JOM",
-            "before": "1945-08-18"
-        },
-        "JY7": {
-            "id": "JXZ",
-            "before": "1932-01-01",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansards80/1930-03-13/toc_pdf/19300313_senate_12_123.pdf;fileType=application%2Fpdf"
-        },
-        "K3R": {
-            "id": "JYA",
-            "before": "1951-04-29",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansards80/1950-03-15/toc_pdf/19500315_senate_19_206.pdf;fileType=application%2Fpdf"
-        }
+    {
+      "id": "009MD",
+      "start": "1913-04-24",
+      "end": "1915-11-11",
+      "comment": "quotes"
     },
-    "alt_ids": {
-        "KIM": [
-            "YI7"
-        ],
-        "009MA": [
-            "EL7"
-        ],
-        "00ATA": [
-            "TE7"
-        ],
-        "JRD": [
-            "037"
-        ],
-        "KCT": [
-            "Y87"
-        ],
-        "KSF": [
-            "DL7"
-        ],
-        "JVD": [
-            "9M7"
-        ],
-        "JRU": [
-            "837"
-        ],
-        "KNK": [
-            "XD7"
-        ],
-        "KJA": [
-            "LF7"
-        ],
-        "K9M": [
-            "6G7"
-        ],
-        "KCE": [
-            "B87"
-        ],
-        "K5A": [
-            "AN7"
-        ],
-        "KVM": [
-            "FS7"
-        ],
-        "KVY": [
-            "ZS7"
-        ],
-        "KDP": [
-            "V97"
-        ],
-        "JVV": [
-            "WM7"
-        ],
-        "DRW": [
-            "XF7"
-        ],
-        "009OD": [
-            "0N7"
-        ],
-        "JUST": [
-            "ML7"
-        ],
-        "JM9": [
-            "Q07"
-        ],
-        "KJU": [
-            "WF7"
-        ],
-        "KEO": [
-            "6A7"
-        ],
-        "JNG": [
-            "457"
-        ],
-        "KB8": [
-            "8C7"
-        ],
-        "JXQ": [
-            "GB7"
-        ],
-        "KWZ": [
-            "VT7"
-        ],
-        "009DB": [
-            "6M7"
-        ],
-        "KRR": [
-            "8L7"
-        ],
-        "KKT": [
-            "BJ7"
-        ],
-        "L0J": [
-            "8Q7"
-        ],
-        "KDV": [
-            "FG7"
-        ],
-        "JT9": [
-            "Z37"
-        ],
-        "JPG": [
-            "D27"
-        ],
-        "KIK": [
-            "VI7"
-        ],
-        "4I4": [
-            "BL7"
-        ],
-        "DQF": [
-            "MR7"
-        ],
-        "JMI": [
-            "IT4"
-        ],
-        "ZD4": [
-            "ZD7",
-            "ED4"
-        ],
-        "KEI": [
-            "4H7"
-        ],
-        "1B6": [
-            "DU7"
-        ],
-        "KYP": [
-            "4P7"
-        ],
-        "KOH": [
-            "8K7"
-        ],
-        "K17": [
-            "L67"
-        ],
-        "KAO": [
-            "4U7"
-        ],
-        "6V5": [
-            "P47"
-        ],
-        "00APG": [
-            "APG"
-        ],
-        "8IS": [
-            "81S"
-        ],
-        "DYN": [
-            "oneDYNDYN",
-            "Am oneDYNDYN"
-        ],
-        "KRE": [
-            "KEROSENE"
-        ],
-        "K5H": [
-            "MQ7"
-        ],
-        "KPV": [
-            "IH7"
-        ],
-        "KKD": [
-            "2G7"
-        ],
-        "KUU": [
-            "YL7"
-        ],
-        "KVK": [
-            "GM7"
-        ],
-        "K6F": [
-            "757"
-        ],
-        "C7D": [
-            "6D7"
-        ],
-        "K1Y": [
-            "F27"
-        ],
-        "K2U": [
-            "OP7"
-        ],
-        "KBY": [
-            "HV7"
-        ],
-        "KUJ": [
-            "OL7"
-        ],
-        "KPG": [
-            "SG7"
-        ],
-        "KTZ": [
-            "4L7"
-        ],
-        "L8O": [
-            "YJ7"
-        ],
-        "JXG": [
-            "NM7"
-        ],
-        "K1M": [
-            "SO7"
-        ],
-        "KQD": [
-            "NH7"
-        ],
-        "JTT": [
-            "287"
-        ],
-        "CJO": [
-            "IU7"
-        ],
-        "CAK": [
-            "0P7"
-        ],
-        "JYI": [
-            "O97"
-        ],
-        "K8H": [
-            "TS7"
-        ],
-        "KOM": [
-            "FE7"
-        ],
-        "KSY": [
-            "9K7"
-        ],
-        "KTJ": [
-            "WK7"
-        ],
-        "KTA": [
-            "EK7"
-        ],
-        "KSW": [
-            "6K7"
-        ],
-        "K69": [
-            "9R7"
-        ],
-        "K8R": [
-            "8T7"
-        ],
-        "JYA": [
-            "4N7"
-        ],
-        "KQN": [
-            "YH7"
-        ],
-        "KNA": [
-            "WJ7"
-        ],
-        "K7H": [
-            "C67"
-        ],
-        "EVL": [
-            "8R7"
-        ],
-        "JYL": [
-            "S97"
-        ],
-        "KA8": [
-            "OT7"
-        ],
-        "JUI": [
-            "J87"
-        ],
-        "OI4": [
-            "O14"
-        ],
-        "KBS": [
-            "8V7"
-        ],
-        "QD4": [
-            "D4"
-        ],
-        "7Y6": [
-            "Y6"
-        ],
-        "I0V": [
-            "00AF1"
-        ],
-        "00AOS": [
-            "Is00AOS"
-        ],
-        "281558": [
-            "009FX"
-        ],
-        "283585": [
-            "FRD"
-        ],
-        "AW5": [
-            "AW5AW5",
-            "cAW5",
-            "A where you just going toW5",
-            "W5"
-        ],
-        "3L6": [
-            "213L6"
-        ],
-        "9L6": [
-            "9L6M"
-        ],
-        "5L6": [
-            "15L6"
-        ],
-        "00A9C": [
-            "A9C",
-            "0000A9C"
-        ],
-        "JUS": [
-            "ML7"
-        ],
-        "008K0": [
-            "008KO"
-        ],
-        "KZL": [
-            "RP7"
-        ],
-        "VU5": [
-            "V5"
-        ],
-        "WU5": [
-            "U5"
-        ],
-        "XH4": [
-            "mXH4"
-        ],
-        "E5D": [
-            "5D"
-        ],
-        "AX5": [
-            "thisAX5AX5",
-            "eAX5"
-        ],
-        "84N": [
-            "84NThe air"
-        ],
-        "YW4": [
-            "mYW4"
-        ],
-        "H6X": [
-            "InH6XH6X"
-        ],
-        "HDA": [
-            "coHDA"
-        ],
-        "00AKI": [
-            "0AKI"
-        ],
-        "9V5": [
-            "99V5"
-        ],
-        "HM5": [
-            "gorgHM5"
-        ],
-        "230485": [
-            "whose Dawson Christensen00ATG230485"
-        ],
-        "JT4": [
-            "T4"
-        ],
-        "XJ6": [
-            "J6"
-        ],
-        "HK5": [
-            "30HK5"
-        ],
-        "PJ4": [
-            "P4J4"
-        ],
-        "0": [
-            "00AOP"
-        ],
-        "ZF4": [
-            "ZF"
-        ],
-        "ZW4": [
-            "ZW4sZW4"
-        ]
+    {
+      "start": "1922-07-27",
+      "end": "1922-10-12",
+      "id": "F4S",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;adv=yes;orderBy=customrank;page=0;query=Date%3A27%2F07%2F1922%20Dataset%3Ahansardr,hansardr80,hansardrIndex,hansards,hansards80,hansardsIndex;rec=0;resCount=Default"
     },
-    "party_affiliations": [
-        {
-            "phid": "JUX",
-            "term_start": "1969-06-26",
-            "term_end": "1969-09-26",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1969-09-26/toc_pdf/19690926_reps_26_hor65.pdf;fileType=application%2Fpdf",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "KV8",
-            "term_start": "1926-07-22",
-            "term_end": "1926-08-12",
-            "comment": "auto-fix",
-            "party_name": "Australian Country Party"
-        },
-        {
-            "phid": "K7P",
-            "term_start": "1943-10-13",
-            "term_end": "1944-07-01",
-            "comment": "handbook",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "K7P",
-            "term_start": "1943-10-13",
-            "term_end": "1944-07-01",
-            "comment": "handbook",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "291406",
-            "term_start": "2025-05-03",
-            "term_end": null,
-            "party_name": "Liberal Party of Australia"
-        },
-        {
-            "phid": "F4S",
-            "term_start": "1921-01-01",
-            "term_end": "1921-11-11",
-            "comment": "https://www.naa.gov.au/explore-collection/australias-prime-ministers/joseph-cook/timeline#1920%20to%201929",
-            "party_name": "Nationalist Party"
-        },
-        {
-            "phid": "F4P",
-            "term_start": "1909-01-01",
-            "term_end": "1909-12-01",
-            "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
-            "party_name": "Anti-Socialist Party"
-        },
-        {
-            "phid": "KKD",
-            "term_start": "1987-05-05",
-            "term_end": "1987-06-05",
-            "comment": "https://parlinfo.aph.gov.au/parlInfo/download/chamber/hansards/1987-06-05/toc_pdf/S%201987-06-05.pdf;fileType=application%2Fpdf",
-            "party_name": "Liberal Party of Australia"
-        },
-        {
-            "phid": "KLL",
-            "term_start": "1943-07-07",
-            "term_end": "1946-08-14",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "K8L",
-            "term_start": "1917-03-26",
-            "term_end": "1922-10-12",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/K8L",
-            "party_name": "Nationalist Party"
-        },
-        {
-            "phid": "JRW",
-            "term_start": "1917-09-05",
-            "term_end": "1920-07-01",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/JRW",
-            "party_name": "Nationalist Party"
-        },
-        {
-            "phid": "K0W",
-            "term_start": "1956-02-16",
-            "term_end": "1956-07-01",
-            "comment": "https://biography.senate.gov.au/ashley-william-patrick/",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "K5X",
-            "term_start": "1956-02-16",
-            "term_end": "1956-07-01",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/K5X",
-            "party_name": "Australian Labor Party"
-        },
-        {
-            "phid": "300123",
-            "term_start": "2024-03-28",
-            "term_end": "2025-03-25",
-            "comment": "auto-fix",
-            "party_name": "Liberal Party of Australia"
-        }
-    ],
-    "seats": [
-        {
-            "phid": "300123",
-            "term_start": "2024-03-28",
-            "term_end": "2025-03-25",
-            "comment": "auto-fix",
-            "seat_name": "Hughes"
-        },
-        {
-            "phid": "KLL",
-            "term_start": "1943-07-07",
-            "term_end": "1946-08-14",
-            "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
-            "seat_name": "Hindmarsh"
-        },
-        {
-            "phid": "KV8",
-            "term_start": "1926-07-22",
-            "term_end": "1926-08-12",
-            "comment": "auto-fix",
-            "seat_name": "Wimmera"
-        },
-        {
-            "phid": "F4P",
-            "term_start": "1909-01-01",
-            "term_end": "1909-12-01",
-            "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
-            "seat_name": "East Sydney"
-        },
-        {
-            "phid": "F4S",
-            "term_start": "1921-01-01",
-            "term_end": "1921-11-11",
-            "comment": "https://www.naa.gov.au/explore-collection/australias-prime-ministers/joseph-cook/timeline#1920%20to%201929",
-            "seat_name": "Parramatta"
-        }
-    ],
-    "parliaments": {
-        "K3E": [
-            3,
-            4,
-            5,
-            6,
-            7,
-            8,
-            9
-        ]
+    {
+      "start": "1926-02-03",
+      "end": "1927-11-10",
+      "id": "JPC",
+      "comment": "Quotes in parliament"
     },
-    "ignore_ids": [
-        "10000",
-        "20000",
-        "TS4",
-        "UNKNOWN",
-        "Unknown",
-        "TO3",
-        "COO",
-        "009C3",
-        "QT2",
-        "R56",
-        "R56",
-        "G5F",
-        "DVB",
-        "GYB",
-        "j10000",
-        "W10000",
-        "1 has anything to do0000",
-        "0000",
-        "a1000010000",
-        "Among the 10000",
-        "1000",
-        "Fourth 10000",
-        "s10000",
-        "110000",
-        "P10000",
-        "\\10000",
-        " 10000",
-        "10001",
-        "210000",
-        "jen10000Jenkins, Harry (The DEPUTY SPEAKER)The DEPUTY SPEAKER (Mr Jenkins)—",
-        "2210000",
-        "10000The ",
-        "10000DEPUTY ",
-        "BH10000",
-        "10000Collins",
-        "10000Macdonald",
-        "p10000"
-    ]
+    {
+      "start": "1919-08-21",
+      "end": "1925-09-03",
+      "id": "F4N",
+      "comment": "Quotes in parliament: https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1925-09-03/toc_pdf/19250903_reps_9_111.pdf;fileType=application%2Fpdf"
+    }
+  ],
+  "raw_author_fixes": {
+    "A48": {
+      "after": "1934-11-27",
+      "before": "1940-11-10",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1938-10-05/toc_pdf/19381005_reps_15_157.pdf;fileType=application%2Fpdf",
+      "id": "JWE"
+    },
+    "8H7": {
+      "id": "KPO",
+      "after": "1975-11-11"
+    },
+    "KUP": {
+      "id": "KUL",
+      "before": "1920-01-01",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/search/display/display.w3p;adv=yes;orderBy=customrank;page=0;query=Date%3A20%2F09%2F1907%20Dataset%3Ahansardr,hansardr80,hansardrIndex,hansards,hansards80,hansardsIndex%20SearchCategory_Phrase%3A%22senate%22;rec=0;resCount=Default"
+    },
+    "JF7": {
+      "comment": "https: //parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1942-05-27/toc_pdf/19420527_reps_16_171.pdf;fileType=application%2Fpdf#search=%221942%201940s%201942%2005%2027%22",
+      "id": "JOM",
+      "before": "1945-08-18"
+    },
+    "JY7": {
+      "id": "JXZ",
+      "before": "1932-01-01",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansards80/1930-03-13/toc_pdf/19300313_senate_12_123.pdf;fileType=application%2Fpdf and https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1934-12-05/toc_pdf/19341205_reps_14_145.pdf;fileType=application%2Fpdf"
+    },
+    "K3R": {
+      "id": "JYA",
+      "before": "1951-04-29",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansards80/1950-03-15/toc_pdf/19500315_senate_19_206.pdf;fileType=application%2Fpdf"
+    },
+    "L4X": {
+      "id": "KXT",
+      "after": "1932-01-01",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1939-05-31/toc_pdf/19390531_reps_15_159.pdf;fileType=application%2Fpdf"
+    },
+    "K0A": {
+      "id": "KMW",
+      "after": "1926-07-22",
+      "before": "1928-05-31",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1926-07-23/toc_pdf/19260723_reps_10_114.pdf;fileType=application%2Fpdf"
+    },
+    "HWT": {
+      "id": "306489",
+      "after": "2023-05-20",
+      "comment": "https: //parlinfo.aph.gov.au/parlInfo/download/chamber/hansardr/27163/toc_pdf/House%20of%20Representatives_2023_09_05_Official.pdf;fileType=application%2Fpdf"
+    }
+  },
+  "alt_ids": {
+    "KIM": ["YI7"],
+    "009MA": ["EL7"],
+    "00ATA": ["TE7"],
+    "JRD": ["037"],
+    "KCT": ["Y87"],
+    "KSF": ["DL7"],
+    "JVD": ["9M7"],
+    "JRU": ["837"],
+    "KNK": ["XD7"],
+    "KJA": ["LF7"],
+    "K9M": ["6G7"],
+    "KCE": ["B87"],
+    "K5A": ["AN7"],
+    "KVM": ["FS7"],
+    "KVY": ["ZS7"],
+    "KDP": ["V97"],
+    "JVV": ["WM7"],
+    "DRW": ["XF7"],
+    "009OD": ["0N7"],
+    "JUST": ["ML7"],
+    "JM9": ["Q07"],
+    "KJU": ["WF7"],
+    "KEO": ["6A7"],
+    "JNG": ["457"],
+    "KB8": ["8C7"],
+    "JXQ": ["GB7"],
+    "KWZ": ["VT7"],
+    "009DB": ["6M7"],
+    "KRR": ["8L7"],
+    "KKT": ["BJ7"],
+    "L0J": ["8Q7"],
+    "KDV": ["FG7"],
+    "JT9": ["Z37"],
+    "JPG": ["D27"],
+    "KIK": ["VI7"],
+    "4I4": ["BL7"],
+    "DQF": ["MR7"],
+    "JMI": ["IT4"],
+    "ZD4": ["ZD7", "ED4"],
+    "KEI": ["4H7"],
+    "1B6": ["DU7"],
+    "KYP": ["4P7"],
+    "KOH": ["8K7"],
+    "K17": ["L67"],
+    "KAO": ["4U7"],
+    "6V5": ["P47"],
+    "00APG": ["APG"],
+    "8IS": ["81S"],
+    "DYN": ["oneDYNDYN", "Am oneDYNDYN"],
+    "KRE": ["KEROSENE"],
+    "K5H": ["MQ7"],
+    "KPV": ["IH7"],
+    "KKD": ["2G7"],
+    "KUU": ["YL7"],
+    "KVK": ["GM7"],
+    "K6F": ["757"],
+    "C7D": ["6D7"],
+    "K1Y": ["F27"],
+    "K2U": ["OP7"],
+    "KBY": ["HV7"],
+    "KUJ": ["OL7"],
+    "KPG": ["SG7"],
+    "KTZ": ["4L7"],
+    "L8O": ["YJ7"],
+    "JXG": ["NM7"],
+    "K1M": ["SO7"],
+    "KQD": ["NH7"],
+    "JTT": ["287"],
+    "CJO": ["IU7"],
+    "CAK": ["0P7"],
+    "JYI": ["O97"],
+    "K8H": ["TS7"],
+    "KOM": ["FE7"],
+    "KSY": ["9K7"],
+    "KTJ": ["WK7"],
+    "KTA": ["EK7"],
+    "KSW": ["6K7"],
+    "K69": ["9R7"],
+    "K8R": ["8T7"],
+    "JYA": ["4N7"],
+    "KQN": ["YH7"],
+    "KNA": ["WJ7"],
+    "K7H": ["C67"],
+    "EVL": ["8R7"],
+    "JYL": ["S97"],
+    "KA8": ["OT7"],
+    "JUI": ["J87"],
+    "OI4": ["O14"],
+    "KBS": ["8V7"],
+    "QD4": ["D4"],
+    "7Y6": ["Y6"],
+    "I0V": ["00AF1"],
+    "00AOS": ["Is00AOS"],
+    "281558": ["009FX"],
+    "283585": ["FRD"],
+    "AW5": ["AW5AW5", "cAW5", "A where you just going toW5", "W5"],
+    "3L6": ["213L6"],
+    "9L6": ["9L6M"],
+    "5L6": ["15L6"],
+    "00A9C": ["A9C", "0000A9C"],
+    "JUS": ["ML7"],
+    "008K0": ["008KO"],
+    "KZL": ["RP7"],
+    "VU5": ["V5"],
+    "WU5": ["U5"],
+    "XH4": ["mXH4"],
+    "E5D": ["5D"],
+    "AX5": ["thisAX5AX5", "eAX5"],
+    "84N": ["84NThe air"],
+    "YW4": ["mYW4"],
+    "H6X": ["InH6XH6X"],
+    "HDA": ["coHDA"],
+    "00AKI": ["0AKI"],
+    "9V5": ["99V5"],
+    "HM5": ["gorgHM5"],
+    "230485": ["whose Dawson Christensen00ATG230485"],
+    "JT4": ["T4"],
+    "XJ6": ["J6"],
+    "HK5": ["30HK5"],
+    "PJ4": ["P4J4"],
+    "0": ["00AOP"],
+    "ZF4": ["ZF"],
+    "ZW4": ["ZW4sZW4"]
+  },
+  "party_affiliations": [
+    {
+      "phid": "K6P",
+      "term_start": "1959-02-19",
+      "term_end": "1959-07-01",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/K6P",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "JUX",
+      "term_start": "1969-06-26",
+      "term_end": "1969-09-26",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1969-09-26/toc_pdf/19690926_reps_26_hor65.pdf;fileType=application%2Fpdf",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "KV8",
+      "term_start": "1926-07-22",
+      "term_end": "1926-08-12",
+      "comment": "auto-fix",
+      "party_name": "Australian Country Party"
+    },
+    {
+      "phid": "K7P",
+      "term_start": "1943-10-13",
+      "term_end": "1944-07-01",
+      "comment": "handbook",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "K7P",
+      "term_start": "1943-10-13",
+      "term_end": "1944-07-01",
+      "comment": "handbook",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "291406",
+      "term_start": "2025-05-03",
+      "term_end": null,
+      "party_name": "Liberal Party of Australia"
+    },
+    {
+      "phid": "F4S",
+      "term_start": "1921-01-01",
+      "term_end": "1921-11-11",
+      "comment": "https://www.naa.gov.au/explore-collection/australias-prime-ministers/joseph-cook/timeline#1920%20to%201929",
+      "party_name": "Nationalist Party"
+    },
+    {
+      "phid": "F4P",
+      "term_start": "1909-01-01",
+      "term_end": "1909-12-01",
+      "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
+      "party_name": "Anti-Socialist Party"
+    },
+    {
+      "phid": "KKD",
+      "term_start": "1987-05-05",
+      "term_end": "1987-06-05",
+      "comment": "https://parlinfo.aph.gov.au/parlInfo/download/chamber/hansards/1987-06-05/toc_pdf/S%201987-06-05.pdf;fileType=application%2Fpdf",
+      "party_name": "Liberal Party of Australia"
+    },
+    {
+      "phid": "KLL",
+      "term_start": "1943-07-07",
+      "term_end": "1946-08-14",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "K8L",
+      "term_start": "1917-03-26",
+      "term_end": "1922-10-12",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/K8L",
+      "party_name": "Nationalist Party"
+    },
+    {
+      "phid": "JRW",
+      "term_start": "1917-09-05",
+      "term_end": "1920-07-01",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/JRW",
+      "party_name": "Nationalist Party"
+    },
+    {
+      "phid": "K0W",
+      "term_start": "1956-02-16",
+      "term_end": "1956-07-01",
+      "comment": "https://biography.senate.gov.au/ashley-william-patrick/",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "K5X",
+      "term_start": "1956-02-16",
+      "term_end": "1956-07-01",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/K5X",
+      "party_name": "Australian Labor Party"
+    },
+    {
+      "phid": "300123",
+      "term_start": "2024-03-28",
+      "term_end": "2025-03-25",
+      "comment": "auto-fix",
+      "party_name": "Liberal Party of Australia"
+    }
+  ],
+  "seats": [
+    {
+      "phid": "JUX",
+      "term_start": "1969-06-26",
+      "term_end": "1969-09-26",
+      "comment": "auto-fix",
+      "seat_name": "West Sydney"
+    },
+    {
+      "phid": "300123",
+      "term_start": "2024-03-28",
+      "term_end": "2025-03-25",
+      "comment": "auto-fix",
+      "seat_name": "Hughes"
+    },
+    {
+      "phid": "KLL",
+      "term_start": "1943-07-07",
+      "term_end": "1946-08-14",
+      "comment": "https://handbook.aph.gov.au/parliamentarians/KLL",
+      "seat_name": "Hindmarsh"
+    },
+    {
+      "phid": "KV8",
+      "term_start": "1926-07-22",
+      "term_end": "1926-08-12",
+      "comment": "auto-fix",
+      "seat_name": "Wimmera"
+    },
+    {
+      "phid": "F4P",
+      "term_start": "1909-01-01",
+      "term_end": "1909-12-01",
+      "comment": "https://www.naa.gov.au/sites/default/files/2020-05/fs-213-george-houstoun-reid.pdf",
+      "seat_name": "East Sydney"
+    },
+    {
+      "phid": "F4S",
+      "term_start": "1921-01-01",
+      "term_end": "1921-11-11",
+      "comment": "https://www.naa.gov.au/explore-collection/australias-prime-ministers/joseph-cook/timeline#1920%20to%201929",
+      "seat_name": "Parramatta"
+    }
+  ],
+  "parliaments": {
+    "K3E": [3, 4, 5, 6, 7, 8, 9]
+  },
+  "ignore_ids": [
+    "10000",
+    "20000",
+    "TS4",
+    "UNKNOWN",
+    "Unknown",
+    "TO3",
+    "COO",
+    "009C3",
+    "QT2",
+    "R56",
+    "R56",
+    "G5F",
+    "DVB",
+    "GYB",
+    "j10000",
+    "W10000",
+    "1 has anything to do0000",
+    "0000",
+    "a1000010000",
+    "Among the 10000",
+    "1000",
+    "Fourth 10000",
+    "s10000",
+    "110000",
+    "P10000",
+    "\\10000",
+    " 10000",
+    "10001",
+    "210000",
+    "jen10000Jenkins, Harry (The DEPUTY SPEAKER)The DEPUTY SPEAKER (Mr Jenkins)—",
+    "2210000",
+    "10000The ",
+    "10000DEPUTY ",
+    "BH10000",
+    "10000Collins",
+    "10000Macdonald",
+    "p10000"
+  ]
 }

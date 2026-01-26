@@ -8,15 +8,16 @@ ERROR_FILE = "errors.txt"
 
 
 # regex pattern for each error block
+
 ERROR_PATTERN = re.compile(
-    r"Speeches allocated outside of service window for "
+    r"^\s*[\u26A0]?\s*Speeches allocated outside of service window for "
     r"(?P<name>.+?) "
-    r"\(ID:\s*(?P<id>[A-Z0-9]+)\)\n"
-    r"Outside speech count:\s*(?P<count>\d+), "
-    r"First outside date:\s*(?P<first>\d{4}-\d{2}-\d{2}), "
-    r"Last outside date:\s*(?P<last>\d{4}-\d{2}-\d{2}), "
-    r"Service window:\s*(?P<start>\d{4}-\d{2}-\d{2})\s*to\s*(?P<end>\d{4}-\d{2}-\d{2})",
-    re.MULTILINE,
+    r"\(ID:\s*(?P<id>[A-Z0-9]+)\)\s*"
+    r"outside speech count:\s*(?P<count>\d+),\s*"
+    r"first outside date:\s*(?P<first>\d{4}-\d{2}-\d{2}),\s*"
+    r"last outside date:\s*(?P<last>\d{4}-\d{2}-\d{2}),\s*"
+    r"service window:\s*(?P<start>\d{4}-\d{2}-\d{2})\s*to\s*(?P<end>\d{4}-\d{2}-\d{2})",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 
@@ -163,6 +164,18 @@ for record in records:
         f"  {record['first']} → {record['last']}  ({record['count']} speeches)"
     )
 
+    last_speech = await db.document.find_first(
+        where={
+            "rawAuthor": {"parliamentarianId": record["id"]},
+            "date": {"date": datetime.strptime(record["last"], "%Y-%m-%d")},
+        },
+        include={"rawAuthor": True, "date": True},
+    )
+
+    print()
+    print(last_speech.date.date.strftime("%Y-%m-%d"), last_speech.date.house)
+    print(last_speech.text[:80])
+
     print()
     print("All services on record:")
     print_services(services)
@@ -183,6 +196,20 @@ for record in records:
         f'{{ "phid": "{record["id"]}", "term_start":"{record["fixed_start"]}", "term_end":"{record["fixed_end"]}", "comment": "auto-fix", "party_name": "{record["party"]}"  }},'
     )
     print(
-        f'{{ "phid": "{record["id"]}", "term_start":"{record["fixed_start"]}", "term_end":"{record["fixed_end"]}", "comment": "auto-fix", "seat_name_name": "{record["seat"]}"  }},'
+        f'{{ "phid": "{record["id"]}", "term_start":"{record["fixed_start"]}", "term_end":"{record["fixed_end"]}", "comment": "auto-fix", "seat_name": "{record["seat"]}"  }},'
     )
+
+    print("=" * 70)
+
+    print(
+        f'{{ "id": "{record["id"]}", "start":"{record["fixed_start"]}", "end":"{record["fixed_end"]}", "comment": "auto-fix"  }},'
+    )
+
+    print("=" * 70)
+
+    print(
+        f'{{"{record["id"]}": {{"after":"{record["fixed_start"]}", "before":"{record["fixed_end"]}", "comment":"auto-fix", "id": ""}}}},'
+    )
+
+    print("=" * 70)
     input("n")
