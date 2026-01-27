@@ -31,6 +31,66 @@
     },
     "ignore_periods": [
         {
+            "id": "070E",
+            "start": "1918-06-13",
+            "end": "1918-06-13",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "K7V",
+            "start": "1930-04-09",
+            "end": "1930-04-09",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "KRO",
+            "start": "1907-09-11",
+            "end": "1907-09-11",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "KQU",
+            "start": "1905-12-07",
+            "end": "1905-12-07",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "KPM",
+            "start": "1908-04-02",
+            "end": "1908-04-02",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "KZO",
+            "start": "1935-10-09",
+            "end": "1935-10-09",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "JYR",
+            "start": "1930-11-19",
+            "end": "1930-11-19",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "JRR",
+            "start": "1909-09-21",
+            "end": "1909-09-21",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "JNR",
+            "start": "1944-03-07",
+            "end": "1944-03-07",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "K0X",
+            "start": "1907-08-07",
+            "end": "1907-10-02",
+            "comment": "auto-fix"
+        },
+        {
             "id": "DTN",
             "start": "1961-09-07",
             "end": "1961-09-07",
@@ -47,6 +107,18 @@
             "start": "1929-09-16",
             "end": "1930-04-03",
             "comment": "quote"
+        },
+        {
+            "id": "KNI",
+            "start": "1913-10-22",
+            "end": "1913-10-22",
+            "comment": "auto-fix"
+        },
+        {
+            "id": "JZF",
+            "start": "1913-09-09",
+            "end": "1913-09-09",
+            "comment": "auto-fix"
         },
         {
             "id": "KNF",
@@ -98,6 +170,72 @@
         }
     ],
     "raw_author_fixes": {
+        "JVA": {
+            "after": "1949-06-02",
+            "before": "1949-06-02",
+            "comment": "auto-fix",
+            "id": "KZ9"
+        },
+        "KRP": {
+            "after": "1909-09-07",
+            "before": "1909-09-07",
+            "comment": "auto-fix",
+            "id": "KFN"
+        },
+        "HWP": {
+            "after": "2025-09-01",
+            "before": "2025-09-01",
+            "comment": "auto-fix",
+            "id": "291406"
+        },
+        "KJI": {
+            "after": "1909-09-21",
+            "before": "1909-09-21",
+            "comment": "auto-fix",
+            "id": "K8L"
+        },
+        "L6Z": {
+            "after": "1901-09-27",
+            "before": "1901-09-27",
+            "comment": "auto-fix",
+            "id": "F4P"
+        },
+        "CG4": {
+            "after": "1970-05-15",
+            "before": "1970-05-15",
+            "comment": "auto-fix",
+            "id": "Unknown"
+        },
+        "56430": {
+            "after": "2023-03-27",
+            "before": "2023-03-27",
+            "comment": "auto-fix",
+            "id": "288713"
+        },
+        "JTL": {
+            "after": "1938-10-05",
+            "before": "1938-10-05",
+            "comment": "auto-fix",
+            "id": "K2F"
+        },
+        "230485": {
+            "after": "2022-09-06",
+            "before": "2022-09-06",
+            "comment": "auto-fix",
+            "id": "286535"
+        },
+        "JLT": {
+            "after": "1952-09-18",
+            "before": "1952-09-18",
+            "comment": "auto-fix",
+            "id": "JWU"
+        },
+        "139441": {
+            "after": "2022-09-05",
+            "before": "2022-11-23",
+            "comment": "auto-fix",
+            "id": "299498"
+        },
         "KPK": {
             "after": "1952-10-23",
             "before": "1952-10-23",
@@ -121,6 +259,12 @@
             "comment": "auto-fix",
             "id": "Unknown"
         },
+        "K78": {
+            "after": "1902-06-05",
+            "before": "1902-06-05",
+            "comment": "auto-fix",
+            "id": "K7R"
+        },
         "K2L": {
             "after": "1911-10-26",
             "before": "1911-10-26",
@@ -139,14 +283,20 @@
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1930-11-20/toc_pdf/19301120_reps_12_127.pdf;fileType=application%2Fpdf",
             "id": "KMU"
         },
+        "KMU": {
+            "after": "1932-03-17",
+            "before": "1932-03-17",
+            "comment": "auto-fix",
+            "id": "KLL"
+        },
         "7V4": {
             "after": "1967-03-01",
-            "before": "1968-07-01",
+            "before": "1967-03-01",
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1967-03-01/toc_pdf/19670301_reps_26_hor54.pdf;fileType=application%2Fpdf",
             "id": "RK4"
         },
         "KAY": {
-            "after": "1929-09-16",
+            "after": "1930-05-30",
             "before": "1930-05-30",
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1930-05-30/toc_pdf/19300530_reps_12_124.pdf;fileType=application%2Fpdf",
             "id": "KAQ"
@@ -189,7 +339,7 @@
         },
         "K0A": {
             "id": "KMW",
-            "after": "1926-07-22",
+            "after": "1928-05-31",
             "before": "1928-05-31",
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1926-07-23/toc_pdf/19260723_reps_10_114.pdf;fileType=application%2Fpdf"
         },

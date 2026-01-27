@@ -174,6 +174,9 @@ for record in records:
 
     print()
     print(last_speech.date.date.strftime("%Y-%m-%d"), last_speech.date.house)
+    print(
+        f'https://parlinfo.aph.gov.au/parlInfo/search/summary/summary.w3p;adv=yes;orderBy=customrank;page=0;query=Date%3A{last_speech.date.date.strftime("%d")}%2F{last_speech.date.date.strftime("%m")}%2F{last_speech.date.date.strftime("%Y")}%20Dataset%3Ahansardr,hansardr80,hansardrIndex,hansards,hansards80,hansardsIndex;resCount=Default'
+    )
     print(last_speech.text[:80])
 
     print()
