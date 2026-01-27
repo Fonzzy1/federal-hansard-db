@@ -167,7 +167,7 @@ for record in records:
     last_speech = await db.document.find_first(
         where={
             "rawAuthor": {"parliamentarianId": record["id"]},
-            "date": {"date": datetime.strptime(record["last"], "%Y-%m-%d")},
+            "date": {"date": outside_last},
         },
         include={"rawAuthor": True, "date": True},
     )
@@ -202,13 +202,13 @@ for record in records:
     print("=" * 70)
 
     print(
-        f'{{ "id": "{record["id"]}", "start":"{record["fixed_start"]}", "end":"{record["fixed_end"]}", "comment": "auto-fix"  }},'
+        f'{{ "id": "{record["id"]}", "start":"{outside_first.strftime("%Y-%m-%d")}", "end":"{outside_last.strftime("%Y-%m-%d")}", "comment": "auto-fix"  }},'
     )
 
     print("=" * 70)
 
     print(
-        f'{{"{record["id"]}": {{"after":"{record["fixed_start"]}", "before":"{record["fixed_end"]}", "comment":"auto-fix", "id": ""}}}},'
+        f'"{record["id"]}": {{"after":"{outside_first.strftime("%Y-%m-%d")}", "before":"{outside_last.strftime("%Y-%m-%d")}", "comment":"auto-fix", "id": ""}},'
     )
 
     print("=" * 70)

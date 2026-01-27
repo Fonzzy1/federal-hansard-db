@@ -32,33 +32,29 @@ def log(msg: str) -> None:
 
 
 def apply_raw_author_fixes(author, sitting_day):
-    fix = fixes["raw_author_fixes"].get(author)
-    if not fix:
-        return author
+    for key in [author, f"_{author}"]:
+        fix = fixes["raw_author_fixes"].get(key)
+        if not fix:
+            continue
 
-    before = fix.get("before")
-    after = fix.get("after")
-    house = fix.get("house")
+        before = fix.get("before")
+        after = fix.get("after")
+        house = fix.get("house")
 
-    # Convert sitting_day.date to string in yyyy-mm-dd format for comparison
-    sitting_date_str = sitting_day.date.strftime("%Y-%m-%d")
+        sitting_date_str = sitting_day.date.strftime("%Y-%m-%d")
 
-    if house is not None and house.lower() != sitting_day.house.lower():
-        # House does not match, return author
-        return author
+        if house is not None and house.lower() != sitting_day.house.lower():
+            continue
 
-    if before is not None:
-        if sitting_date_str >= before:
-            # Sitting date is not before the 'before' date, return author
-            return author
+        if before is not None and sitting_date_str >= before:
+            continue
 
-    if after is not None:
-        if sitting_date_str <= after:
-            # Sitting date is not after the 'after' date, return author
-            return author
+        if after is not None and sitting_date_str <= after:
+            continue
 
-    # All checks passed or not required, return fix id
-    return fix["id"]
+        return fix["id"]
+
+    return author
 
 
 def raw_author_connect_or_create(name, sitting_day):
@@ -436,7 +432,7 @@ async def check_authors_join(db):
         p."firstName"                AS first_name,
         p."lastName"                 AS last_name,
 
-        COUNT(d.id)                  AS outside_speech_count,
+        COUNT(DISTINCT d.id)                  AS outside_speech_count,
         MIN(sd.date)                 AS first_outside_date,
         MAX(sd.date)                 AS last_outside_date,
 
