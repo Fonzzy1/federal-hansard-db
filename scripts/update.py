@@ -46,10 +46,10 @@ def apply_raw_author_fixes(author, sitting_day):
         if house is not None and house.lower() != sitting_day.house.lower():
             continue
 
-        if before is not None and sitting_date_str >= before:
+        if before is not None and sitting_date_str > before:
             continue
 
-        if after is not None and sitting_date_str <= after:
+        if after is not None and sitting_date_str < after:
             continue
 
         return fix["id"]

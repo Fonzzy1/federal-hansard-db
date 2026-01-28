@@ -308,7 +308,7 @@
             "id": "KUL"
         },
         "A48": {
-            "after": "1934-11-27",
+            "after": "1934-07-25",
             "before": "1940-11-10",
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1938-10-05/toc_pdf/19381005_reps_15_157.pdf;fileType=application%2Fpdf",
             "id": "JWE"
@@ -339,7 +339,7 @@
         },
         "K0A": {
             "id": "KMW",
-            "after": "1928-05-31",
+            "after": "1926-07-23",
             "before": "1928-05-31",
             "comment": "https://parlinfo.aph.gov.au/parlInfo/download/hansard80/hansardr80/1926-07-23/toc_pdf/19260723_reps_10_114.pdf;fileType=application%2Fpdf"
         },
@@ -350,7 +350,9 @@
         }
     },
     "alt_ids": {
-        "014": ["0I4"],
+        "0I4": [
+            "014"
+        ],
         "KIM": [
             "YI7"
         ],

@@ -28,6 +28,15 @@ return {
         end,
     },
     {
+        name = "Upload DB",
+        builder = function(_)
+            return {
+                cmd = { "docker", "compose", "run", "upload" },
+                components = { "default" },
+            }
+        end,
+    },
+    {
         name = "Update DB",
         builder = function(_)
             return {
