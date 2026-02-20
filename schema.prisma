@@ -21,7 +21,6 @@ model Source {
     dateAdded     DateTime      @default(now())
     dateModified  DateTime      @updatedAt
     rawDocuments  RawDocument[]
-    groups        SourceGroup[] @relation("SourceToSourceGroup")
 }
 
 model RawDocument {
@@ -33,16 +32,9 @@ model RawDocument {
     dateModified DateTime   @updatedAt
     sourceId     Int
     documents    Document[]
+    is_proof     Boolean
 
     @@unique([name, sourceId])
-}
-
-model SourceGroup {
-    id           Int      @id @default(autoincrement())
-    name         String   @unique
-    dateAdded    DateTime @default(now())
-    dateModified DateTime @updatedAt
-    sources      Source[] @relation("SourceToSourceGroup")
 }
 
 model Parliamentarian {

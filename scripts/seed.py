@@ -3,165 +3,35 @@ from prisma import Prisma
 
 async def seed(db: Prisma):
     await db.source.upsert(
-        where={"name": "Historic Senate Hansard"},
-        data={
-            "update": {
-                "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.historic_hansard",
-                "args": '{"senate":true}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "Senate"},
-                            "create": {"name": "Senate"},
-                        },
-                    ],
-                },
-            },
-            "create": {
-                "name": "Historic Senate Hansard",
-                "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.historic_hansard",
-                "args": '{"senate":true}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "Senate"},
-                            "create": {"name": "Senate"},
-                        },
-                    ],
-                },
-            },
-        },
-    )
-
-    await db.source.upsert(
-        where={"name": "Historic House of Reps Hansard"},
+        where={"name": "Historic Hansard"},
         data={
             "update": {
                 "parserModule": "parsers.hansard",
                 "scraperModule": "scrapers.historic_hansard",
                 "args": "",
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "House of Reps"},
-                            "create": {"name": "House of Reps"},
-                        },
-                    ],
-                },
             },
             "create": {
-                "name": "Historic House of Reps Hansard",
+                "name": "Historic Hansard",
                 "parserModule": "parsers.hansard",
                 "scraperModule": "scrapers.historic_hansard",
                 "args": "",
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "House of Reps"},
-                            "create": {"name": "House of Reps"},
-                        },
-                    ],
-                },
             },
         },
     )
 
     await db.source.upsert(
-        where={"name": "Modern House of Reps Hansard"},
+        where={"name": "Modern Hansard"},
         data={
             "update": {
                 "parserModule": "parsers.hansard",
                 "scraperModule": "scrapers.parli_info_hansard",
                 "args": '{"start_year":2006}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "House of Reps"},
-                            "create": {"name": "House of Reps"},
-                        },
-                    ],
-                },
             },
             "create": {
-                "name": "Modern House of Reps Hansard",
+                "name": "Modern Hansard",
                 "parserModule": "parsers.hansard",
                 "scraperModule": "scrapers.parli_info_hansard",
                 "args": '{"start_year":2006}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "House of Reps"},
-                            "create": {"name": "House of Reps"},
-                        },
-                    ],
-                },
-            },
-        },
-    )
-
-    await db.source.upsert(
-        where={"name": "Modern Senate Hansard"},
-        data={
-            "update": {
-                "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.parli_info_hansard",
-                "args": '{"senate":true, "start_year":2006}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "Senate"},
-                            "create": {"name": "Senate"},
-                        },
-                    ],
-                },
-            },
-            "create": {
-                "name": "Modern Senate Hansard",
-                "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.parli_info_hansard",
-                "args": '{"senate":true, "start_year":2006}',
-                "groups": {
-                    "connectOrCreate": [
-                        {
-                            "where": {"name": "Hansard"},
-                            "create": {"name": "Hansard"},
-                        },
-                        {
-                            "where": {"name": "Senate"},
-                            "create": {"name": "Senate"},
-                        },
-                    ],
-                },
             },
         },
     )

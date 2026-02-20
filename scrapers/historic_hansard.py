@@ -62,16 +62,18 @@ def download_from_github():
     return extracted_folder
 
 
-def file_list_extractor(senate=False):
-    house = "senate" if senate else "hofreps"
+def file_list_extractor():
 
     path = download_from_github()
     file_dict = {}
-    for year in os.listdir(os.path.join(path, house)):
-        for file in os.listdir(os.path.join(path, house, year)):
-            file_dict[grab_and_format_yyyymmdd(file)] = os.path.join(
-                path, house, year, file
-            )
+    for house in ["senate", "hofreps"]:
+        for year in os.listdir(os.path.join(path, house)):
+            for file in os.listdir(os.path.join(path, house, year)):
+                # is always not a proof document if in historic
+                file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
+                    "path": os.path.join(path, house, year, file),
+                    "is_proof": False,
+                }
     return file_dict
 
 
