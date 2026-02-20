@@ -89,8 +89,8 @@ async def seed(db: Prisma):
         data={
             "update": {
                 "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.hansard",
-                "args": "",
+                "scraperModule": "scrapers.parli_info_hansard",
+                "args": '{"start_year":2006}',
                 "groups": {
                     "connectOrCreate": [
                         {
@@ -107,8 +107,8 @@ async def seed(db: Prisma):
             "create": {
                 "name": "Modern House of Reps Hansard",
                 "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.hansard",
-                "args": "",
+                "scraperModule": "scrapers.parli_info_hansard",
+                "args": '{"start_year":2006}',
                 "groups": {
                     "connectOrCreate": [
                         {
@@ -130,8 +130,8 @@ async def seed(db: Prisma):
         data={
             "update": {
                 "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.hansard",
-                "args": '{"senate":true}',
+                "scraperModule": "scrapers.parli_info_hansard",
+                "args": '{"senate":true, "start_year":2006}',
                 "groups": {
                     "connectOrCreate": [
                         {
@@ -148,8 +148,8 @@ async def seed(db: Prisma):
             "create": {
                 "name": "Modern Senate Hansard",
                 "parserModule": "parsers.hansard",
-                "scraperModule": "scrapers.hansard",
-                "args": '{"senate":true}',
+                "scraperModule": "scrapers.parli_info_hansard",
+                "args": '{"senate":true, "start_year":2006}',
                 "groups": {
                     "connectOrCreate": [
                         {
