@@ -244,6 +244,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
     log("Scraping and parsing sources...")
 
     sources = await db.source.find_many()
+    sources.reverse()
 
     for source in sources:
         log(f"Processing source: [cyan]{source.name}[/cyan]")
@@ -263,7 +264,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
         existing_names = set()
         while True:
             existing = await db.rawdocument.find_many(
-                where={"sourceId": source.id},
+                where={"sourceId": source.id, "is_proof": False},
                 include={"text": False},
                 take=1000,
                 skip=offset,
@@ -272,6 +273,8 @@ async def scrape_and_parse_sources(db: Client) -> None:
                 break
             existing_names.update({doc.name for doc in existing})
             offset += 1000
+
+        await remove_proofs(db, source)
 
         new_documents = {
             name: val
@@ -286,13 +289,14 @@ async def scrape_and_parse_sources(db: Client) -> None:
                     total=len(new_documents),
                 )
 
-                for name, file in new_documents.items():
+                for name, info in new_documents.items():
                     try:
-                        raw_document = module.scraper(file)
+                        raw_document_text = module.scraper(info["path"])
                         raw_inserted_document = await db.rawdocument.create(
                             data={
                                 "name": name,
-                                "text": raw_document,
+                                "text": raw_document_text,
+                                "is_proof": info["is_proof"],
                                 "sourceId": source.id,
                             }
                         )
@@ -316,11 +320,22 @@ async def scrape_and_parse_sources(db: Client) -> None:
                     except Exception as e:
                         print(e)
                         print(name)
-                        print(file)
+                        print(info)
                         raise
 
         else:
             console.print(f"[dim]No new files for {source.name}[/dim]")
+
+        proofs = existing = await db.rawdocument.find_many(
+            where={"sourceId": source.id, "is_proof": False},
+            include={"text": False},
+        )
+
+        new_documents = {
+            name: val
+            for name, val in file_dict.items()
+            if name not in existing_names
+        }
 
     log("Finished scraping sources.")
 
@@ -425,8 +440,7 @@ async def reparse_all_sources(db: Client) -> None:
 
 async def check_authors_join(db):
 
-    docs = await db.query_raw(
-        """
+    docs = await db.query_raw("""
     SELECT
         p.id                         AS parliamentarian_id,
         p."firstName"                AS first_name,
@@ -468,8 +482,7 @@ async def check_authors_join(db):
     ORDER BY
         outside_speech_count DESC,
         p."lastName";
-                               """
-    )
+                               """)
 
     for doc in docs:
         ignore = [
@@ -486,6 +499,33 @@ async def check_authors_join(db):
             console.print(
                 f"outside speech count: {doc['outside_speech_count']}, first outside date: {doc['first_outside_date'][:10]}, last outside date: {doc['last_outside_date'][:10]}, service window: {doc['min_service_start'][:10]} to {doc['max_service_end'][:10]}"
             )
+
+
+async def remove_proofs(db, source):
+
+    # Step 1: Find all proof rawdocuments for this source
+    proof_rawdocs = await db.rawdocument.find_many(
+        where={"sourceId": source.id, "is_proof": True}
+    )
+    proof_ids = [rd.id for rd in proof_rawdocs]
+
+    if proof_ids:
+        # Step 2: Find all documents that point to these proof rawdocuments
+        documents = await db.document.find_many(
+            where={"rawDocumentId": {"in": proof_ids}}
+        )
+        document_ids = [doc.id for doc in documents]
+
+        # Step 3: Delete all sitting_days for these documents
+        if document_ids:
+            await db.sittingday.delete_many(
+                where={"documentId": {"in": document_ids}}
+            )
+            # Step 4: Delete the documents
+            await db.document.delete_many(where={"id": {"in": document_ids}})
+
+        # Step 5: Delete the proof rawdocuments
+        await db.rawdocument.delete_many(where={"id": {"in": proof_ids}})
 
 
 async def main():

@@ -77,6 +77,6 @@ def file_list_extractor():
     return file_dict
 
 
-def scraper(file):
-    with open(file, "r") as f:
+def scraper(path):
+    with open(path, "r") as f:
         return f.read()
