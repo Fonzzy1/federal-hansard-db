@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 from tqdm import tqdm
+from rich.progress import Progress
 
 
 def request_with_rate_limit_exception(url, retries=5, delay=20):
@@ -45,7 +46,8 @@ def file_list_extractor(start_year=2000):
     target_date = datetime(start_year, 1, 1)
     approx_total_weeks = int((last_date - target_date).days / 7) + 1
 
-    with tqdm(total=approx_total_weeks, desc="Scraping weeks") as pbar:
+    with Progress(transient=False) as progress:
+        task = progress.add_task("Scraping Parli-Info", total=approx_total_weeks)
         while True:
             if current_url in visited_urls:
                 break  # Prevent infinite loop on abnormal pages
@@ -76,7 +78,7 @@ def file_list_extractor(start_year=2000):
                         # Update progress bar for the last chunk and exit
                         weeks_covered = int((last_date - date_obj).days / 7)
                         if weeks_covered > 0:
-                            pbar.update(weeks_covered)
+                            progress.update(task, advance=weeks_covered)
                         return xml_links
 
                     title = title_td.get_text(strip=True)
@@ -97,7 +99,7 @@ def file_list_extractor(start_year=2000):
             if min_date_obj is not None:
                 weeks_covered = int((last_date - min_date_obj).days / 7)
                 if weeks_covered > 0:
-                    pbar.update(weeks_covered)
+                    progress.update(task, advance=weeks_covered)
                 last_date = min_date_obj
 
             # --- Find "previous sitting week" link ---
@@ -112,7 +114,6 @@ def file_list_extractor(start_year=2000):
                 else:
                     current_url = base_url + next_url
             else:
-                pbar.close()
                 break  # No more previous sitting weeks
 
     return xml_links

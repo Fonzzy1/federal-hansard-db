@@ -326,17 +326,6 @@ async def scrape_and_parse_sources(db: Client) -> None:
         else:
             console.print(f"[dim]No new files for {source.name}[/dim]")
 
-        proofs = existing = await db.rawdocument.find_many(
-            where={"sourceId": source.id, "is_proof": False},
-            include={"text": False},
-        )
-
-        new_documents = {
-            name: val
-            for name, val in file_dict.items()
-            if name not in existing_names
-        }
-
     log("Finished scraping sources.")
 
 
@@ -503,29 +492,33 @@ async def check_authors_join(db):
 
 async def remove_proofs(db, source):
 
-    # Step 1: Find all proof rawdocuments for this source
     proof_rawdocs = await db.rawdocument.find_many(
         where={"sourceId": source.id, "is_proof": True}
     )
     proof_ids = [rd.id for rd in proof_rawdocs]
 
-    if proof_ids:
-        # Step 2: Find all documents that point to these proof rawdocuments
-        documents = await db.document.find_many(
-            where={"rawDocumentId": {"in": proof_ids}}
-        )
-        document_ids = [doc.id for doc in documents]
+    with Progress(console=console, transient=False) as progress:
+        task = progress.add_task("Cleaning Proofs", total=len(proof_ids))
 
-        # Step 3: Delete all sitting_days for these documents
-        if document_ids:
-            await db.sittingday.delete_many(
-                where={"documentId": {"in": document_ids}}
-            )
-            # Step 4: Delete the documents
-            await db.document.delete_many(where={"id": {"in": document_ids}})
+        for id in proof_ids:
+            # 1) Fetch documents first
+            documents = await db.document.find_many(where={"rawDocumentId": id})
 
-        # Step 5: Delete the proof rawdocuments
-        await db.rawdocument.delete_many(where={"id": {"in": proof_ids}})
+            if documents:
+                sitting_day_ids = list({d.sittingDayId for d in documents})
+
+                # 2) Delete documents
+                await db.document.delete_many(where={"rawDocumentId": id})
+
+                # 3) Delete sitting days
+                await db.sittingday.delete_many(
+                    where={"id": {"in": sitting_day_ids}}
+                )
+
+            # 4) Delete rawdocument
+            await db.rawdocument.delete(where={"id": id})
+
+            progress.advance(task)
 
 
 async def main():
