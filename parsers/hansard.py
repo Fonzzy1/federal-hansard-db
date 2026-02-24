@@ -249,16 +249,17 @@ class ChamberSpeechExtractor:
             raise HansardNoElementsException("No parsable Elements")
 
         self.elements = []
-        # Iterate over document to get all the items
         raw_elements = list(self.root.iter())
-        i = 0
-        while i < len(raw_elements):
-            el = raw_elements[i]
+
+        used_answers = set()  # store id() of used answers
+
+        # First pass: handle question+answer or question-only
+        for el in raw_elements:
             tag = el.tag.lower()
             if tag == "question":
                 parent = el.getparent()
-                answer = None
                 found_el = False
+                answer = None
                 for child in parent:
                     if child is el:
                         found_el = True
@@ -266,6 +267,7 @@ class ChamberSpeechExtractor:
                     if found_el and child.tag.lower() == "answer":
                         answer = child
                         break
+
                 if answer is not None:
                     self.elements.append(
                         {
@@ -274,22 +276,26 @@ class ChamberSpeechExtractor:
                             "answer": self._clean_element(answer),
                         }
                     )
-                ## Exception weh threre is no answer
+                    used_answers.add(id(answer))  # mark this answer as used
                 else:
                     self.elements.append(
                         {
                             "type": "question",
-                            "element": self._clean_element(el),
+                            "question": self._clean_element(el),
+                            "answer": None,
                         }
                     )
-
-                i += 1
             elif tag == "speech":
                 self.elements.append(
                     {"type": "speech", "element": self._clean_element(el)}
                 )
 
-            i += 1
+        # Second pass: add orphan answers
+        for el in raw_elements:
+            if el.tag.lower() == "answer" and id(el) not in used_answers:
+                self.elements.append(
+                    {"type": "answer", "answer": self._clean_element(el)}
+                )
 
     def extract(self):
         self._extract_elements()
@@ -539,7 +545,7 @@ def parse(file_text):
 
 
 # self = HansardSpeechExtractor("test.xml", from_file=True)
-# print_tag_tree(self.root, 2)
+# # print_tag_tree(self.root, 2)
 # docs = self.extract()
 
 # [x["chamber"] for x in docs]
@@ -547,4 +553,4 @@ def parse(file_text):
 # info = self.root.find("session.header")
 # print_tag_tree(info, 2)
 # [doc for doc in docs if doc.get("interjections")]
-# [doc for doc in docs if not doc.get("text")]
+# [doc for doc in docs if not idoc.get("text")]
