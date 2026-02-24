@@ -130,7 +130,7 @@ async def insert_document(db, document, raw_document_id, sitting_day):
 async def create_sitting_day(db, info, date_override=None) -> None:
 
     chamber_override = fixes["chamber_override"]
-    house_override = fixes["chamber_override"]
+    house_override = fixes["house_override"]
     try:
         sitting_day = await db.sittingday.create(
             data={
