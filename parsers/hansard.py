@@ -3,7 +3,6 @@ import re
 from lxml import html
 import lxml.etree as ET
 
-
 """
 Goal is to extract:
     Speeches
@@ -62,7 +61,10 @@ class HansardSpeechExtractor:
         return_list = [info_dict.copy() for _ in chambers]
         for i, (k, v) in enumerate(chambers.items()):
             parser = ChamberSpeechExtractor(v, info_dict["date"])
-            return_list[i]["documents"] = parser.extract()
+            try:
+                return_list[i]["documents"] = parser.extract()
+            except HansardNoElementsException:
+                return_list[i]["documents"] = []
             return_list[i]["chamber"] = k
         return return_list
 
@@ -82,6 +84,7 @@ class HansardSpeechExtractor:
                 debate_info is not None
                 and debate_info.findtext("type")
                 and "notice" in debate_info.findtext("type").lower()
+                and "notices" not in debate_info.findtext("type").lower()
             ):
                 if "answers.to.questions" in raw_chambers.keys():
                     raw_chambers["answers.to.questions"].append(element)
@@ -105,6 +108,7 @@ class HansardSpeechExtractor:
                     debate_info is not None
                     and debate_info.findtext("type")
                     and "notice" in debate_info.findtext("type").lower()
+                    and "notices" not in debate_info.findtext("type").lower()
                 ):
                     raw_chambers["chamber"].remove(element)
                     if "answers.to.questions" in raw_chambers.keys():
@@ -530,8 +534,6 @@ def parse(file_text):
         extractor = HansardSpeechExtractor(file_text)
         results = extractor.extract()
     except EmptyDocumentError:
-        results = []
-    except HansardNoElementsException:
         results = []
     return results
 
