@@ -278,11 +278,11 @@ class ChamberSpeechExtractor:
                     )
                     used_answers.add(id(answer))  # mark this answer as used
                 else:
+                    # if theere are no
                     self.elements.append(
                         {
                             "type": "question",
-                            "question": self._clean_element(el),
-                            "answer": None,
+                            "element": self._clean_element(el),
                         }
                     )
             elif tag == "speech":
@@ -294,7 +294,7 @@ class ChamberSpeechExtractor:
         for el in raw_elements:
             if el.tag.lower() == "answer" and id(el) not in used_answers:
                 self.elements.append(
-                    {"type": "answer", "answer": self._clean_element(el)}
+                    {"type": "answer", "element": self._clean_element(el)}
                 )
 
     def extract(self):
@@ -303,8 +303,8 @@ class ChamberSpeechExtractor:
         for elem in self.elements:
             if elem["type"] == "question" and "answer" in elem.keys():
                 # If there is a valid question
-                valid_question = self._extract_text(elem["question"])
-                valid_answer = self._extract_text(elem["answer"])
+                valid_question, _ = self._extract_text(elem["question"])
+                valid_answer, _ = self._extract_text(elem["answer"])
                 if valid_question and valid_answer:
                     q_interjections, q_text = self._extract_text(
                         elem["question"]
