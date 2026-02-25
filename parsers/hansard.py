@@ -37,6 +37,12 @@ class FailedTextExtractionException(Exception):
         super().__init__(self.message)
 
 
+class FailedElementParsingException(Exception):
+    def __init__(self, dict):
+        self.message = dict
+        super().__init__(self.message)
+
+
 class HansardSpeechExtractor:
 
     def __init__(self, source, from_file=False):
@@ -248,7 +254,7 @@ class ChamberSpeechExtractor:
         if not check_elements:
             raise HansardNoElementsException("No parsable Elements")
 
-        self.elements = []
+        elements = []
         raw_elements = list(self.root.iter())
 
         used_answers = set()  # store id() of used answers
@@ -269,7 +275,7 @@ class ChamberSpeechExtractor:
                         break
 
                 if answer is not None:
-                    self.elements.append(
+                    elements.append(
                         {
                             "type": "question",
                             "question": self._clean_element(el),
@@ -279,89 +285,71 @@ class ChamberSpeechExtractor:
                     used_answers.add(id(answer))  # mark this answer as used
                 else:
                     # if theere are no
-                    self.elements.append(
+                    elements.append(
                         {
                             "type": "question",
-                            "element": self._clean_element(el),
+                            "question": self._clean_element(el),
                         }
                     )
             elif tag == "speech":
-                self.elements.append(
+                elements.append(
                     {"type": "speech", "element": self._clean_element(el)}
                 )
 
         # Second pass: add orphan answers
         for el in raw_elements:
             if el.tag.lower() == "answer" and id(el) not in used_answers:
-                self.elements.append(
+                elements.append(
                     {"type": "answer", "element": self._clean_element(el)}
                 )
+        return elements
 
     def extract(self):
-        self._extract_elements()
+        elements = self._extract_elements()
         results = []
-        for elem in self.elements:
+        for elem in elements:
             if elem["type"] == "question" and "answer" in elem.keys():
-                # If there is a valid question
-                valid_question, _ = self._extract_text(elem["question"])
-                valid_answer, _ = self._extract_text(elem["answer"])
-                if valid_question and valid_answer:
-                    q_interjections, q_text = self._extract_text(
-                        elem["question"]
-                    )
-                    a_interjections, a_text = self._extract_text(elem["answer"])
-
-                    entry = {
-                        "type": "question",
-                        "interjections": q_interjections,
-                        "text": q_text,
-                        "author": self._extract_talker(elem["question"]),
-                        "title": self._get_debate_info(elem["question"]),
-                        "answer": {
-                            "type": "answer",
-                            "author": self._extract_talker(elem["answer"]),
-                            "text": a_text,
-                            "interjections": a_interjections,
-                            "title": self._get_debate_info(elem["answer"]),
-                        },
-                    }
-                    results.append(entry)
-                elif valid_answer and not valid_question:
-                    a_interjections, a_text = self._extract_text(elem["answer"])
-                    entry = {
+                q_interjections, q_text = self._extract_text(elem["question"])
+                a_interjections, a_text = self._extract_text(elem["answer"])
+                entry = {
+                    "type": "question",
+                    "interjections": q_interjections,
+                    "text": q_text,
+                    "author": self._extract_talker(elem["question"]),
+                    "title": self._get_debate_info(elem["question"]),
+                    "answer": {
                         "type": "answer",
                         "author": self._extract_talker(elem["answer"]),
                         "text": a_text,
                         "interjections": a_interjections,
                         "title": self._get_debate_info(elem["answer"]),
-                    }
-                    results.append(entry)
-                elif valid_question and not valid_answer:
+                    },
+                }
+                results.append(entry)
+            elif elem["type"] == "question" and "answer" not in elem.keys():
+                q_interjections, q_text = self._extract_text(elem["question"])
 
-                    q_interjections, q_text = self._extract_text(
-                        elem["question"]
-                    )
+                entry = {
+                    "type": "question",
+                    "author": self._extract_talker(elem["question"]),
+                    "text": q_text,
+                    "interjections": q_interjections,
+                    "title": self._get_debate_info(elem["question"]),
+                }
+                results.append(entry)
 
-                    entry = {
-                        "type": "question",
-                        "author": self._extract_talker(elem["question"]),
-                        "text": q_text,
-                        "interjections": q_interjections,
-                        "title": self._get_debate_info(elem["question"]),
-                    }
-                    results.append(entry)
-
+            elif elem["type"] in ["answer", "speech"]:
+                interjections, text = self._extract_text(elem["element"])
+                entry = {
+                    "type": elem["type"],
+                    "author": self._extract_talker(elem["element"]),
+                    "title": self._get_debate_info(elem["element"]),
+                    "text": text,
+                    "interjections": interjections,
+                }
+                results.append(entry)
             else:
-                if self._extract_text(elem["element"]):
-                    interjections, text = self._extract_text(elem["element"])
-                    entry = {
-                        "type": elem["type"],
-                        "author": self._extract_talker(elem["element"]),
-                        "title": self._get_debate_info(elem["element"]),
-                        "text": text,
-                        "interjections": interjections,
-                    }
-                    results.append(entry)
+                raise FailedElementParsingException(elem)
 
         return results
 
