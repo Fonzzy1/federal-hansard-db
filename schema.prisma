@@ -163,4 +163,5 @@ model Interjection {
     documentId  Int?
     rawAuthorId Int
     sequence    Int
+    type        Int
 }

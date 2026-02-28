@@ -76,6 +76,7 @@ def build_interjections(interjections, sitting_day):
                 "rawAuthor": raw_author_connect_or_create(
                     inter["author"], sitting_day
                 ),
+                "type": inter["type"],
             }
             for inter in interjections or []
         ]

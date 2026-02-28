@@ -90,7 +90,7 @@ class HansardSpeechExtractor:
                 debate_info is not None
                 and debate_info.findtext("type")
                 and "notice" in debate_info.findtext("type").lower()
-                and "notices" not in debate_info.findtext("type").lower()
+                and "answer" in debate_info.findtext("type").lower()
             ):
                 if "answers.to.questions" in raw_chambers.keys():
                     raw_chambers["answers.to.questions"].append(element)
@@ -114,7 +114,7 @@ class HansardSpeechExtractor:
                     debate_info is not None
                     and debate_info.findtext("type")
                     and "notice" in debate_info.findtext("type").lower()
-                    and "notices" not in debate_info.findtext("type").lower()
+                    and "answer" in debate_info.findtext("type").lower()
                 ):
                     raw_chambers["chamber"].remove(element)
                     if "answers.to.questions" in raw_chambers.keys():
@@ -405,6 +405,18 @@ class ChamberSpeechExtractor:
                             return result.text
             except:
                 pass
+
+        # If none of the above worked, try grabbing the href from an <a> tag
+        try:
+            # Try to find any <a> tag with an href attribute
+            anchor = elem.find(".//a[@href]")
+            if anchor is not None:
+                href = anchor.attrib.get("href")
+                if href and href.lower() != "null":
+                    return href
+        except:
+            pass
+
         return ""
 
         # try:
@@ -459,50 +471,141 @@ class ChamberSpeechExtractor:
         return "\n".join(texts)
 
     def _is_interjection_element(self, et_elem):
+        """
+        Returns True if the element is an interjection, otherwise False.
+        """
         # Check element tag
         if et_elem.tag.lower() in {"interject", "interjection"}:
             return True
-        # Check all attribute values
+
+        if et_elem.tag.lower() in {"p","para"}:
+            if 'interject' in  re.sub(r"\s+", " ", "".join(et_elem.itertext())).strip():
+                return True
+            
+        # Special case where the speaker is given as a continue
+        if et_elem.tag.lower() in {"continue"}:
+            talker = et_elem.find('.//talker')
+            if talker is not None:
+                name_id = talker.find('name.id')
+                if name_id is not None and name_id.text == '10000':
+                    return True
+
+        # Check for span with interject in class
         if any(
-            [
-                "interject" in x.get("class", "").lower()
-                and not "general" in x.get("class", "").lower()
-                for x in et_elem.xpath(".//span")
-            ]
+            "interject" in x.get("class", "").lower()
+            for x in et_elem.xpath(".//span")
         ):
             return True
         return False
 
+    def _interjection_type(self, et_elem):
+        """
+        speaker - there is a member of parliament who said the interjection
+        office - the speaker, president, or clerk, made the interjection
+        general - the interjection is not attribuited to a specific speaker
+        unrecorded - the interjection is attributed, but the actual speech is
+        not recorded
+
+
+        Returns 'speaker' (or 'specific') if a speaker interjection,
+        'general' for general interjection,
+        or None if not an interjection or type is unknown.
+        """
+        # id based check
+        if et_elem.tag.lower() in {"interject", "interjection", 'continue'}:
+            talker = et_elem.find('.//talker')
+            if talker is not None:
+                name_id = talker.find('name.id')
+                if name_id is not None and name_id.text == '10000':
+                    return 'office'
+
+        if et_elem.tag.lower() in {"p","para"}:
+            return 'general'
+
+        for x in et_elem.xpath(".//span"):
+            class_attr = x.get("class", "").lower()
+            if "interject" in class_attr:
+                if "general" in class_attr:
+                    return "general"
+                if "office" in class_attr:
+                    return "office"
+                # Note the II
+                if "memberiinterjecting" in class_attr:
+                    return "unrecorded"
+
+        # Check for the CLERK, PRES or SPEAKER
+        targets = ['CLERK', 'PRESIDENT', 'SPEAKER']
+        for span in et_elem.iter('span'):
+            if span.get('class') == 'HPS-MemberInterjecting' and span.text:
+                # Make case-insensitive check for any target word in the text
+                text = span.text
+                if any(target in text for target in targets):
+                    return 'office'
+        return 'speaker'
+
+    def _interjection_flag(self, et_elem):
+        """
+        Returns:
+          0 - not an interjection
+          1 - speaker interjection
+          2 - general interjection
+        """
+        if not self._is_interjection_element(et_elem):
+            return 0
+        else:
+            t = self._interjection_type(et_elem)
+            if t == "general":
+                return 2
+            elif t == "speaker":
+                return 1
+            elif t == "office":
+                return 3
+            elif t == "unrecorded":
+                return 4
+            else:
+                raise Exception
+
+    def _reassign_interjection_authors(self, elem, interjections):
+        interjection_obj = elem.findall("interjection")
+        authors = [self._extract_talker(x) for x in interjection_obj]
+        authors = [x for x in authors if x != ""]
+        if len(authors) == len([x for x in interjections if x["type"] == 1]):
+            idx = 0
+            for i in range(len(interjections)):
+                if interjections[i]["type"] == 1:
+                    interjections[i]["author"] = authors[idx]
+                    idx += 1
+
+        return interjections
+
     def _extract_text(self, elem):
         children = elem.getchildren()
-        ## Fix for when we have the embedded interjections
+        # Fix issue with the core extract text
         if "talk.text" in [x.tag for x in children]:
             interjections, text = self._extract_text(elem.find("talk.text"))
-            interjection_obj = elem.findall("interjection")
-            if interjection_obj:
-                if len(interjection_obj) == len(interjections):
-                    for i in range(len(interjections)):
-                        interjections[i]["author"] = self._extract_talker(
-                            interjection_obj[i]
-                        )
-                else:
-                    for i in range(len(interjections)):
-                        interjections[i]["author"] = ""
+            ## Check for the hanging interjections issue
+            if any([x["author"] == "" for x in interjections]):
+                interjections = self._reassign_interjection_authors(
+                    elem, interjections
+                )
             return interjections, text
 
+        ## Fix for when we have the embedded interjections
         interjections = []
         out_text = []
         interj_count = 1
 
-        for child in children:
+        for i, child in enumerate(children):
+            interject_type = self._interjection_flag(child)
             # Collect all consecutive interjections
-            if self._is_interjection_element(child):
+            if interject_type:
                 key = f"INTERJECTION{interj_count:02d}"
                 interjections.append(
                     {
                         "text": self._pull_paras(child),
                         "author": self._extract_talker(child),
                         "sequence": interj_count,
+                        "type": interject_type,
                     }
                 )
                 out_text.append(f"[{key}]")
@@ -510,8 +613,8 @@ class ChamberSpeechExtractor:
             # If it's a continues, append its text
             else:
                 out_text.append(self._pull_paras(child))
-
         final_main_text = " ".join(out_text)
+
         return interjections, final_main_text
 
 
@@ -533,12 +636,33 @@ def parse(file_text):
 
 
 # self = HansardSpeechExtractor("test.xml", from_file=True)
+# data = self.extract()
+# e = [x for x in data[0]['documents'] if x['interjections']]
+
+
 # # print_tag_tree(self.root, 2)
-# docs = self.extract()
+# chambers = self._get_distinct_chambers()
+# date = self._find_session_date()
+# self = ChamberSpeechExtractor(chambers["chamber"], date)
+# elements = self._extract_elements()
 
-# [x["chamber"] for x in docs]
 
-# info = self.root.find("session.header")
-# print_tag_tree(info, 2)
-# [doc for doc in docs if doc.get("interjections")]
-# [doc for doc in docs if not idoc.get("text")]
+
+
+# # elem = [x for x in elements if "answer" in x]
+# # for elem in elem:
+# #     self._extract_text(elem["answer"])
+
+
+# # elem = [x for x in elements if "question" in x]
+# # for elem in elem:
+# #     self._extract_text(elem["question"])
+
+#  elem = [x for x in elements if "element" in x][14]
+#      self._extract_text(elem["element"])
+# # # [x["chamber"] for x in docs]
+
+# # info = self.root.find("session.header")
+# # print_tag_tree(info, 2)
+# # [doc for doc in docs if doc.get("interjections")]
+# # [doc for doc in docs if not idoc.get("text")]
