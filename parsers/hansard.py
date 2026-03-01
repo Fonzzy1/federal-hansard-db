@@ -9,7 +9,6 @@ Goal is to extract:
     Question and answer pairs
     Petitions
 
-All with interjections removed, and continues sliced together
 
 """
 
@@ -478,16 +477,19 @@ class ChamberSpeechExtractor:
         if et_elem.tag.lower() in {"interject", "interjection"}:
             return True
 
-        if et_elem.tag.lower() in {"p","para"}:
-            if 'interject' in  re.sub(r"\s+", " ", "".join(et_elem.itertext())).strip():
+        if et_elem.tag.lower() in {"p", "para"}:
+            if (
+                "interject"
+                in re.sub(r"\s+", " ", "".join(et_elem.itertext())).strip()
+            ):
                 return True
-            
+
         # Special case where the speaker is given as a continue
         if et_elem.tag.lower() in {"continue"}:
-            talker = et_elem.find('.//talker')
+            talker = et_elem.find(".//talker")
             if talker is not None:
-                name_id = talker.find('name.id')
-                if name_id is not None and name_id.text == '10000':
+                name_id = talker.find("name.id")
+                if name_id is not None and name_id.text == "10000":
                     return True
 
         # Check for span with interject in class
@@ -512,36 +514,46 @@ class ChamberSpeechExtractor:
         or None if not an interjection or type is unknown.
         """
         # id based check
-        if et_elem.tag.lower() in {"interject", "interjection", 'continue'}:
-            talker = et_elem.find('.//talker')
+        if et_elem.tag.lower() in {"interject", "interjection", "continue"}:
+            talker = et_elem.find(".//talker")
             if talker is not None:
-                name_id = talker.find('name.id')
-                if name_id is not None and name_id.text == '10000':
-                    return 'office'
+                name_id = talker.find("name.id")
+                if name_id is not None and name_id.text == "10000":
+                    return "office"
 
-        if et_elem.tag.lower() in {"p","para"}:
-            return 'general'
+            # Chair Flag
+            chair_flag = et_elem.get("chair")
+            if chair_flag and int(chair_flag) == 1:
+                return "office"
 
         for x in et_elem.xpath(".//span"):
             class_attr = x.get("class", "").lower()
             if "interject" in class_attr:
-                if "general" in class_attr:
+                if (
+                    "memberiinterject" in class_attr
+                    or "generaliinterject" in class_attr
+                ):
+                    return "unrecorded"
+                if "generalinterject" in class_attr:
                     return "general"
-                if "office" in class_attr:
+                if "officeinterjecting" in class_attr:
                     return "office"
                 # Note the II
-                if "memberiinterjecting" in class_attr:
-                    return "unrecorded"
 
         # Check for the CLERK, PRES or SPEAKER
-        targets = ['CLERK', 'PRESIDENT', 'SPEAKER']
-        for span in et_elem.iter('span'):
-            if span.get('class') == 'HPS-MemberInterjecting' and span.text:
+        targets = ["CLERK", "PRESIDENT", "SPEAKER"]
+        for span in et_elem.iter("span"):
+            if span.get("class") == "HPS-MemberInterjecting" and span.text:
                 # Make case-insensitive check for any target word in the text
                 text = span.text
                 if any(target in text for target in targets):
-                    return 'office'
-        return 'speaker'
+                    return "office"
+
+        if et_elem.tag.lower() in {"p", "para"}:
+            if not len(et_elem.getchildren()):
+                return "general"
+
+        return "speaker"
 
     def _interjection_flag(self, et_elem):
         """
@@ -554,10 +566,10 @@ class ChamberSpeechExtractor:
             return 0
         else:
             t = self._interjection_type(et_elem)
-            if t == "general":
-                return 2
-            elif t == "speaker":
+            if t == "speaker":
                 return 1
+            elif t == "general":
+                return 2
             elif t == "office":
                 return 3
             elif t == "unrecorded":
@@ -637,16 +649,15 @@ def parse(file_text):
 
 # self = HansardSpeechExtractor("test.xml", from_file=True)
 # data = self.extract()
-# e = [x for x in data[0]['documents'] if x['interjections']]
+# # e = [x for x in data[0]['documents'] if x['interjections']]
+# # e[0]
 
 
-# # print_tag_tree(self.root, 2)
+# # # print_tag_tree(self.root, 2)
 # chambers = self._get_distinct_chambers()
 # date = self._find_session_date()
 # self = ChamberSpeechExtractor(chambers["chamber"], date)
 # elements = self._extract_elements()
-
-
 
 
 # # elem = [x for x in elements if "answer" in x]
@@ -666,3 +677,11 @@ def parse(file_text):
 # # print_tag_tree(info, 2)
 # # [doc for doc in docs if doc.get("interjections")]
 # # [doc for doc in docs if not idoc.get("text")]
+# et_elem = ET.fromstring('''<p class="HPS-Normal" style="direction:ltr;unicode-bidi:normal;">
+# <span class="HPS-Normal">
+# <a href="00AOU" type="MemberInterjecting">
+# <span class="HPS-MemberInterjecting">Senator Wong:</span>
+# </a>
+# Mr President, on a point of order: the minister might have been about to get to it, but she was asked one question. She was asked to name one funding decision made since questions about her eligibility as a senator were revealed, not the 12-month-ago decision that she referred to yesterday.
+# </span>
+# </p>''')
