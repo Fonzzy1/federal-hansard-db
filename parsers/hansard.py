@@ -477,11 +477,19 @@ class ChamberSpeechExtractor:
         if et_elem.tag.lower() in {"interject", "interjection"}:
             return True
 
-        if et_elem.tag.lower() in {"p", "para"}:
-            if (
-                "interject"
-                in re.sub(r"\s+", " ", "".join(et_elem.itertext())).strip()
+        if et_elem.tag.lower() in {"p", "para", "a"}:
+            # Check for span with interject in class
+            if any(
+                "interject" in x.get("class", "").lower()
+                for x in et_elem.xpath(".//span")
             ):
+                return True
+
+            # Best check for interjection in format (x interjecting)
+            
+            text = "".join(et_elem.itertext())
+            if len(text.split(" ")) < 10 and "interjecting" in text.lower() and
+            et.elem
                 return True
 
         # Special case where the speaker is given as a continue
@@ -492,12 +500,6 @@ class ChamberSpeechExtractor:
                 if name_id is not None and name_id.text == "10000":
                     return True
 
-        # Check for span with interject in class
-        if any(
-            "interject" in x.get("class", "").lower()
-            for x in et_elem.xpath(".//span")
-        ):
-            return True
         return False
 
     def _interjection_type(self, et_elem):
@@ -529,6 +531,7 @@ class ChamberSpeechExtractor:
         for x in et_elem.xpath(".//span"):
             class_attr = x.get("class", "").lower()
             if "interject" in class_attr:
+                # Note the II
                 if (
                     "memberiinterject" in class_attr
                     or "generaliinterject" in class_attr
@@ -538,7 +541,6 @@ class ChamberSpeechExtractor:
                     return "general"
                 if "officeinterjecting" in class_attr:
                     return "office"
-                # Note the II
 
         # Check for the CLERK, PRES or SPEAKER
         targets = ["CLERK", "PRESIDENT", "SPEAKER"]
@@ -549,8 +551,12 @@ class ChamberSpeechExtractor:
                 if any(target in text for target in targets):
                     return "office"
 
+        # Inline interjections found in late 90s, early 2000s
         if et_elem.tag.lower() in {"p", "para"}:
-            if not len(et_elem.getchildren()):
+            text = "".join(et_elem.itertext())
+            if any([t in text for t in targets]):
+                return "office"
+            if len(text.split(" ")) < 15 and "interjecting" in text.lower():
                 return "general"
 
         return "speaker"
@@ -677,11 +683,10 @@ def parse(file_text):
 # # print_tag_tree(info, 2)
 # # [doc for doc in docs if doc.get("interjections")]
 # # [doc for doc in docs if not idoc.get("text")]
-# et_elem = ET.fromstring('''<p class="HPS-Normal" style="direction:ltr;unicode-bidi:normal;">
-# <span class="HPS-Normal">
-# <a href="00AOU" type="MemberInterjecting">
-# <span class="HPS-MemberInterjecting">Senator Wong:</span>
-# </a>
-# Mr President, on a point of order: the minister might have been about to get to it, but she was asked one question. She was asked to name one funding decision made since questions about her eligibility as a senator were revealed, not the 12-month-ago decision that she referred to yesterday.
-# </span>
-# </p>''')
+
+et_elem = ET.fromstring("""
+<PARA FIRST-INDENT="16"><TAB LEADING="NONE" TYPE="NORMAL"><EMPHASIS
+                        FONT-WEIGHT="BOLD">Mr DEPUTY SPEAKER (Mr Les Scott)
+                        </EMPHASIS>;Order! The time for this debate has expired.
+                        </TAB></PARA>
+""")
