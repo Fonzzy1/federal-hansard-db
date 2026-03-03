@@ -889,21 +889,9 @@
             9
         ]
     },
-    "ignore_ids": [
+    "speaker_alt_ids": [
         "10000",
         "20000",
-        "TS4",
-        "UNKNOWN",
-        "Unknown",
-        "TO3",
-        "COO",
-        "009C3",
-        "QT2",
-        "R56",
-        "R56",
-        "G5F",
-        "DVB",
-        "GYB",
         "j10000",
         "W10000",
         "1 has anything to do0000",
@@ -927,5 +915,19 @@
         "10000Collins",
         "10000Macdonald",
         "p10000"
+    ],
+    "ignore_ids": [
+        "TS4",
+        "UNKNOWN",
+        "Unknown",
+        "TO3",
+        "COO",
+        "009C3",
+        "QT2",
+        "R56",
+        "R56",
+        "G5F",
+        "DVB",
+        "GYB"
     ]
 }

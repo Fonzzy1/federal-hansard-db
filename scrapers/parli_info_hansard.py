@@ -34,20 +34,24 @@ def request_with_rate_limit_exception(url, retries=5, delay=20):
     return None
 
 
-def file_list_extractor(start_year=2000):
+def file_list_extractor(from_year, to_year):
+    if not from_year or not to_year:
+        raise ValueError("From and To Years not set")
     base_url = "https://www.aph.gov.au"
     hansard_url = f"{base_url}/Parliamentary_Business/Hansard"
     xml_links = {}
     visited_urls = set()
-    current_url = hansard_url
+    current_url = f"{hansard_url}?wc=31/12/to_year"
 
     # Set 'now' as the start date for tracking progress
-    last_date = datetime.now()
-    target_date = datetime(start_year, 1, 1)
+    last_date = datetime(to_year, 12, 31)
+    target_date = datetime(from_year, 1, 1)
     approx_total_weeks = int((last_date - target_date).days / 7) + 1
 
     with Progress(transient=False) as progress:
-        task = progress.add_task("Scraping Parli-Info", total=approx_total_weeks)
+        task = progress.add_task(
+            "Scraping Parli-Info", total=approx_total_weeks
+        )
         while True:
             if current_url in visited_urls:
                 break  # Prevent infinite loop on abnormal pages
@@ -74,7 +78,7 @@ def file_list_extractor(start_year=2000):
                     # Functions for updating the tqdm
                     if min_date_obj is None or date_obj < min_date_obj:
                         min_date_obj = date_obj
-                    if date_obj.year < start_year:
+                    if date_obj.year < from_year:
                         # Update progress bar for the last chunk and exit
                         weeks_covered = int((last_date - date_obj).days / 7)
                         if weeks_covered > 0:

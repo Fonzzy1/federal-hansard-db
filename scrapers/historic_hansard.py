@@ -62,18 +62,22 @@ def download_from_github():
     return extracted_folder
 
 
-def file_list_extractor():
+def file_list_extractor(from_year, to_year):
+
+    if not from_year or not to_year:
+        raise ValueError("From and To Years not set")
 
     path = download_from_github()
     file_dict = {}
     for house in ["senate", "hofreps"]:
         for year in os.listdir(os.path.join(path, house)):
-            for file in os.listdir(os.path.join(path, house, year)):
-                # is always not a proof document if in historic
-                file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
-                    "path": os.path.join(path, house, year, file),
-                    "is_proof": False,
-                }
+            if from_year <= int(year) <= to_year:
+                for file in os.listdir(os.path.join(path, house, year)):
+                    # is always not a proof document if in historic
+                    file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
+                        "path": os.path.join(path, house, year, file),
+                        "is_proof": False,
+                    }
     return file_dict
 
 
