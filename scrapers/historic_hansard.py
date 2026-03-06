@@ -17,14 +17,11 @@ def grab_and_format_yyyymmdd(s):
     # Grab all digits in order
     digits = re.findall(r"\d", s)
     if len(digits) < 8:
-        return s  # Not enough digits
+        raise ValueError("Input must have at least 8 digits")
     # Take the first 8 digits and join them
     yyyymmdd = "".join(digits[:8])
-    try:
-        date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
-        return date_obj.strftime("%Y-%m-%d")
-    except:
-        return s
+    date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
+    return date_obj
 
 
 def download_from_github():
@@ -62,22 +59,24 @@ def download_from_github():
     return extracted_folder
 
 
-def file_list_extractor(from_year, to_year):
+def file_list_extractor(from, to):
 
-    if not from_year or not to_year:
-        raise ValueError("From and To Years not set")
+    from_date = datetime.strptime(from, "%Y-%m-%d")
+    to_date = datetime.strptime(to, "%Y-%m-%d")
 
     path = download_from_github()
     file_dict = {}
     for house in ["senate", "hofreps"]:
         for year in os.listdir(os.path.join(path, house)):
-            if from_year <= int(year) <= to_year:
+            if from_date.year <= int(year) <= to_date.year:
                 for file in os.listdir(os.path.join(path, house, year)):
                     # is always not a proof document if in historic
-                    file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
-                        "path": os.path.join(path, house, year, file),
-                        "is_proof": False,
-                    }
+                    date = grab_and_format_yyyymmdd(file)
+                    if from_date <= date <= to_date:
+                        file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
+                            "path": os.path.join(path, house, year, file),
+                            "is_proof": False,
+                        }
     return file_dict
 
 

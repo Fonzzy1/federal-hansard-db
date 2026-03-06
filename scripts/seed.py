@@ -7,7 +7,7 @@ async def seed(db: Prisma):
             "name": "Hansard 1901",
             "parserModule": "parsers.hansard1901",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from_year": 1901, "to_year": 1980}',
+            "args": '{"from": 1901-01-01, "to": 1980-12-31}',
         }
     )
     await db.source.create(
@@ -15,17 +15,53 @@ async def seed(db: Prisma):
             "name": "Hansard 1981",
             "parserModule": "parsers.hansard1981",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from_year": 1981, "to_year": 1997}',
+            "args": '{"from": 1981-01-01, "to": 1991-10-31}',
         }
     )
 
     await db.source.create(
         data={
-            "name": "Modern Hansard",
-            "parserModule": "parsers.hansard",
+            "name": "Hansard 1992",
+            "parserModule": "parsers.hansard1992",
+            "scraperModule": "scrapers.historic_hansard",
+            "args": '{"from": 1991-11-01, "to": 1996-12-31}',
+        }
+    )
+
+    await db.source.create(
+        data={
+            "name": "Hansard 1997",
+            "parserModule": "parsers.hansard1997",
+            "scraperModule": "scrapers.historic_hansard",
+            "args": '{"from": 1997-01-01, "to": 1997-12-31}',
+        }
+    )
+
+    await db.source.create(
+        data={
+            "name": "Hansard 1998",
+            "parserModule": "parsers.hansard1998",
+            "scraperModule": "scrapers.historic_hansard",
+            "args": '{"from": 1998-01-01, "to": 2005-31-31}',
+        }
+    )
+
+    await db.source.create(
+        data={
+            "name": "Hansard 1998",
+            "parserModule": "parsers.hansard1998",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args": '{"start_year":2006}',
-        },
+            "args": '{"from": 2006-01-01, "to": 2011-04-31}',
+        }
+    )
+
+    await db.source.create(
+        data={
+            "name": "Hansard 2011",
+            "parserModule": "parsers.hansard2011",
+            "scraperModule": "scrapers.parli_info_hansard",
+            "args": '{"from": 2011-05-01}',
+        }
     )
 
 

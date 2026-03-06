@@ -18,6 +18,7 @@ class FailedTalkerExtractionException(Exception):
         super().__init__(self.message)
 
 
+
 class FailedInterjectionTypeAssingment(Exception):
     def __init__(self, element):
         self.message = str(ET.tostring(element, encoding="unicode"))

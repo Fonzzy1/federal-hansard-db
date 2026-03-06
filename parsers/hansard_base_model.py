@@ -170,80 +170,6 @@ class SpeechExtractor:
         return author, interjections, text
 
     def _extract_talker(self, elem):
-        name = elem.get("nameid")
-        if name and name.lower() != "null":
-            return name
-        for xpath_expr in [
-            "talk.start/talker/name.id",
-            ".//name.id/text()",
-            ".//NAME/@NAMEID",
-            ".//@nameid",
-        ]:
-            try:
-                if "text()" in xpath_expr or "@" in xpath_expr:
-                    result = elem.xpath(xpath_expr)
-                else:
-                    result = elem.find(xpath_expr)
-                if result is not None:
-                    if isinstance(result, list):
-                        unique = set(r for r in result if r.lower() != "null")
-                        if len(unique) == 1:
-                            return unique.pop()
-                    else:
-                        if result.text and result.text.lower() != "null":
-                            return result.text
-            except:
-                pass
-
-        # If none of the above worked, try grabbing the href from an <a> tag
-        try:
-            # Try to find any <a> tag with an href attribute
-            anchor = elem.find(".//a[@href]")
-            if anchor is not None:
-                href = anchor.attrib.get("href")
-                if href and href.lower() != "null":
-                    return href
-        except:
-            pass
-
-        return ""
-
-        # try:
-        #     names = elem.xpath('.//name[@role="metadata"]/text()')
-        #     unique_names = set(names)
-        #     return list(unique_names)[0]
-        # except:
-        #     pass
-        # try:
-        #     names = elem.xpath('.//name[@role="display"]/text()')
-        #     unique_names = set(names)
-        #     return list(unique_names)[0]
-        # except:
-        #     pass
-        # try:
-        #     names = elem.xpath(".//name/text()")
-        #     unique_names = set(names)
-        #     return list(unique_names)[0]
-        # except:gb
-        #     pass
-
-        # if "speaker" in elem.attrib:
-        #     return elem.attrib.get("speaker", "")
-
-        # if len([x for x in elem]) == 1:
-        #     if [x for x in elem][0].tag in ["p", "para"]:
-        #         return ""
-        # if len([x for x in elem]) == 0:
-        #     return ""
-        # if all(
-        #     x.tag
-        #     in ["p", "para", "quote", "inline", "list", "item", "debateinfo"]
-        #     for x in elem
-        # ):
-        #     return ""
-        # print(str(ET.tostring(elem, encoding="unicode")))
-        return ""
-
         raise FailedTalkerExtractionException(elem)
 
     def _pull_paras(self, elem):
@@ -299,12 +225,12 @@ class SpeechExtractor:
             elif t == "unrecorded":
                 return 4
             else:
-                raise Exception
+                raise FailedInterjectionTypeAssingment(et_elem)
 
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
 
-    def _extract_text(self, elem):
+    def _extract_text(self, elem, record_office_interjector=False):
         # Simplest format
         children = self._get_speech_element_children(elem)
         interjections = []
@@ -318,7 +244,15 @@ class SpeechExtractor:
                 interjections.append(
                     {
                         "text": self._clean_text(self._pull_paras(child)),
-                        "author": self._extract_talker(child),
+                        "author": (
+                            self._extract_talker(child)
+                            if interject_type == 1
+                            or (
+                                record_office_interjector
+                                and interject_type == 3
+                            )
+                            else 10000 if interject_type == 3 else ""
+                        ),
                         "sequence": interj_count,
                         "type": interject_type,
                     }
@@ -503,6 +437,9 @@ class HansardExtractor:
             r'\s[a-zA-Z0-9]+:[a-zA-Z0-9\-]+="[^"]*"', "", string
         )  # remove prefix:attr="..."
 
+        # Remove all break elements
+        string = re.sub(r"<BREAK[^>]*>", "", string, flags=re.IGNORECASE)
+
         # Step 4: Parse using forgiving HTML parser
         try:
             repaired = html.fromstring(string)
@@ -545,35 +482,3 @@ class HansardExtractor:
 
         # If no valid date found, raise an error
         raise ValueError("No valid session date found in the XML.")
-
-
-# self = HansardSpeechExtractor("test.xml", from_file=True)
-# data = self.extract()
-# # e = [x for x in data[0]['documents'] if x['interjections']]
-# # e[0]
-
-
-# # # print_tag_tree(self.root, 2)
-# chambers = self._get_distinct_chambers()
-# date = self._find_session_date()
-# self = ChamberSpeechExtractor(chambers["chamber"], date)
-# elements = self._extract_elements()
-
-
-# # elem = [x for x in elements if "answer" in x]
-# # for elem in elem:
-# #     self._extract_text(elem["answer"])
-
-
-# # elem = [x for x in elements if "question" in x]
-# # for elem in elem:
-# #     self._extract_text(elem["question"])
-
-#  elem = [x for x in elements if "element" in x][14]
-#      self._extract_text(elem["element"])
-# # # [x["chamber"] for x in docs]
-
-# # info = self.root.find("session.header")
-# # print_tag_tree(info, 2)
-# # [doc for doc in docs if doc.get("interjections")]
-# # [doc for doc in docs if not idoc.get("text")]

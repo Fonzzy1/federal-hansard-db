@@ -54,3 +54,12 @@ if __name__ == "__main__":
     with open("../tests/1981.xml") as r:
         text = r.read()
     t = parse(text)
+
+    with open("../tests/1990.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    # Runs till november 1991
+    with open("../tests/1991.xml") as r:
+        text = r.read()
+    t = parse(text)
