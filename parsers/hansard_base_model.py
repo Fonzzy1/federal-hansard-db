@@ -198,9 +198,6 @@ class SpeechExtractor:
         not recorded
 
 
-        Returns 'speaker' (or 'specific') if a speaker interjection,
-        'general' for general interjection,
-        or None if not an interjection or type is unknown.
         """
 
         raise FailedInterjectionTypeAssingment(et_elem)
@@ -209,8 +206,10 @@ class SpeechExtractor:
         """
         Returns:
           0 - not an interjection
-          1 - speaker interjection
-          2 - general interjection
+             1 - speaker - there is a member of parliament who said the interjection
+             2 - general - the interjection is not attribuited to a specific speaker
+             3 - office - the speaker, president, or clerk, made the interjection
+             4 - unrecorded - the interjection is attributed, but the actual speech is not recorded
         """
         if not self._is_interjection_element(et_elem):
             return 0
@@ -230,7 +229,12 @@ class SpeechExtractor:
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
 
-    def _extract_text(self, elem, record_office_interjector=False):
+    def _extract_text(
+        self,
+        elem,
+        record_office_interjector=False,
+        record_unrecored_interjector=False,
+    ):
         # Simplest format
         children = self._get_speech_element_children(elem)
         interjections = []
@@ -241,18 +245,20 @@ class SpeechExtractor:
             # Collect all consecutive interjections
             if interject_type:
                 key = f"INTERJECTION{interj_count:02d}"
+                if interject_type == 1:
+                    author = self._extract_talker(child)
+                elif record_office_interjector and interject_type == 3:
+                    author = self._extract_talker(child)
+                elif record_unrecored_interjector and interject_type == 4:
+                    author = self._extract_talker(child)
+                elif interject_type == 3:
+                    author = 10000
+                else:
+                    author = ""
                 interjections.append(
                     {
                         "text": self._clean_text(self._pull_paras(child)),
-                        "author": (
-                            self._extract_talker(child)
-                            if interject_type == 1
-                            or (
-                                record_office_interjector
-                                and interject_type == 3
-                            )
-                            else 10000 if interject_type == 3 else ""
-                        ),
+                        "author": author,
                         "sequence": interj_count,
                         "type": interject_type,
                     }
@@ -347,28 +353,28 @@ class HansardExtractor:
             else:
                 raw_chambers["chamber"].append(element)
 
-        # Special check for qeustions on notice
-        main_element = raw_chambers.get("chamber")
-        if main_element is not None:
-            debates = [
-                x for x in list(main_element) if x.tag.lower() == "debate"
-            ]
-            for element in debates:
-                debate_info = element.find("debateinfo")
-                if (
-                    debate_info is not None
-                    and debate_info.findtext("type")
-                    and "notice" in debate_info.findtext("type").lower()
-                    and "answer" in debate_info.findtext("type").lower()
-                ):
-                    raw_chambers["chamber"].remove(element)
-                    if "answers.to.questions" in raw_chambers.keys():
-                        raw_chambers["answers.to.questions"].append(element)
-                    else:
-                        raw_chambers["answers.to.questions"] = ET.Element(
-                            "answers.to.questions"
-                        )
-                        raw_chambers["answers.to.questions"].append(element)
+        # # Special check for qeustions on notice
+        # main_element = raw_chambers.get("chamber")
+        # if main_element is not None:
+        #     debates = [
+        #         x for x in list(main_element) if x.tag.lower() == "debate"
+        #     ]
+        #     for element in debates:
+        #         debate_info = element.find("debateinfo")
+        #         if (
+        #             debate_info is not None
+        #             and debate_info.findtext("type")
+        #             and "notice" in debate_info.findtext("type").lower()
+        #             and "answer" in debate_info.findtext("type").lower()
+        #         ):
+        #             raw_chambers["chamber"].remove(element)
+        #             if "answers.to.questions" in raw_chambers.keys():
+        #                 raw_chambers["answers.to.questions"].append(element)
+        #             else:
+        #                 raw_chambers["answers.to.questions"] = ET.Element(
+        #                     "answers.to.questions"
+        #                 )
+        #                 raw_chambers["answers.to.questions"].append(element)
 
         return raw_chambers
 

@@ -11,7 +11,7 @@ import string
 import re
 
 
-class SpeechExtractor2011(SpeechExtractor):
+class SpeechExtractor2012(SpeechExtractor):
 
     def __init__(self, element):
         super().__init__(element)
@@ -61,7 +61,6 @@ class SpeechExtractor2011(SpeechExtractor):
                 if char.isalnum()
             )
             self.name_to_href[name_text] = href
-            print(self.name_to_href)
             return href
         elif a_element is None:
             name_text = elem.find("./span/span").text
@@ -70,13 +69,14 @@ class SpeechExtractor2011(SpeechExtractor):
                     char for char in name_text if char.isalnum()
                 )
                 potential_id = self.name_to_href.get(name_text)
-                print(name_text, potential_id, self.name_to_href)
                 if potential_id:
                     return potential_id
         # Finaly if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:
             return 10000
+
+        raise FailedTalkerExtractionException(elem)
 
     def _is_interjection_element(self, et_elem):
         """
@@ -86,6 +86,9 @@ class SpeechExtractor2011(SpeechExtractor):
         for span in et_elem.findall(".//span"):
             class_attr = span.get("class", "")
             if class_attr in [
+                "HPS-OfficeInterjecting",
+                "HPS-OfficeContinuation",
+                "HPS-OfficeSpeech",
                 "HPS-MemberIInterjecting",
                 "HPS-GeneralIInterjecting",
                 "HPS-MemberInterjecting",
@@ -95,7 +98,6 @@ class SpeechExtractor2011(SpeechExtractor):
 
             # Or a contiuation or speech by the speaker
             elif class_attr in {
-                "HPS-MemberContinuation",
                 "HPS-MemberSpeech",
             }:
                 member_continuation_text = span.text
@@ -107,23 +109,28 @@ class SpeechExtractor2011(SpeechExtractor):
         return False
 
     def _interjection_type(self, et_elem):
-        a_element = et_elem.find("./span/a/span")
-        if a_element is None:
-            a_elements = et_elem.find("span").findall("span")
-            i = 0
-            while not (a_element is not None and a_element.text):
-                a_element = a_elements[i]
-                i += 1
+        try:
+            a_element = et_elem.find("./span/a/span")
+            if a_element is None:
+                a_elements = et_elem.find("span").findall("span")
+                i = 0
+                while not (a_element is not None and a_element.text):
+                    a_element = a_elements[i]
+                    i += 1
+        except:
+            raise FailedInterjectionTypeAssingment(et_elem)
 
         t = a_element.get("class")
 
         # In this case we know it has to be the speaker becuase you wont
         # interject yourself
-        if t == "HPS-MemberContinuation":
-            return "office"
-        # In this case we know it has to be the speaker becuase you wont
-        # interject yourself
         if t == "HPS-MemberSpeech":
+            return "office"
+        if t == "HPS-OfficeInterjecting":
+            return "office"
+        if t == "HPS-OfficeSpeech":
+            return "office"
+        if t == "HPS-OfficeContinuation":
             return "office"
         if t == "HPS-MemberIInterjecting":
             return "unrecorded"
@@ -131,14 +138,18 @@ class SpeechExtractor2011(SpeechExtractor):
             return "general"
         if t == "HPS-GeneralInterjecting":
             return "general"
-        if t == "HPS-MemberInterjecting":
-            if a_element.getparent().get("href"):
-                return "speaker"
-            else:
-                return "general"
-
         if t == "HPS-GeneralInterjecting":
             return "general"
+        if t == "HPS-MemberInterjecting":
+            member_text = a_element.text
+            if member_text and any(
+                role in member_text
+                for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+            ):
+                return "office"
+            else:
+                return "speaker"
+        return False
 
     def _clean_text(self, text):
         return text.lstrip(" -.,;:!?\t\n\r")
@@ -147,7 +158,7 @@ class SpeechExtractor2011(SpeechExtractor):
 def parse(file_text):
     try:
         extractor = HansardExtractor(
-            file_text, ChamberSpeechExtractor, SpeechExtractor2011
+            file_text, ChamberSpeechExtractor, SpeechExtractor2012
         )
         results = extractor.extract()
     except EmptyDocumentError:
@@ -157,73 +168,46 @@ def parse(file_text):
 
 if __name__ == "__main__":
 
-    with open("../tests/2011.xml") as r:
+    with open("../tests/2012.xml") as r:
         text = r.read()
     t = parse(text)
 
-    # Should be empty
-    [
-        x
-        for x in t[0]["documents"]
-        if "members interjecting"
-        in x.get("answer", {"text": ""})["text"] + x["text"]
-    ]
+    with open("../tests/2013.xml") as r:
+        text = r.read()
+    t = parse(text)
 
-    # Test to see if we get type 2 interjections
-    [
-        x
-        for x in t[0]["documents"]
-        if any(
-            [
-                y["type"] == 2
-                for y in x["interjections"]
-                + x.get("answer", {"interjections": []})["interjections"]
-            ]
-        )
-    ]
+    with open("../tests/2014.xml") as r:
+        text = r.read()
+    t = parse(text)
 
-    # Test to see if we get type 4 interjections
-    [
-        x
-        for x in t[0]["documents"]
-        if any(
-            [
-                y["type"] == 4
-                for y in x["interjections"]
-                + x.get("answer", {"interjections": []})["interjections"]
-            ]
-        )
-    ]
+    with open("../tests/2015.xml") as r:
+        text = r.read()
+    t = parse(text)
 
-    # Test to see if we get type 3 interjections
-    [
-        x
-        for x in t[0]["documents"]
-        if any(
-            [
-                y["type"] == 3
-                for y in x["interjections"]
-                + x.get("answer", {"interjections": []})["interjections"]
-            ]
-        )
-    ]
-    # Test to see if there are Order where there shouldn't be.
-    # Should be emptyish
-    [
-        x
-        for x in t[0]["documents"]
-        if "Order" in x.get("answer", {"text": ""})["text"] + x["text"]
-    ]
+    with open("../tests/2016.xml") as r:
+        text = r.read()
+    t = parse(text)
 
-    # Test to see if we get type bad orders
-    [
-        x
-        for x in t[0]["documents"]
-        if any(
-            [
-                y["type"] != 3 and "Order" in y["text"]
-                for y in x["interjections"]
-                + x.get("answer", {"interjections": []})["interjections"]
-            ]
-        )
-    ]
+    with open("../tests/2017.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("../tests/2017.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("../tests/2018.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("../tests/2019.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("../tests/2020.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("../tests/2021.xml") as r:
+        text = r.read()
+    t = parse(text)
