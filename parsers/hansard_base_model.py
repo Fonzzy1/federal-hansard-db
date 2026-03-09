@@ -2,7 +2,7 @@ import datetime
 import re
 from lxml import html
 import lxml.etree as ET
-from errors import *
+from parsers.errors import *
 
 
 class ChamberSpeechExtractor:
@@ -79,7 +79,7 @@ class ChamberSpeechExtractor:
         results = []
         for elem in elements:
             if elem["type"] == "question" and "answer" in elem.keys():
-                title = (self._get_debate_info(elem["question"]),)
+                title = self._get_debate_info(elem["question"])
                 q_author, q_interjections, q_text = self.speech_parsing_class(
                     elem["question"]
                 ).extract()
@@ -224,7 +224,7 @@ class SpeechExtractor:
             elif t == "unrecorded":
                 return 4
             else:
-                raise FailedInterjectionTypeAssingment(et_elem)
+                return 5
 
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
@@ -252,7 +252,7 @@ class SpeechExtractor:
                 elif record_unrecored_interjector and interject_type == 4:
                     author = self._extract_talker(child)
                 elif interject_type == 3:
-                    author = 10000
+                    author = "10000"
                 else:
                     author = ""
                 interjections.append(
@@ -321,7 +321,11 @@ class HansardExtractor:
                 info_dict["date"],
                 speech_parsing_class=self.speech_parsing_class,
             )
-            return_list[i]["documents"] = parser.extract()
+            try:
+                docs = parser.extract()
+            except HansardNoElementsException:
+                docs = []
+            return_list[i]["documents"] = docs
             return_list[i]["chamber"] = k
         return return_list
 

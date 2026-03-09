@@ -1,11 +1,11 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
     print_tag_tree,
 )
 
-from errors import *
+from parsers.errors import *
 import string
 
 
@@ -17,10 +17,10 @@ class SpeechExtractor1998(SpeechExtractor):
 
     def _extract_talker(self, elem):
         result = elem.find("talk.start/talker/name.id")
-        if result is not None:
+        if result is not None and result.text is not None:
             return result.text
         else:
-            raise FailedTalkerExtractionException(elem)
+            return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -64,6 +64,7 @@ class SpeechExtractor1998(SpeechExtractor):
                         return True
             elif (
                 et_elem.attrib.get("class") == "italic"
+                and et_elem.text
                 and "interject" in et_elem.text
             ):
                 return True
@@ -107,27 +108,27 @@ def parse(file_text):
 
 if __name__ == "__main__":
 
-    with open("../tests/1998.xml") as r:
+    with open("tests/1998.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/1999.xml") as r:
+    with open("tests/1999.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2000.xml") as r:
+    with open("tests/2000.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2001.xml") as r:
+    with open("tests/2001.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2005.xml") as r:
+    with open("tests/2005.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2006.xml") as r:
+    with open("tests/2006.xml") as r:
         text = r.read()
     t = parse(text)
 

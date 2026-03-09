@@ -1,93 +1,108 @@
 from prisma import Prisma
+import json
 
 
 async def seed(db: Prisma):
-    await db.source.create(
-        data={
-            "name": "Hansard 1901",
+    sources = [
+        {
+            "id": 1,
+            "name": "Hansard 1901-1980",
             "parserModule": "parsers.hansard1901",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from": "1901-01-01", "to": "1980-12-31"}',
-        }
-    )
-    await db.source.create(
-        data={
-            "name": "Hansard 1981",
+            "args_dict": {"from_day": "1901-01-01", "to_day": "1980-12-31"},
+        },
+        {
+            "id": 2,
+            "name": "Hansard 1981-1991",
             "parserModule": "parsers.hansard1981",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from": "1981-01-01", "to": "1991-10-31"}',
-        }
-    )
-
-    await db.source.create(
-        data={
-            "name": "Hansard 1992",
+            "args_dict": {"from_day": "1981-01-01", "to_day": "1991-10-31"},
+        },
+        {
+            "id": 3,
+            "name": "Hansard 1992-1996",
             "parserModule": "parsers.hansard1992",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from": "1991-11-01", "to": "1996-12-31"}',
-        }
-    )
-
-    await db.source.create(
-        data={
+            "args_dict": {"from_day": "1991-11-01", "to_day": "1996-12-31"},
+        },
+        {
+            "id": 4,
             "name": "Hansard 1997",
             "parserModule": "parsers.hansard1997",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from": "1997-01-01", "to": "1997-12-31"}',
-        }
-    )
-
-    await db.source.create(
-        data={
-            "name": "Hansard 1998",
+            "args_dict": {"from_day": "1997-01-01", "to_day": "1997-12-31"},
+        },
+        {
+            "id": 5,
+            "name": "Hansard 1998-2005",
             "parserModule": "parsers.hansard1998",
             "scraperModule": "scrapers.historic_hansard",
-            "args": '{"from": "1998-01-01", "to": "2005-12-31"}',
-        }
-    )
-
-    await db.source.create(
-        data={
-            "name": "Hansard 1998",
+            "args_dict": {
+                "from_day": "1998-01-01",
+                "to_day": "2005-12-31",
+                "use_fine_dates": False,
+            },
+        },
+        {
+            "id": 6,
+            "name": "Hansard 2006-2011",
             "parserModule": "parsers.hansard1998",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args": '{"from": "2006-01-01", "to": "2011-04-30"}',
-        }
-    )
-
-    await db.source.create(
-        data={
+            "args_dict": {"from_day": "2006-01-01", "to_day": "2011-04-30"},
+        },
+        {
+            "id": 7,
             "name": "Hansard 2011",
             "parserModule": "parsers.hansard2011",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args": '{"from": "2011-05-01", "to": "2011-12-31"}',
-        }
-    )
-
-    await db.source.create(
-        data={
-            "name": "Hansard 2012",
+            "args_dict": {"from_day": "2011-05-01", "to_day": "2011-12-31"},
+        },
+        {
+            "id": 8,
+            "name": "Hansard 2012-2021",
             "parserModule": "parsers.hansard2012",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args": '{"from": "2012-01-01", "to": "2021-09-30"}',
-        }
-    )
-    await db.source.create(
-        data={
-            "name": "Hansard 2021",
+            "args_dict": {"from_day": "2012-01-01", "to_day": "2021-09-30"},
+        },
+        {
+            "id": 9,
+            "name": "Hansard 2021-Present",
             "parserModule": "parsers.hansard2021",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args": '{"from": "2021-10-01", "to": "2026-01-31"}',
-        }
-    )
+            "args_dict": {"from_day": "2021-10-01", "to_day": "2026-12-31"},
+        },
+    ]
+
+    for source in sources:
+        args_json = json.dumps(source["args_dict"])
+        await db.source.upsert(
+            where={"id": source["id"]},
+            data={
+                "update": {
+                    "name": source["name"],
+                    "parserModule": source["parserModule"],
+                    "scraperModule": source["scraperModule"],
+                    "args": args_json,
+                },
+                "create": {
+                    "id": source["id"],
+                    "name": source["name"],
+                    "parserModule": source["parserModule"],
+                    "scraperModule": source["scraperModule"],
+                    "args": args_json,
+                },
+            },
+        )
 
 
 async def main() -> None:
-    db = Client()
+    db = Prisma()
     await db.connect()
     await seed(db)
     await db.disconnect()
 
 
 if __name__ == "__main__":
+    import asyncio
+
     asyncio.run(main())

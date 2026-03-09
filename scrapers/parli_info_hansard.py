@@ -1,15 +1,15 @@
-import requests
 from bs4 import BeautifulSoup
 import re
 from datetime import datetime
 from tqdm import tqdm
+from typing import Dict, Any
 from rich.progress import Progress
+import time
+import requests
+import random
 
 
 def request_with_rate_limit_exception(url, retries=5, delay=20):
-    import time
-    import requests
-    import random
 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
@@ -34,98 +34,141 @@ def request_with_rate_limit_exception(url, retries=5, delay=20):
     return None
 
 
-def file_list_extractor(from_year, to_year):
-    if not from_year or not to_year:
-        raise ValueError("From and To Years not set")
+def fetch_html(url: str) -> str:
+    """Fetch HTML content from the given URL with rate-limiting handling."""
+    response = request_with_rate_limit_exception(url)
+    if not response:
+        raise Exception(f"Error: Could not fetch {url}")
+    return response.text
+
+
+def parse_hansard_rows(
+    soup: BeautifulSoup, base_url: str, date_from: datetime, date_to: datetime
+) -> Dict[str, Dict[str, Any]]:
+    """
+        Extract document metadata from Hansard page rows if the date is within
+    bounds.
+    """
+    xml_links = {}
+    rows = soup.find_all("tr")
+    for row in rows:
+        date_td = row.find("td", class_="date")
+        tds = row.find_all("td")
+        title_td = tds[1] if len(tds) > 1 else None
+        xml_link = row.find("a", title="XML format")
+
+        if date_td and title_td and xml_link:
+            date_str = date_td.get_text(strip=True)
+            try:
+                date_obj = datetime.strptime(date_str, "%d %b %Y")
+            except Exception:
+                continue
+
+            # Only keep links within range
+            if date_from <= date_obj <= date_to:
+                title = title_td.get_text(strip=True)
+                house = (
+                    "hofreps"
+                    if "House of Representatives" in title
+                    else "senate" if "Senate" in title else None
+                )
+                is_proof = "Proof" in title
+                key = f'{house}-{date_obj.strftime("%Y-%m-%d")}'
+                xml_links[key] = {
+                    "path": base_url + xml_link["href"],
+                    "is_proof": is_proof,
+                }
+    return xml_links
+
+
+def get_min_date_on_page(soup: BeautifulSoup) -> datetime:
+    """Find the earliest date (as datetime) in the table rows."""
+    min_date = None
+    for row in soup.find_all("tr"):
+        date_td = row.find("td", class_="date")
+        if date_td:
+            try:
+                date_obj = datetime.strptime(
+                    date_td.get_text(strip=True), "%d %b %Y"
+                )
+                if min_date is None or date_obj < min_date:
+                    min_date = date_obj
+            except Exception:
+                continue
+    return min_date
+
+
+def find_previous_week_url(soup: BeautifulSoup, base_url: str) -> str:
+    """Find the URL for 'previous sitting week'."""
+    link_tag = soup.find(
+        "a", string=re.compile(r"previous\s+sitting\s+week", re.I)
+    )
+    if link_tag and "href" in link_tag.attrs:
+        href = link_tag["href"]
+        return href if href.startswith("http") else base_url + href
+    return None
+
+
+def file_list_extractor(
+    from_day: str, to_day: str
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Extract Hansard XML doc links between from_day and to_day (inclusive).
+    Returns dict keyed by 'hofreps-yyyy-mm-dd' or 'senate-yyyy-mm-dd'.
+    """
     base_url = "https://www.aph.gov.au"
     hansard_url = f"{base_url}/Parliamentary_Business/Hansard"
     xml_links = {}
     visited_urls = set()
-    current_url = f"{hansard_url}?wc=31/12/to_year"
 
-    # Set 'now' as the start date for tracking progress
-    last_date = datetime(to_year, 12, 31)
-    target_date = datetime(from_year, 1, 1)
-    approx_total_weeks = int((last_date - target_date).days / 7) + 1
+    date_from = datetime.strptime(from_day, "%Y-%m-%d")
+    date_to = datetime.strptime(to_day, "%Y-%m-%d")
+    approx_total_weeks = max(1, int((date_to - date_from).days / 7) + 1)
+    current_url = f"{hansard_url}?wc={date_to.strftime('%y/%m/%Y')}"
 
     with Progress(transient=False) as progress:
         task = progress.add_task(
             "Scraping Parli-Info", total=approx_total_weeks
         )
+        current_max = date_to
         while True:
             if current_url in visited_urls:
-                break  # Prevent infinite loop on abnormal pages
+                break
             visited_urls.add(current_url)
 
-            html_content = request_with_rate_limit_exception(current_url).text
+            html_content = fetch_html(current_url)
             soup = BeautifulSoup(html_content, "html.parser")
 
-            # --- Collect data from the page ---
-            rows = soup.find_all("tr")
-            min_date_obj = None  # Track earliest date found on this page
-            for row in rows:
-                date_td = row.find("td", class_="date")
-                title_td = (
-                    row.find_all("td")[1]
-                    if len(row.find_all("td")) > 1
-                    else None
-                )
-                xml_link = row.find("a", title="XML format")
-                if date_td and title_td and xml_link:
-                    date_str = date_td.get_text(strip=True)
-                    date_obj = datetime.strptime(date_str, "%d %b %Y")
-
-                    # Functions for updating the tqdm
-                    if min_date_obj is None or date_obj < min_date_obj:
-                        min_date_obj = date_obj
-                    if date_obj.year < from_year:
-                        # Update progress bar for the last chunk and exit
-                        weeks_covered = int((last_date - date_obj).days / 7)
-                        if weeks_covered > 0:
-                            progress.update(task, advance=weeks_covered)
-                        return xml_links
-
-                    title = title_td.get_text(strip=True)
-                    house = (
-                        "hofreps"
-                        if "House of Representatives" in title
-                        else "senate" if "Senate" in title else None
-                    )
-                    is_proof = "Proof" in title
-
-                    xml_links[f'{house}-{date_obj.strftime("%Y-%m-%d")}'] = {
-                        "path": base_url + xml_link["href"],
-                        "is_proof": is_proof,
-                    }
-
-            # Update the progress bar based on the actual number of weeks
-            # covered
-            if min_date_obj is not None:
-                weeks_covered = int((last_date - min_date_obj).days / 7)
-                if weeks_covered > 0:
-                    progress.update(task, advance=weeks_covered)
-                last_date = min_date_obj
-
-            # --- Find "previous sitting week" link ---
-            link_tag = soup.find(
-                "a", string=re.compile(r"previous\s+sitting\s+week", re.I)
+            # Parse doc links for relevant dates
+            links_on_page = parse_hansard_rows(
+                soup, base_url, date_from, current_max
             )
-            if link_tag and "href" in link_tag.attrs:
-                # The link might be relative; join it with base_url if necessary
-                next_url = link_tag["href"]
-                if next_url.startswith("http"):
-                    current_url = next_url
-                else:
-                    current_url = base_url + next_url
+            xml_links.update(links_on_page)
+
+            # Update progress and stop if done
+            min_date_obj = get_min_date_on_page(soup)
+            if min_date_obj is not None:
+                progress.advance(
+                    task, max(1, int((current_max - min_date_obj).days / 7))
+                )
+                current_max = min_date_obj
+                if min_date_obj < date_from:
+                    break
             else:
-                break  # No more previous sitting weeks
+                break
+
+            # Find link for previous page
+            next_url = find_previous_week_url(soup, base_url)
+            if not next_url:
+                break
+            current_url = next_url
 
     return xml_links
 
 
-def scraper(path):
+def scraper(path: str) -> str:
+    """Fetch and return text for a given XML file path."""
     response = request_with_rate_limit_exception(path)
     if not response:
-        raise Exception(f"Error:  Could Not Fetch")
-    text = response.text
-    return text
+        raise Exception(f"Error: Could not fetch {path}")
+    return response.text

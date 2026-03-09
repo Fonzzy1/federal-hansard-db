@@ -1,10 +1,10 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
 )
 
-from errors import *
+from parsers.errors import *
 import string
 
 
@@ -20,8 +20,6 @@ class SpeechExtractor1992(SpeechExtractor):
                 out.append(child)
                 subchildren = child.getchildren()
                 for sub in subchildren:
-                    print(str(ET.tostring(sub, encoding="unicode")))
-                    print("---")
                     if self._interjection_flag(sub) > 1:
                         child.remove(sub)
                         out.append(sub)
@@ -35,7 +33,7 @@ class SpeechExtractor1992(SpeechExtractor):
         result = elem.get("nameid")
         if result:
             return result
-        raise FailedTalkerExtractionException(elem)
+        return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -58,6 +56,7 @@ class SpeechExtractor1992(SpeechExtractor):
                         "CHAIR" in child.text
                         or "PRESIDENT" in child.text
                         or "SPEAKER" in child.text
+                        or "CLERK" in child.text
                     ):
                         return True
                 elif (

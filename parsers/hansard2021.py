@@ -1,11 +1,11 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
     print_tag_tree,
 )
 
-from errors import *
+from parsers.errors import *
 import string
 
 import re
@@ -49,9 +49,13 @@ class SpeechExtractor2021(SpeechExtractor):
 
     def _extract_talker(self, elem):
         # Case when we are looking at speeches
+        # Case when we are looking at speeches
         result = elem.find("talk.start/talker/name.id")
         if result is not None:
-            return result.text
+            if result.text:
+                return result.text
+            else:
+                return ""
 
         # case when we are getting a inline general inerjection
         if elem.tag.lower() == "a" and elem.get("href"):
@@ -80,9 +84,10 @@ class SpeechExtractor2021(SpeechExtractor):
         # Finaly if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:
-            return 10000
+            return "10000"
 
-        raise FailedTalkerExtractionException(elem)
+        else:
+            return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -100,7 +105,8 @@ class SpeechExtractor2021(SpeechExtractor):
                 "HPS-MemberInterjecting",
                 "HPS-GeneralInterjecting",
             ]:
-                return True
+                if span.text and span.text.strip():
+                    return True
 
             # Or a contiuation or speech by the speaker
             elif class_attr in {
@@ -109,7 +115,7 @@ class SpeechExtractor2021(SpeechExtractor):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
                     return True
         return False
@@ -119,17 +125,18 @@ class SpeechExtractor2021(SpeechExtractor):
         try:
             a_element = et_elem.find("./span/a/span")
             if a_element is None and et_elem.tag.lower() == "a":
-                a_element = et_elem.find("./p/span/span")
-            if a_element is None:
+                a_element = et_elem.find("./p/span")
+                a_elements = a_element.findall("span")
+            elif a_element is None:
                 a_elements = et_elem.find("span").findall("span")
-                i = 0
-                while not (
-                    a_element is not None
-                    and a_element.text
-                    and a_element.text.strip()
-                ):
-                    a_element = a_elements[i]
-                    i += 1
+            i = 0
+            while not (
+                a_element is not None
+                and a_element.text
+                and a_element.text.strip()
+            ):
+                a_element = a_elements[i]
+                i += 1
         except:
             raise FailedInterjectionTypeAssingment(et_elem)
 
@@ -158,11 +165,12 @@ class SpeechExtractor2021(SpeechExtractor):
                 ".//span[contains(@class, 'HPS-MemberInterjecting')]"
             )
             for span in name_spans:
-                member_text += span.text.strip()
+                if span.text:
+                    member_text += span.text.strip()
             member_text = member_text.strip().replace(" ", "")
             if any(
                 role in member_text
-                for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
             ):
                 return "office"
             else:
@@ -186,23 +194,27 @@ def parse(file_text):
 
 if __name__ == "__main__":
 
-    with open("../tests/2022.xml") as r:
+    with open("tests/2022.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2023.xml") as r:
+    with open("tests/2023.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2024.xml") as r:
+    with open("tests/2024.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2025.xml") as r:
+    with open("tests/2025.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/2026.xml") as r:
+    with open("tests/2025a.xml") as r:
+        text = r.read()
+    t = parse(text)
+
+    with open("tests/2026.xml") as r:
         text = r.read()
     t = parse(text)
 
@@ -285,3 +297,12 @@ if __name__ == "__main__":
         for type3 in x.get("answer", {"text": ""})["text"] + x["text"]
         if any(p in type3 for p in ["interjecting"])
     ]
+
+elem = ET.fromstring("""
+<p class="HPS-Normal" style="direction:ltr;unicode-
+bidi:normal;">
+                  <span class="HPS-Normal">
+                    <span class="HPS-MemberInterjecting">The CHAIR:</span>  The question is that pa
+rt 2 of schedule 1 stand as printed.</span>
+                </p>
+                     """)

@@ -1,11 +1,10 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
     print_tag_tree,
 )
-
-from errors import *
+from parsers.errors import *
 import string
 
 import re
@@ -46,10 +45,12 @@ class SpeechExtractor2012(SpeechExtractor):
         return elems
 
     def _extract_talker(self, elem):
-        # Case when we are looking at speeches
         result = elem.find("talk.start/talker/name.id")
         if result is not None:
-            return result.text
+            if result.text:
+                return result.text
+            else:
+                return ""
 
         # Case when we are looking at interjections
         a_element = elem.find("./span/a")
@@ -74,9 +75,9 @@ class SpeechExtractor2012(SpeechExtractor):
         # Finaly if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:
-            return 10000
+            return "10000"
 
-        raise FailedTalkerExtractionException(elem)
+        return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -103,22 +104,23 @@ class SpeechExtractor2012(SpeechExtractor):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
                     return True
         return False
 
     def _interjection_type(self, et_elem):
-        try:
-            a_element = et_elem.find("./span/a/span")
-            if a_element is None:
-                a_elements = et_elem.find("span").findall("span")
-                i = 0
-                while not (a_element is not None and a_element.text):
-                    a_element = a_elements[i]
-                    i += 1
-        except:
-            raise FailedInterjectionTypeAssingment(et_elem)
+        a_element = et_elem.find("./span/a/span")
+        if a_element is None:
+            a_elements = et_elem.find("span").findall("span")
+            i = 0
+            while i < len(a_elements) and not (
+                a_element is not None and a_element.text
+            ):
+                a_element = a_elements[i]
+                i += 1
+            if a_element is None or not a_element.text:
+                return False
 
         t = a_element.get("class")
 
@@ -144,7 +146,7 @@ class SpeechExtractor2012(SpeechExtractor):
             member_text = a_element.text
             if member_text and any(
                 role in member_text
-                for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
             ):
                 return "office"
             else:

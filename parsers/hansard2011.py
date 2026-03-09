@@ -1,11 +1,11 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
     print_tag_tree,
 )
 
-from errors import *
+from parsers.errors import *
 import string
 
 import re
@@ -49,7 +49,10 @@ class SpeechExtractor2011(SpeechExtractor):
         # Case when we are looking at speeches
         result = elem.find("talk.start/talker/name.id")
         if result is not None:
-            return result.text
+            if result.text:
+                return result.text
+            else:
+                return ""
 
         # Case when we are looking at interjections
         a_element = elem.find("./span/a")
@@ -61,7 +64,6 @@ class SpeechExtractor2011(SpeechExtractor):
                 if char.isalnum()
             )
             self.name_to_href[name_text] = href
-            print(self.name_to_href)
             return href
         elif a_element is None:
             name_text = elem.find("./span/span").text
@@ -70,13 +72,14 @@ class SpeechExtractor2011(SpeechExtractor):
                     char for char in name_text if char.isalnum()
                 )
                 potential_id = self.name_to_href.get(name_text)
-                print(name_text, potential_id, self.name_to_href)
                 if potential_id:
                     return potential_id
         # Finaly if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:
-            return 10000
+            return "10000"
+
+        return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -101,7 +104,7 @@ class SpeechExtractor2011(SpeechExtractor):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT"]
+                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
                     return True
         return False
@@ -111,9 +114,11 @@ class SpeechExtractor2011(SpeechExtractor):
         if a_element is None:
             a_elements = et_elem.find("span").findall("span")
             i = 0
-            while not (a_element is not None and a_element.text):
+            while i < len(a_elements) and not (a_element is not None and a_element.text):
                 a_element = a_elements[i]
                 i += 1
+            if a_element is None or not a_element.text:
+                return False
 
         t = a_element.get("class")
 

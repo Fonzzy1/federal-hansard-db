@@ -248,7 +248,7 @@ async def scrape_and_parse_sources(db: Client) -> None:
     sources.reverse()
 
     for source in sources:
-        log(f"Processing source: [cyan]{source.name}[/cyan]")
+        console.rule(f"[bold blue]{source.name}")
 
         module = importlib.import_module(source.scraperModule)
         parser = importlib.import_module(source.parserModule).parse
@@ -386,7 +386,7 @@ async def reparse_all_sources(db: Client) -> None:
     await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
 
     for source in sources:
-        log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
+        console.rule(f"[bold blue]{source.name}")
 
         parser = importlib.import_module(source.parserModule).parse
 

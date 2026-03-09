@@ -1,10 +1,10 @@
-from hansard_base_model import (
+from parsers.hansard_base_model import (
     HansardExtractor,
     SpeechExtractor,
     ChamberSpeechExtractor,
 )
 
-from errors import *
+from parsers.errors import *
 
 
 class SpeechExtractor1981(SpeechExtractor):
@@ -17,7 +17,7 @@ class SpeechExtractor1981(SpeechExtractor):
         if result:
             return result
         else:
-            raise FailedTalkerExtractionException(elem)
+            return ""
 
     def _is_interjection_element(self, et_elem):
         """
