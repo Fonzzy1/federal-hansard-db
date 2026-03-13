@@ -5,6 +5,7 @@ from parsers.hansard_base_model import (
 )
 
 from parsers.errors import *
+import re
 
 
 class SpeechExtractor1901(SpeechExtractor):
@@ -57,6 +58,13 @@ class SpeechExtractor1901(SpeechExtractor):
 
         elif len(set(alt_name_ids)) == 1:
             return alt_name_ids[0]
+        
+        # If no talker found and element is a para with bold text, extract the bold content
+        elif elem.tag.lower() == 'para' and self._is_interjection_element(elem):
+            child = elem.find("./inline")
+            if child is not None and child.attrib.get("font-weight", "") == "bold":
+                return child.text
+        
         else:
             return ""
 
@@ -94,18 +102,37 @@ class SpeechExtractor1901(SpeechExtractor):
         elif et_elem.tag.lower() == 'para':
             child = et_elem.find("./inline")
             if child is not None and child.attrib.get("font-weight", "") == "bold":
-                if not (
+                if (
                         "CHAIR" in child.text
                         or "PRESIDENT" in child.text
                         or "SPEAKER" in child.text
                         or "CLERK" in child.text
                     ):
-                        return "unconfirmed_speaker"
+                        return "office"
+                else:
+                        return "speaker"
         else:
             return "speaker"
 
     def _clean_text(self, text):
-        return text.lstrip(" -.,;:!?\t\n\r")
+        # Strip leading whitespace/punctuation
+        text = text.lstrip(" -.,;:!?\t\n\r")
+        
+        # If there's a " - " in the text, check if the part before it looks like a title
+        if " - " in text:
+            parts = text.split(" - ", 1)
+            before = parts[0].strip()
+            after = parts[1].strip()
+            
+            # Check if the part before " - " contains title-like elements
+            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+            has_title = any(ti in before for ti in title_indicators)
+            
+            # If the part before " - " is short and has a title, remove it
+            if has_title and len(before) < 60:
+                text = after
+        
+        return text
 
 
 def parse(file_text):
@@ -117,123 +144,4 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
-
-
-if __name__ == "__main__":
-    with open("./tests/1901.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-        with open("../tests/1902.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1903.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1904.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1905.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1906.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1907.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1908.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1909.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1910.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1911.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1911.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1912.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1913.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1914.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1915.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1916.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1917.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1918.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1919.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1920.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1921.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1925.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1930.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1940.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1950.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1960.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("../tests/1970.xml") as r:
-        text = r.read()
-    t = parse(text)
-
-    with open("./tests/1980.xml") as r:
-        text = r.read()
-    t = parse(text)
-
 

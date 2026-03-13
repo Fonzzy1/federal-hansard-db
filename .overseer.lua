@@ -78,4 +78,17 @@ return {
             }
         end,
     },
+
+    {
+        name = "Parser Report",
+        builder = function(_)
+            return {
+                cmd = { "python3", "tests/run_report.py" },
+                components = {
+                    { "open_output", direction = "float", on_start = "always", focus = true },
+                    "default"
+                },
+            }
+        end,
+    },
 }

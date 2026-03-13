@@ -121,10 +121,3 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
-
-
-if __name__ == "__main__":
-
-    with open("../tests/1997.xml") as r:
-        text = r.read()
-    t = parse(text)

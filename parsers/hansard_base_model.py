@@ -225,10 +225,8 @@ class SpeechExtractor:
                 return 3
             elif t == "unrecorded":
                 return 4
-            elif t == "unconfirmed_speaker":
-                return 5
             else:
-                return 6
+                return 5
 
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
