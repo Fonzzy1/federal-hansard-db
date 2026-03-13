@@ -196,6 +196,8 @@ class SpeechExtractor:
         general - the interjection is not attribuited to a specific speaker
         unrecorded - the interjection is attributed, but the actual speech is
         not recorded
+        unconfirmed_speaker - the interjection appears to be from a named
+        speaker but cannot be confirmed (e.g. inferred from inline bold text)
 
 
         """
@@ -223,8 +225,10 @@ class SpeechExtractor:
                 return 3
             elif t == "unrecorded":
                 return 4
-            else:
+            elif t == "unconfirmed_speaker":
                 return 5
+            else:
+                return 6
 
     def _get_speech_element_children(self, elem):
         return elem.getchildren()

@@ -75,6 +75,10 @@ class SpeechExtractor1901(SpeechExtractor):
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
                 return True
+        if et_elem.tag.lower() == 'para':
+            child = et_elem.find("./inline")
+            if child is not None and child.attrib.get("font-weight", "") == "bold":
+                return True
         else:
             return False
 
@@ -87,8 +91,17 @@ class SpeechExtractor1901(SpeechExtractor):
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
                 return "office"
+        elif et_elem.tag.lower() == 'para':
+            child = et_elem.find("./inline")
+            if child is not None and child.attrib.get("font-weight", "") == "bold":
+                if not (
+                        "CHAIR" in child.text
+                        or "PRESIDENT" in child.text
+                        or "SPEAKER" in child.text
+                        or "CLERK" in child.text
+                    ):
+                        return "unconfirmed_speaker"
         else:
-
             return "speaker"
 
     def _clean_text(self, text):
@@ -107,11 +120,11 @@ def parse(file_text):
 
 
 if __name__ == "__main__":
-    with open("../tests/1901.xml") as r:
+    with open("./tests/1901.xml") as r:
         text = r.read()
     t = parse(text)
 
-    with open("../tests/1902.xml") as r:
+        with open("../tests/1902.xml") as r:
         text = r.read()
     t = parse(text)
 
@@ -219,6 +232,8 @@ if __name__ == "__main__":
         text = r.read()
     t = parse(text)
 
-    with open("../tests/1980.xml") as r:
+    with open("./tests/1980.xml") as r:
         text = r.read()
     t = parse(text)
+
+
