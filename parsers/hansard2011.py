@@ -17,6 +17,22 @@ class SpeechExtractor2011(SpeechExtractor):
         super().__init__(element)
         self.name_to_href = {}
 
+    def _interjection_fix(self, interjections, text, author):
+        # Check if the speech is owened by a office holder
+        if (
+            author == interjections[0]["author"]
+            and interjections[0]["type"] == 3
+        ):
+            # If so, then the whole thing is actually an interjetion
+            secs = re.split(r"\[INTERJECTION\d+\]", text)
+            # The first element is going to be empty - so now lets allocate
+            # the index = 1 element to the initial interjection
+            first_section = secs[1]
+            text = text.replace(first_section, "")
+            interjections[0]["text"] += first_section
+
+        return interjections, text
+
     def extract(self):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(
@@ -25,18 +41,7 @@ class SpeechExtractor2011(SpeechExtractor):
 
         # Dirty fix for when the whole thing is an 'interjection'
         if interjections:
-            # Check if the speech is owened by a office holder
-            if (
-                author == interjections[0]["author"]
-                and interjections[0]["type"] == 3
-            ):
-                # If so, then the whole thing is actually an interjetion
-                secs = re.split(r"\[INTERJECTION\d+\]", text)
-                # The first element is going to be empty - so now lets allocate
-                # the index = 1 element to the initial interjection
-                first_section = secs[1]
-                text = text.replace(first_section, "")
-                interjections[0]["text"] += first_section
+            interjections, text = self._interjection_fix(interjections, text, author)
 
         return author, interjections, text
 
@@ -109,7 +114,7 @@ class SpeechExtractor2011(SpeechExtractor):
                     return True
         return False
 
-    def _interjection_type(self, et_elem):
+    def _get_a_element(self,et_elem):
         a_element = et_elem.find("./span/a/span")
         if a_element is None:
             a_elements = et_elem.find("span").findall("span")
@@ -118,7 +123,13 @@ class SpeechExtractor2011(SpeechExtractor):
                 a_element = a_elements[i]
                 i += 1
             if a_element is None or not a_element.text:
-                return False
+                return None
+        return a_element
+
+    def _interjection_type(self, et_elem):
+        a_element = self._get_a_element(et_elem)
+        if  a_element is None:
+            return False
 
         t = a_element.get("class")
 
@@ -144,10 +155,6 @@ class SpeechExtractor2011(SpeechExtractor):
 
         if t == "HPS-GeneralInterjecting":
             return "general"
-
-    def _clean_text(self, text):
-        return text.lstrip(" -.,;:!?\t\n\r")
-
 
 def parse(file_text):
     try:

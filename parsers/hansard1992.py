@@ -108,9 +108,6 @@ class SpeechExtractor1992(SpeechExtractor):
                 ):
                     return "general"
 
-    def _clean_text(self, text):
-        return text.lstrip(" -.,;:!?\t\n\r")
-
 
 def parse(file_text):
     try:

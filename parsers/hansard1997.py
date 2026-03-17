@@ -1,89 +1,14 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
-    SpeechExtractor,
     ChamberSpeechExtractor,
 )
+from parsers.hansard1992 import SpeechExtractor1992
 
 from parsers.errors import *
 import string
 
 
-class SpeechExtractor1997(SpeechExtractor):
-
-    def _get_speech_element_children(self, elem):
-
-        # See 1994 line 1087 for why I have to do this
-        out = []
-        children = elem.getchildren()
-        for child in children:
-            if child.tag.lower() == "interject":
-                out.append(child)
-                subchildren = child.getchildren()
-                for sub in subchildren:
-                    if self._interjection_flag(sub) > 1:
-                        child.remove(sub)
-                        out.append(sub)
-            elif child.tag.lower() == "division":
-                pass
-            else:
-                out.append(child)
-        return out
-
-    def _extract_talker(self, elem):
-        result = elem.get("nameid")
-        if result:
-            return result
-        return ""
-
-    def _is_interjection_element(self, et_elem):
-        """
-        Returns True if the element is an interjection, otherwise False.
-        """
-        # 1. Tag is explicitly an interjection
-        if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
-
-        # 2. Tag is PARA and has a bold EMPHASIS with procedural keywords in
-        # uppercase
-        if et_elem.tag.lower() == "para":
-            child = et_elem.find(".//emphasis")
-            if child is not None:
-                if (
-                    child.attrib.get("font-weight", "") == "BOLD"
-                    and child.text is not None
-                ):
-                    if (
-                        "CHAIR" in child.text
-                        or "PRESIDENT" in child.text
-                        or "SPEAKER" in child.text
-                        or "CLERK" in child.text
-                    ):
-                        return True
-                elif (
-                    child.attrib.get("font-slant", "") == "ITAL"
-                    and child.text is not None
-                ):
-                    # Check if the whole thing is in italics - indicates general
-                    # interjection
-
-                    para_text = "".join(t.strip() for t in et_elem.itertext())
-                    para_text = para_text.translate(
-                        str.maketrans("", "", string.punctuation)
-                    )
-
-                    emph_text = "".join(t.strip() for t in child.itertext())
-                    emph_text = emph_text.translate(
-                        str.maketrans("", "", string.punctuation)
-                    )
-                    # If all text is inside the emphasis element, the texts should match
-                    if (
-                        para_text == emph_text
-                        and para_text != ""
-                        and "interject" in para_text.lower()
-                    ):
-                        return True
-
-        return False
+class SpeechExtractor1997(SpeechExtractor1992):
 
     def _interjection_type(self, et_elem):
         # If the usual attribute is present, use it

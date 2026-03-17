@@ -116,7 +116,7 @@ class SpeechExtractor1901(SpeechExtractor):
 
     def _clean_text(self, text):
         # Strip leading whitespace/punctuation
-        text = text.lstrip(" -.,;:!?\t\n\r")
+        text = super._clean_text(text)
         
         # If there's a " - " in the text, check if the part before it looks like a title
         if " - " in text:

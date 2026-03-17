@@ -275,7 +275,9 @@ class SpeechExtractor:
         return interjections, final_main_text
 
     def _clean_text(self, text):
-        return text
+        # Remove all leading non-alphanumeric characters except [ 
+        text = re.sub(r"^[^a-zA-Z0-9[]+", "", text)
+        return text.strip()
 
 
 def print_tag_tree(element, max_depth, indent=0):
