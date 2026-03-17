@@ -21,7 +21,10 @@ class SpeechExtractor2011(SpeechExtractor):
     def _pull_paras(self, elem):
         texts = []
         # Only grab text from HPS-Normal spans
-        if elem.tag.lower() == "span" and elem.get("class") in ("HPS-Normal", "HPS-Small"):
+        if elem.tag.lower() == "span" and elem.get("class") in ("HPS-Normal",
+                                                                "HPS-Small",
+                                                                "HPS-MemberIInterjecting",
+                                                                "HPS-GeneralIInterjecting"):
             parts = [elem.text] + [c.tail for c in elem]
             return "".join(p for p in parts if p).strip()
         for p in elem.getchildren():
@@ -50,7 +53,8 @@ class SpeechExtractor2011(SpeechExtractor):
     def extract(self):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(
-            self.root, record_office_interjector=True
+            self.root, record_office_interjector=True, 
+            record_unrecored_interjector=False
         )
 
         # Dirty fix for when the whole thing is an 'interjection'
@@ -112,6 +116,7 @@ class SpeechExtractor2011(SpeechExtractor):
                 "HPS-GeneralIInterjecting",
                 "HPS-MemberInterjecting",
                 "HPS-GeneralInterjecting",
+                "HPS-OfficeInterjecting"
             ]:
                 return True
 
@@ -179,3 +184,4 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+

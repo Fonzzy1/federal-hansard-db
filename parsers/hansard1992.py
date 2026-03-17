@@ -17,12 +17,17 @@ class SpeechExtractor1992(SpeechExtractor):
         children = elem.getchildren()
         for child in children:
             if child.tag.lower() in  ["interject", "interjection"]:
-                out.append(child)
+                # Check for inline para interjections within this interjection block
                 subchildren = child.getchildren()
                 for sub in subchildren:
-                    if self._interjection_flag(sub) > 1:
-                        child.remove(sub)
-                        out.append(sub)
+                    # Only move para elements that are interjections with content
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                        # Check that the para has meaningful text content
+                        sub_text = "".join(sub.itertext()).strip()
+                        if sub_text:  # Only move if there's actual content
+                            child.remove(sub)
+                            out.append(sub)
+                out.append(child)
             elif child.tag.lower() == "division":
                 pass
             else:
@@ -107,6 +112,39 @@ class SpeechExtractor1992(SpeechExtractor):
                     and child.text is not None
                 ):
                     return "general"
+
+    def _clean_text(self, text):
+
+        # Check if there's a title in brackets or parentheses at the start and remove it
+        import re
+        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))\s*'
+        match = re.match(bracket_title_pattern, text)
+        if match:
+            bracket_content = match.group(1)
+            # Check if the bracketed content looks like a title
+            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+            if any(ti in bracket_content for ti in title_indicators):
+                text = text[match.end():]
+        
+        # If there's a " - " in the text, check if the part before it looks like a title
+        if "---" in text:
+            parts = text.split("---", 1)
+            before = parts[0].strip()
+            after = parts[1].strip()
+            
+            # Check if the part before " - " contains title-like elements
+            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+            has_title = any(ti in before for ti in title_indicators)
+            
+            # If the part before " - " is short and has a title, remove it
+            if has_title and len(before) < 60:
+                text = after
+        
+        
+        # Strip leading whitespace/punctuation
+        text = super()._clean_text(text)
+        
+        return text
 
 
 def parse(file_text):

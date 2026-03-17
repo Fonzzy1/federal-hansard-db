@@ -16,6 +16,19 @@ class SpeechExtractor2012(SpeechExtractor2011):
         super().__init__(element)
         self.name_to_href = {}
 
+    def extract(self):
+        author = self._extract_talker(self.root)
+        interjections, text = self._extract_text(
+            self.root, record_office_interjector=True, 
+            record_unrecored_interjector=False
+        )
+
+        # Dirty fix for when the whole thing is an 'interjection'
+        if interjections:
+            interjections, text = self._interjection_fix(interjections, text, author)
+
+        return author, interjections, text
+
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
@@ -93,3 +106,4 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+

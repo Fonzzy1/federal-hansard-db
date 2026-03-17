@@ -17,15 +17,14 @@ class SpeechExtractor2021(SpeechExtractor2012):
         self.name_to_href = {}
 
 
-
     def extract(self):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(
-            self.root,
-            record_office_interjector=True,
-            record_unrecored_interjector=True,
+            self.root, record_office_interjector=True, 
+            record_unrecored_interjector=True
         )
 
+        # Dirty fix for when the whole thing is an 'interjection'
         if interjections:
             interjections, text = self._interjection_fix(interjections, text, author)
 
@@ -150,3 +149,4 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+

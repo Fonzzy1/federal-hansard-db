@@ -115,8 +115,6 @@ class SpeechExtractor1901(SpeechExtractor):
             return "speaker"
 
     def _clean_text(self, text):
-        # Strip leading whitespace/punctuation
-        text = super()._clean_text(text)
         
         # If there's a " - " in the text, check if the part before it looks like a title
         if " - " in text:
@@ -131,6 +129,9 @@ class SpeechExtractor1901(SpeechExtractor):
             # If the part before " - " is short and has a title, remove it
             if has_title and len(before) < 60:
                 text = after
+
+        # Strip leading whitespace/punctuation
+        text = super()._clean_text(text)
         
         return text
 
