@@ -34,21 +34,21 @@ async def seed(db: Prisma):
         },
         {
             "id": 5,
-            "name": "Hansard 1998-2005",
+            "name": "Hansard 1998-1999",
             "parserModule": "parsers.hansard1998",
             "scraperModule": "scrapers.historic_hansard",
             "args_dict": {
                 "from_day": "1998-01-01",
-                "to_day": "2005-12-31",
+                "to_day": "1999-12-31",
                 "use_fine_dates": False,
             },
         },
         {
             "id": 6,
-            "name": "Hansard 2006-2011",
-            "parserModule": "parsers.hansard1998",
+            "name": "Hansard 2000-2011",
+            "parserModule": "parsers.hansard2000",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args_dict": {"from_day": "2006-01-01", "to_day": "2011-04-30"},
+            "args_dict": {"from_day": "2000-01-01", "to_day": "2011-04-30"},
         },
         {
             "id": 7,

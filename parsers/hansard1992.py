@@ -16,7 +16,7 @@ class SpeechExtractor1992(SpeechExtractor):
         out = []
         children = elem.getchildren()
         for child in children:
-            if child.tag.lower() == "interject":
+            if child.tag.lower() in  ["interject", "interjection"]:
                 out.append(child)
                 subchildren = child.getchildren()
                 for sub in subchildren:
@@ -118,3 +118,4 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+

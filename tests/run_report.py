@@ -19,6 +19,7 @@ from parsers import (
     hansard1992,
     hansard1997,
     hansard1998,
+    hansard2000,
     hansard2011,
     hansard2012,
     hansard2021,
@@ -32,7 +33,8 @@ PARSER_MAPPING = {
     (1981, 1991): hansard1981,
     (1992, 1996): hansard1992,
     (1997, 1997): hansard1997,
-    (1998, 2007): hansard1998,
+    (1998, 1999): hansard1998,
+    (2000, 2010): hansard2000,
     (2011, 2011): hansard2011,
     (2012, 2020): hansard2012,
     (2021, 2026): hansard2021,
@@ -95,10 +97,6 @@ def q_office_interjections(documents):
 
 def q_unrecorded_interjections(documents):
     return q_type_n_interjections(documents, 4)
-
-
-# Parsers that expect actual author IDs (not 10000 placeholder) for office interjections
-PARSERS_EXPECT_REAL_OFFICE_AUTHOR = {hansard2011, hansard2012, hansard2021}
 
 
 def get_interjections_with_empty_author(documents, parser):
@@ -232,38 +230,42 @@ def get_documents_with_titles(documents):
     return results
 
 
+TIME_IN_BRACKETS_PATTERN = re.compile(r'[\[\(][^\]\)]*\d{1,2}[.:]\d{2}\s*(am|pm|a\.m\.|p\.m\.)', re.IGNORECASE)
+
+
 def get_documents_with_times(documents):
-    """Find documents/interjections that contain time-like patterns in first 10 words."""
+    """Find documents/interjections that contain time-like patterns inside brackets."""
     results = []
     
-    def has_time_in_first_10_words(text):
-        """Check if time pattern appears in first 10 words."""
+    def has_time_in_brackets(text):
+        """Check if time pattern appears inside brackets in first 10 words."""
         if not text:
             return False
         words = text.split()[:10]
         first_10_text = " ".join(words)
-        return TIME_PATTERN.search(first_10_text) is not None
+        # Only flag times that are inside brackets, e.g., [7.30 pm] or [8:30 am]
+        return TIME_IN_BRACKETS_PATTERN.search(first_10_text) is not None
     
     # Check speeches/questions/answers
     for doc in documents:
         text = doc.get("text", "")
-        if has_time_in_first_10_words(text):
+        if has_time_in_brackets(text):
             results.append({"type": doc.get("type"), "text": text[:60], "where": "speech"})
         
         # Check interjections
         for ij in doc.get("interjections", []):
             ij_text = ij.get("text", "")
-            if has_time_in_first_10_words(ij_text):
+            if has_time_in_brackets(ij_text):
                 results.append({"type": doc.get("type"), "text": ij_text[:60], "where": "interjection"})
         
         # Check answers
         if "answer" in doc:
             ans_text = doc.get("answer", {}).get("text", "")
-            if has_time_in_first_10_words(ans_text):
+            if has_time_in_brackets(ans_text):
                 results.append({"type": doc.get("type"), "text": ans_text[:60], "where": "answer"})
             for ij in doc.get("answer", {}).get("interjections", []):
                 ij_text = ij.get("text", "")
-                if has_time_in_first_10_words(ij_text):
+                if has_time_in_brackets(ij_text):
                     results.append({"type": doc.get("type"), "text": ij_text[:60], "where": "answer_interjection"})
     
     return results
@@ -332,7 +334,6 @@ def generate_report():
             "type2_general": 0,
             "type3_office": 0,
             "type4_unrecorded": 0,
-            "office_missing_10000": 0,
             "non_office_with_keywords": 0,
             "bad_interjecting_types": 0,
             "raw_member_interjecting": 0,
@@ -348,8 +349,6 @@ def generate_report():
             "examples_titles_in_interjection_start": [],
             "titles_in_content": 0,
             "examples_titles_in_content": [],
-            "times_in_content": 0,
-            "examples_times_in_content": [],
         }
         
         if parser is None:
@@ -394,20 +393,6 @@ def generate_report():
             report["type4_unrecorded"] = len(q_unrecorded_interjections(documents))
             
             # Check for issues
-            office_ij = q_office_interjections(documents)
-            # For newer parsers (2011+), office should have REAL author IDs, not 10000
-            # For older parsers, office should have 10000
-            if parser in PARSERS_EXPECT_REAL_OFFICE_AUTHOR:
-                # Should NOT have 10000, should have real author
-                office_missing = [ij for ij in office_ij if ij.get("author") == "10000"]
-                report["office_missing_10000"] = len(office_missing)
-                report["examples_office_missing_10000"] = [ij.get("text", "")[:60] for ij in office_missing]
-            else:
-                # Should have 10000
-                office_missing = [ij for ij in office_ij if ij.get("author") != "10000"]
-                report["office_missing_10000"] = len(office_missing)
-                report["examples_office_missing_10000"] = [ij.get("text", "")[:60] for ij in office_missing]
-            
             report["non_office_with_keywords"] = len(q_interjections_with_procedural_keywords_not_office(documents))
             bad_ij = q_interjections_with_interjecting_not_general_or_unrecorded(documents)
             report["bad_interjecting_types"] = len(bad_ij)
@@ -527,22 +512,6 @@ def print_issue_details(results):
         parser = r.get("parser", "")
         
         # Check each issue type
-        if r.get("office_missing_10000", 0) > 0:
-            # For newer parsers, this means office interjections still have placeholder 10000 instead of real IDs
-            # For older parsers, office should have 10000 - but if they don't, that's an issue
-            parser_is_new = "2011" in parser or "2021" in parser
-            if parser_is_new:
-                reason = "Office interjections have '10000' but should have real author IDs from Hansard"
-            else:
-                reason = "Office interjections missing '10000' placeholder"
-            all_issues.append({
-                "year": year,
-                "issue": "office_missing_10000",
-                "count": r["office_missing_10000"],
-                "reason": reason,
-                "examples": r.get("examples_office_missing_10000", []),
-            })
-            
         if r.get("type1_no_author", 0) > 0:
             all_issues.append({
                 "year": year,

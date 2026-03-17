@@ -17,6 +17,20 @@ class SpeechExtractor2011(SpeechExtractor):
         super().__init__(element)
         self.name_to_href = {}
 
+
+    def _pull_paras(self, elem):
+        texts = []
+        # Only grab text from HPS-Normal spans
+        if elem.tag.lower() == "span" and elem.get("class") in ("HPS-Normal", "HPS-Small"):
+            parts = [elem.text] + [c.tail for c in elem]
+            return "".join(p for p in parts if p).strip()
+        for p in elem.getchildren():
+            para_text = self._pull_paras(p)
+            if para_text:
+                texts.append(para_text)
+        return "\n".join(texts)
+
+
     def _interjection_fix(self, interjections, text, author):
         # Check if the speech is owened by a office holder
         if (

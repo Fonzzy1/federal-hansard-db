@@ -92,7 +92,8 @@ class SpeechExtractor2021(SpeechExtractor2012):
         except:
             raise FailedInterjectionTypeAssingment(et_elem)
 
-        t = a_element.get("class")
+        return a_element
+
 
 
     def _interjection_type(self, et_elem):
