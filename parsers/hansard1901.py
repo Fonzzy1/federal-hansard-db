@@ -6,6 +6,7 @@ from parsers.hansard_base_model import (
 
 from parsers.errors import *
 import re
+import string
 
 
 class SpeechExtractor1901(SpeechExtractor):
@@ -85,8 +86,36 @@ class SpeechExtractor1901(SpeechExtractor):
                 return True
         if et_elem.tag.lower() == 'para':
             child = et_elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
+            if child is not None:
+                if child.attrib.get("font-weight", "") == "bold":
+                    return True
+                elif (
+                    child.attrib.get("font-style", "") == "italic"
+                    and child.text is not None
+                ):
+                    para_text = "".join(t.strip() for t in et_elem.itertext())
+                    para_text = para_text.translate(
+                        str.maketrans("", "", string.punctuation + "—")
+                    )
+
+                    emph_text = "".join(t.strip() for t in child.itertext())
+                    emph_text = emph_text.translate(
+                        str.maketrans("", "", string.punctuation + "—")
+                    )
+                    # If all text is inside the emphasis element, the texts should match
+                    if (
+                        para_text == emph_text
+                        and para_text != ""
+                        and "interject" in para_text.lower()
+                    ):
+                        return True
+            elif (
+                et_elem.attrib.get("class") == "italic"
+                and et_elem.text
+                and "interject" in et_elem.text
+            ):
                 return True
+
         else:
             return False
 
@@ -111,14 +140,19 @@ class SpeechExtractor1901(SpeechExtractor):
                         return "office"
                 else:
                         return "speaker"
+            elif child.attrib.get("font-style", "") == "italic":
+                return "general"
         else:
             return "speaker"
 
     def _clean_text(self, text):
+
+        text = super()._clean_text(text)
         
         # If there's a " - " in the text, check if the part before it looks like a title
-        if " - " in text:
-            parts = text.split(" - ", 1)
+
+        if "-" in text:
+            parts = text.split("-", 1)
             before = parts[0].strip()
             after = parts[1].strip()
             
@@ -131,7 +165,6 @@ class SpeechExtractor1901(SpeechExtractor):
                 text = after
 
         # Strip leading whitespace/punctuation
-        text = super()._clean_text(text)
         
         return text
 

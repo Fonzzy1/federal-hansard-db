@@ -10,29 +10,6 @@ import string
 
 class SpeechExtractor1992(SpeechExtractor):
 
-    def _get_speech_element_children(self, elem):
-
-        # See 1994 line 1087 for why I have to do this
-        out = []
-        children = elem.getchildren()
-        for child in children:
-            if child.tag.lower() in  ["interject", "interjection"]:
-                # Check for inline para interjections within this interjection block
-                subchildren = child.getchildren()
-                for sub in subchildren:
-                    # Only move para elements that are interjections with content
-                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
-                        # Check that the para has meaningful text content
-                        sub_text = "".join(sub.itertext()).strip()
-                        if sub_text:  # Only move if there's actual content
-                            child.remove(sub)
-                            out.append(sub)
-                out.append(child)
-            elif child.tag.lower() == "division":
-                pass
-            else:
-                out.append(child)
-        return out
 
     def _extract_talker(self, elem):
         result = elem.get("nameid")

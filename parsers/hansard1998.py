@@ -1,15 +1,15 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
     ChamberSpeechExtractor,
+    SpeechExtractor,
     print_tag_tree,
 )
 
-from parsers.hansard1997 import SpeechExtractor1997
 from parsers.errors import *
 import string
 
 
-class SpeechExtractor1998(SpeechExtractor1997):
+class SpeechExtractor1998(SpeechExtractor):
 
     def _extract_talker(self, elem):
         result = elem.find("talk.start/talker/name.id")
@@ -20,8 +20,6 @@ class SpeechExtractor1998(SpeechExtractor1997):
             return 10000
         
         return ""
-
-    
 
 
     def _is_interjection_element(self, et_elem):
@@ -48,7 +46,7 @@ class SpeechExtractor1998(SpeechExtractor1997):
                     child.attrib.get("font-style", "") == "italic"
                     and child.text is not None
                 ):
-                    para_text = "".join(t.strip() for t in et_elem.itertext())
+                    para_text = "".join(t.strip( ) for t in et_elem.itertext())
                     para_text = para_text.translate(
                         str.maketrans("", "", string.punctuation + "—")
                     )
