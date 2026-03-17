@@ -43,7 +43,8 @@ PARSER_MAPPING = {
 
 def get_all_test_files():
     # Exclude test.xml - it's likely not a year-based test file
-    return sorted(f for f in TESTS_DIR.glob("*.xml") if f.stem != "test")
+    # Also exclude files with double extensions like 2002.xml.xml
+    return sorted(f for f in TESTS_DIR.glob("*.xml") if f.stem != "test" and not f.stem.endswith(".xml"))
 
 
 def get_parser_for_year(year):
@@ -99,12 +100,17 @@ def q_unrecorded_interjections(documents):
     return q_type_n_interjections(documents, 4)
 
 
+# Parsers that can have type 4 (unrecorded) interjections
+PARSERS_WITH_TYPE4 = {hansard2000, hansard2021}
+
+
 def get_interjections_with_empty_author(documents, parser):
     """Get all interjections with empty author, grouped by type."""
     all_interjections = q_all_interjections(documents)
     
     type1_no_author = []
     type3_no_author = []
+    type4_no_author = []
     
     for ij in all_interjections:
         author = ij.get("author", "")
@@ -113,8 +119,10 @@ def get_interjections_with_empty_author(documents, parser):
                 type1_no_author.append(ij)
             elif ij.get("type") == 3:
                 type3_no_author.append(ij)
+            elif ij.get("type") == 4 and parser in PARSERS_WITH_TYPE4:
+                type4_no_author.append(ij)
     
-    return type1_no_author, type3_no_author
+    return type1_no_author, type3_no_author, type4_no_author
 
 
 def q_interjections_with_procedural_keywords_not_office(documents):
@@ -339,8 +347,10 @@ def generate_report():
             "raw_member_interjecting": 0,
             "type1_no_author": 0,
             "type3_no_author": 0,
+            "type4_no_author": 0,
             "examples_type1_no_author": [],
             "examples_type3_no_author": [],
+            "examples_type4_no_author": [],
             "docs_no_author": 0,
             "examples_docs_no_author": [],
             "titles_in_speech_start": 0,
@@ -416,13 +426,15 @@ def generate_report():
             report["examples_times_in_content"] = [d["text"] for d in times_found]
             
             # Check for empty authors
-            type1_no_auth, type3_no_auth = get_interjections_with_empty_author(documents, parser)
+            type1_no_auth, type3_no_auth, type4_no_auth = get_interjections_with_empty_author(documents, parser)
             report["type1_no_author"] = len(type1_no_auth)
             report["type3_no_author"] = len(type3_no_auth)
+            report["type4_no_author"] = len(type4_no_auth)
             
             # Collect examples
             report["examples_type1_no_author"] = [ij.get("text", "")[:60] for ij in type1_no_auth]
             report["examples_type3_no_author"] = [ij.get("text", "")[:60] for ij in type3_no_auth]
+            report["examples_type4_no_author"] = [ij.get("text", "")[:60] for ij in type4_no_auth]
             
             # Check for documents with no author
             docs_no_author = [d for d in documents if not d.get("author")]
@@ -529,6 +541,15 @@ def print_issue_details(results):
                 "reason": "Office interjections (type 3) should have an author ID",
                 "examples": r.get("examples_type3_no_author", []),
             })
+        
+        if r.get("type4_no_author", 0) > 0:
+            all_issues.append({
+                "year": year,
+                "issue": "type4_no_author",
+                "count": r["type4_no_author"],
+                "reason": "Unrecorded interjections (type 4) should have an author ID",
+                "examples": r.get("examples_type4_no_author", []),
+            })
             
         if r.get("non_office_with_keywords", 0) > 0:
             all_issues.append({
@@ -609,7 +630,70 @@ def print_issue_details(results):
                 print(f"    - {ex}")
 
 
+def save_all_outputs(results):
+    """Save all parsed outputs to /tmp directory."""
+    import json
+    from pathlib import Path
+    
+    # First get the mapping
+    from parsers import (
+        hansard1901,
+        hansard1981,
+        hansard1992,
+        hansard1997,
+        hansard1998,
+        hansard2000,
+        hansard2011,
+        hansard2012,
+        hansard2021,
+    )
+    
+    PARSER_MAPPING = {
+        (1901, 1980): hansard1901,
+        (1981, 1991): hansard1981,
+        (1992, 1996): hansard1992,
+        (1997, 1997): hansard1997,
+        (1998, 1999): hansard1998,
+        (2000, 2010): hansard2000,
+        (2011, 2011): hansard2011,
+        (2012, 2020): hansard2012,
+        (2021, 2026): hansard2021,
+    }
+    
+    def get_parser_for_year(year):
+        if year == "2025a":
+            return hansard2021
+        year = int(year)
+        for (start, end), parser in PARSER_MAPPING.items():
+            if start <= year <= end:
+                return parser
+        return None
+    
+    TESTS_DIR = Path(__file__).parent
+    
+    test_files = sorted(f for f in TESTS_DIR.glob("*.xml") if f.stem != "test" and not f.stem.endswith(".xml"))
+    
+    for f in test_files:
+        year = f.stem
+        parser = get_parser_for_year(year)
+        if parser is None:
+            continue
+        
+        try:
+            content = f.read_text()
+            parsed = parser.parse(content)
+            
+            # Save full output
+            output_file = f"/tmp/hansard_{year}.json"
+            with open(output_file, "w") as out_f:
+                json.dump(parsed, out_f, indent=2)
+            
+        except Exception as e:
+            pass
+
+
 if __name__ == "__main__":
     results = generate_report()
     print_report(results)
     print_issue_details(results)
+    save_all_outputs(results)

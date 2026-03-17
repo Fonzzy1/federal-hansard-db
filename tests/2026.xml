@@ -4079,7 +4079,6 @@
               </talker>
             </talk.start>
             <talk.text>
-              <body background="" style="" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wx="http://schemas.microsoft.com/office/word/2003/auxHint" xmlns:aml="http://schemas.microsoft.com/aml/2001/core" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
                 <p class="HPS-Normal" style="direction:ltr;unicode-bidi:normal;">
                   <span class="HPS-Normal">
                     <a href="DYW" type="MemberSpeech">
@@ -4098,7 +4097,6 @@
                       <span class="HPS-MemberInterjecting">The SPEAKER:</span>
                     </a>  No, he's not guillotining, Member for Kennedy. He's just saying that, if everyone can be brief, we will not need to go down that path. That means short and sweet.</span>
                 </p>
-              </body>
             </talk.text>
             <interjection>
               <talk.start>
