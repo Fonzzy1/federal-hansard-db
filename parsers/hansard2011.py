@@ -1,9 +1,9 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
-    SpeechExtractor,
     ChamberSpeechExtractor,
     print_tag_tree,
 )
+from parsers.eras import SpeechExtractorModern
 
 from parsers.errors import *
 import string
@@ -11,98 +11,14 @@ import string
 import re
 
 
-class SpeechExtractor2011(SpeechExtractor):
+class SpeechExtractor2011(SpeechExtractorModern):
 
     def __init__(self, element):
         super().__init__(element)
         self.name_to_href = {}
 
 
-    def _pull_paras(self, elem):
-        texts = []
-        # Only grab text from HPS-Normal spans
-        if elem.tag.lower() == "span" and elem.get("class") in ("HPS-Normal",
-                                                                "HPS-Small",
-                                                                "HPS-MemberIInterjecting",
-                                                                "HPS-GeneralIInterjecting"):
-            parts = [elem.text] + [c.tail for c in elem]
-            return "".join(p for p in parts if p).strip()
-        for p in elem.getchildren():
-            para_text = self._pull_paras(p)
-            if para_text:
-                texts.append(para_text)
-        return "\n".join(texts)
 
-
-    def _interjection_fix(self, interjections, text, author):
-        # Check if the speech is owened by a office holder
-        if (
-            author == interjections[0]["author"]
-            and interjections[0]["type"] == 3
-        ):
-            # If so, then the whole thing is actually an interjetion
-            secs = re.split(r"\[INTERJECTION\d+\]", text)
-            # The first element is going to be empty - so now lets allocate
-            # the index = 1 element to the initial interjection
-            first_section = secs[1]
-            text = text.replace(first_section, "")
-            interjections[0]["text"] += first_section
-
-        return interjections, text
-
-    def extract(self):
-        author = self._extract_talker(self.root)
-        interjections, text = self._extract_text(
-            self.root, record_office_interjector=True, 
-            record_unrecored_interjector=False
-        )
-
-        # Dirty fix for when the whole thing is an 'interjection'
-        if interjections:
-            interjections, text = self._interjection_fix(interjections, text, author)
-
-        return author, interjections, text
-
-    def _get_speech_element_children(self, elem):
-        # The tags that "contain" others
-        elems = elem.find("talk.text").getchildren()
-        return elems
-
-    def _extract_talker(self, elem):
-        # Case when we are looking at speeches
-        result = elem.find("talk.start/talker/name.id")
-        if result is not None:
-            if result.text:
-                return result.text
-            else:
-                return ""
-
-        # Case when we are looking at interjections
-        a_element = elem.find("./span/a")
-        if a_element is not None and a_element.get("href"):
-            href = a_element.get("href")
-            name_text = "".join(
-                char
-                for char in elem.find("./span/a/span").text
-                if char.isalnum()
-            )
-            self.name_to_href[name_text] = href
-            return href
-        elif a_element is None:
-            name_text = elem.find("./span/span").text
-            if name_text:
-                name_text = "".join(
-                    char for char in name_text if char.isalnum()
-                )
-                potential_id = self.name_to_href.get(name_text)
-                if potential_id:
-                    return potential_id
-        # Finaly if we have an interjection element, and we dont know, give
-        # 10000
-        if self._interjection_flag(elem) == 3:
-            return "10000"
-
-        return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -132,18 +48,6 @@ class SpeechExtractor2011(SpeechExtractor):
                 ):
                     return True
         return False
-
-    def _get_a_element(self,et_elem):
-        a_element = et_elem.find("./span/a/span")
-        if a_element is None:
-            a_elements = et_elem.find("span").findall("span")
-            i = 0
-            while i < len(a_elements) and not (a_element is not None and a_element.text):
-                a_element = a_elements[i]
-                i += 1
-            if a_element is None or not a_element.text:
-                return None
-        return a_element
 
     def _interjection_type(self, et_elem):
         a_element = self._get_a_element(et_elem)

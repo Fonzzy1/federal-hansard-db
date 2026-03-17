@@ -1,14 +1,14 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
-    SpeechExtractor,
     ChamberSpeechExtractor,
 )
+from parsers.eras import SpeechExtractorEarlyDigital
 
 from parsers.errors import *
 import string
 
 
-class SpeechExtractor1992(SpeechExtractor):
+class SpeechExtractor1992(SpeechExtractorEarlyDigital):
 
 
     def _extract_talker(self, elem):
@@ -90,38 +90,6 @@ class SpeechExtractor1992(SpeechExtractor):
                 ):
                     return "general"
 
-    def _clean_text(self, text):
-
-        # Check if there's a title in brackets or parentheses at the start and remove it
-        import re
-        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))\s*'
-        match = re.match(bracket_title_pattern, text)
-        if match:
-            bracket_content = match.group(1)
-            # Check if the bracketed content looks like a title
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
-            if any(ti in bracket_content for ti in title_indicators):
-                text = text[match.end():]
-        
-        # If there's a " - " in the text, check if the part before it looks like a title
-        if "---" in text:
-            parts = text.split("---", 1)
-            before = parts[0].strip()
-            after = parts[1].strip()
-            
-            # Check if the part before " - " contains title-like elements
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
-            has_title = any(ti in before for ti in title_indicators)
-            
-            # If the part before " - " is short and has a title, remove it
-            if has_title and len(before) < 60:
-                text = after
-        
-        
-        # Strip leading whitespace/punctuation
-        text = super()._clean_text(text)
-        
-        return text
 
 
 def parse(file_text):

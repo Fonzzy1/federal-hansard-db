@@ -1,73 +1,65 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-)
-from parsers.eras import SpeechExtractorMassDigitisation
+"""
+Mass Digitisation Era (1901-1980, 1998-2010) base classes.
 
-from parsers.errors import *
-import re
+This era covers two periods:
+- 1901-1980: Early mass digitisation with talk.start structure
+- 1998-2010: Later mass digitisation with refined XML structure
+
+Common characteristics:
+- Uses talk.start/talker/name.id for speaker identification
+- Has talk.text container elements
+- Uses inline elements for interjections
+- Complex element hierarchy with quote and list nesting
+"""
+
+from parsers.hansard_base_model import SpeechExtractor
+
 import string
 
 
-class SpeechExtractor1901(SpeechExtractorMassDigitisation):
+class SpeechExtractorMassDigitisation(SpeechExtractor):
+    """
+    Base class for the mass digitisation era (1901-1980, 1998-2010).
+    Contains common logic shared by parsers in this period.
+    """
 
     def _get_speech_element_children(self, elem):
-        # The tags that "contain" others
-        container_tags = {"talk.start", "continue", "interjection"}
-        # The tags to nest inside the most recent container
-        nest_tags = {"quote", "list"}
-
-        # Make a list to hold the processed children
-        result = []
-        # Pointer to the most recent container element
-        current_container = None
-
-        for child in elem.getchildren():
-            tag = child.tag.lower()
-            if tag in container_tags:
-                result.append(child)
-                current_container = child
-            elif tag in nest_tags:
-                # If we've seen a container, make this a child
-                if current_container is not None:
-                    current_container.append(child)
-                else:
-                    # Optionally: handle or skip orphaned nest tags
-                    # Uncomment next line if you want to keep them at top level
-                    # result.append(child)
-                    pass
+        """
+        Extract children with special handling for embedded para interjections.
+        
+        See 1994 line 1087 for why this is needed.
+        """
+        out = []
+        children = elem.getchildren()
+        for child in children:
+            if child.tag.lower() in ["interject", "interjection"]:
+                # Check for inline para interjections within this interjection block
+                subchildren = child.getchildren()
+                for sub in subchildren:
+                    # Only move para elements that are interjections with content
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                        # Check that the para has meaningful text content
+                        sub_text = "".join(sub.itertext()).strip()
+                        if sub_text:  # Only move if there's actual content
+                            child.remove(sub)
+                            out.append(sub)
+                out.append(child)
+            elif child.tag.lower() == "division":
+                pass
             else:
-                # Other elements, keep as is or handle as needed
-                result.append(child)
-
-        return result
+                out.append(child)
+        return out
 
     def _extract_talker(self, elem):
+        """Extract talker from talk.start/talker/name.id path."""
         result = elem.find("talk.start/talker/name.id")
-        if result is None:
-            result = elem.find("talker/name.id")
-        continues = elem.findall("continue/talk.start/talker/name.id")
-        alt_name_ids = [x.text for x in continues if x.text != "10000"]
+        if result is not None and result.text is not None:
+            return result.text
 
-        ## Special case where speaker interjects before the main speaker of the speech
-        # In this case, take the first available alt_name_id
-        if result is not None:
-            if result.text == "10000" and alt_name_ids:
-                return alt_name_ids[0]
-            else:
-                return result.text
+        if self._interjection_flag(elem) == 3:
+            return 10000
 
-        elif len(set(alt_name_ids)) == 1:
-            return alt_name_ids[0]
-        
-        # If no talker found and element is a para with bold text, extract the bold content
-        elif elem.tag.lower() == 'para' and self._is_interjection_element(elem):
-            child = elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                return child.text
-        
-        else:
-            return ""
+        return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -116,34 +108,28 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
             ):
                 return True
 
-        else:
-            return False
+        return False
 
     def _interjection_type(self, et_elem):
+        """Determine the type of interjection."""
         if et_elem.tag.lower() in {"talk.start"}:
             author = et_elem.find("talker/name.id")
             if author is not None and author.text == "10000":
                 return "office"
-        elif et_elem.tag.lower() in {"continue"}:
+            else:
+                return "speaker"
+        elif et_elem.tag.lower() in {"continue", "interjection"}:
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
                 return "office"
-        elif et_elem.tag.lower() == 'para':
-            child = et_elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                if (
-                        "CHAIR" in child.text
-                        or "PRESIDENT" in child.text
-                        or "SPEAKER" in child.text
-                        or "CLERK" in child.text
-                    ):
-                        return "office"
-                else:
-                        return "speaker"
-            elif child.attrib.get("font-style", "") == "italic":
-                return "general"
+            else:
+                return "speaker"
+        elif et_elem.tag.lower() == "para":
+            # This will generally be a general interjection
+            return "general"
         else:
             return "speaker"
+
 
     def _clean_text(self, text):
 
@@ -167,15 +153,4 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
         # Strip leading whitespace/punctuation
         
         return text
-
-
-def parse(file_text):
-    try:
-        extractor = HansardExtractor(
-            file_text, ChamberSpeechExtractor, SpeechExtractor1901
-        )
-        results = extractor.extract()
-    except EmptyDocumentError:
-        results = []
-    return results
 
