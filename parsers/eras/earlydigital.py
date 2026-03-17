@@ -20,8 +20,31 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
     """
 
     def _get_speech_element_children(self, elem):
-        """Default implementation returns all children."""
-        return elem.getchildren()
+        """
+        Extract children with special handling for embedded para interjections.
+        
+        See 1994 line 1087 for why this is needed.
+        """
+        out = []
+        children = elem.getchildren()
+        for child in children:
+            if child.tag.lower() in ["interject", "interjection"]:
+                # Check for inline para interjections within this interjection block
+                subchildren = child.getchildren()
+                for sub in subchildren:
+                    # Only move para elements that are interjections with content
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                        # Check that the para has meaningful text content
+                        sub_text = "".join(sub.itertext()).strip()
+                        if sub_text:  # Only move if there's actual content
+                            child.remove(sub)
+                            out.append(sub)
+                out.append(child)
+            elif child.tag.lower() == "division":
+                pass
+            else:
+                out.append(child)
+        return out
 
     def _is_interjection_element(self, et_elem):
         """

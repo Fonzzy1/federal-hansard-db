@@ -115,6 +115,8 @@ class SpeechExtractor2021(SpeechExtractorModern):
                 return "unrecorded"
             else:
                 return "general"
+        if t == "HPS-MemberIInterjecting":
+            return 'unrecorded'
         if t == "HPS-GeneralInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":

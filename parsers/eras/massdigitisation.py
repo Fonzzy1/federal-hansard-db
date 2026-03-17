@@ -55,10 +55,8 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         result = elem.find("talk.start/talker/name.id")
         if result is not None and result.text is not None:
             return result.text
-
         if self._interjection_flag(elem) == 3:
-            return 10000
-
+            return "10000"
         return ""
 
     def _is_interjection_element(self, et_elem):
@@ -79,9 +77,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         if et_elem.tag.lower() == 'para':
             child = et_elem.find("./inline")
             if child is not None:
-                if child.attrib.get("font-weight", "") == "bold":
-                    return True
-                elif (
+                if (
                     child.attrib.get("font-style", "") == "italic"
                     and child.text is not None
                 ):
@@ -133,10 +129,19 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
     def _clean_text(self, text):
 
-        text = super()._clean_text(text)
+
+        # Check if there's a title in brackets or parentheses at the start and remove it
+        import re
+        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))\s*'
+        match = re.match(bracket_title_pattern, text)
+        if match:
+            bracket_content = match.group(1)
+            # Check if the bracketed content looks like a title
+            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+            if any(ti in bracket_content for ti in title_indicators):
+                text = text[match.end():]
         
         # If there's a " - " in the text, check if the part before it looks like a title
-
         if "-" in text:
             parts = text.split("-", 1)
             before = parts[0].strip()
@@ -149,8 +154,10 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             # If the part before " - " is short and has a title, remove it
             if has_title and len(before) < 60:
                 text = after
-
+        
+        
         # Strip leading whitespace/punctuation
+        text = super()._clean_text(text)
         
         return text
 
