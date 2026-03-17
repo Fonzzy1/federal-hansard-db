@@ -32,6 +32,10 @@ def log(msg: str) -> None:
 
 
 def apply_raw_author_fixes(author, sitting_day):
+    speaker_fix = fixes['speaker_alt_names']
+    if author in speaker_fix:
+        return "10000"
+
     for key in [author, f"_{author}"]:
         fix = fixes["raw_author_fixes"].get(key)
         if not fix:
@@ -365,7 +369,7 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
                     data={"parliamentarian": {"connect": {"id": matched_id}}},
                 )
             else:
-                if auth.name not in ignore_ids:
+                if auth.name not in ignore_ids and auth.name != "10000":
                     console.print(
                         f"[yellow]⚠[/yellow] Could not match: {auth.name} (possible alt name)"
                     )
@@ -463,6 +467,7 @@ async def check_authors_join(db):
 
     WHERE s_match.id IS NULL 
        AND sd."chamber" <> 'Answers Upon Notice'
+
 
     GROUP BY
         p.id,

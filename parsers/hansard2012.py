@@ -16,6 +16,18 @@ class SpeechExtractor2012(SpeechExtractor):
         super().__init__(element)
         self.name_to_href = {}
 
+    def _pull_paras(self, elem):
+        texts = []
+        # Only grab text from HPS-Normal spans
+        if elem.tag.lower() == "span" and elem.get("class") in ("HPS-Normal", "HPS-Small"):
+            parts = [elem.text] + [c.tail for c in elem]
+            return "".join(p for p in parts if p).strip()
+        for p in elem.getchildren():
+            para_text = self._pull_paras(p)
+            if para_text:
+                texts.append(para_text)
+        return "\n".join(texts)
+
     def extract(self):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(
@@ -154,7 +166,9 @@ class SpeechExtractor2012(SpeechExtractor):
         return False
 
     def _clean_text(self, text):
-        return text.lstrip(" -.,;:!?\t\n\r")
+        # Remove all leading non-alphanumeric characters except [ 
+        text = re.sub(r"^[^a-zA-Z0-9[]+", "", text)
+        return text.strip()
 
 
 def parse(file_text):

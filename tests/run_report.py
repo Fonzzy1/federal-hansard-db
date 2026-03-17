@@ -6,6 +6,8 @@ Run with: python3 tests/run_report.py
 """
 
 import sys
+import string
+import traceback
 from pathlib import Path
 
 # Add parent to path
@@ -136,7 +138,7 @@ def q_interjections_with_interjecting_not_general_or_unrecorded(documents):
         for interj in x.get("interjections", [])
         + x.get("answer", {}).get("interjections", [])
         if interj.get("type") not in [2, 4]
-        and "interjecting" in interj.get("text", "").lower()
+        and "members interjecting" in interj.get("text", "").lower()
     ]
 
 
@@ -151,11 +153,11 @@ def q_raw_member_interjecting_text(documents):
 
 import re
 
-# Patterns for titles (e.g., "Mr Watt", "Senator Smith", "Sir John", "Mrs Jones")
-TITLE_PATTERN = re.compile(r'\b(Mr|Mrs|Ms|Dr|Senator|Sir|Madam|Hon)\s+\w+', re.IGNORECASE)
+# Patterns for titles (e.g., "Senator SMITH", "Mr WATT") - only when name is ALL CAPS
+TITLE_PATTERN = re.compile(r'\b(Mr|Mrs|Ms|Dr|Senator|Sir|Madam|Hon)\s+[A-Z]{2,}\b')
 
-# Pattern for titles at START of text (within first few words) followed by -
-TITLE_AT_START_PATTERN = re.compile(r'^(Mr|Mrs|Ms|Dr|Senator|Sir|Madam|Hon)\s+\w+.*?\s*-\s*', re.IGNORECASE)
+# Pattern for titles at START of text followed by ALL CAPS name and -
+TITLE_AT_START_PATTERN = re.compile(r'^(Mr|Mrs|Ms|Dr|Senator|Sir|Madam|Hon)\s+[A-Z]{2,}.*?\s*-\s*')
 
 # Patterns for times (e.g., "10:30 am", "2:15pm", "10.30 a.m.")
 TIME_PATTERN = re.compile(r'\b\d{1,2}[.:]\d{2}\s*(am|pm|a\.m\.|p\.m\.)\b', re.IGNORECASE)
@@ -231,32 +233,75 @@ def get_documents_with_titles(documents):
 
 
 def get_documents_with_times(documents):
-    """Find documents/interjections that contain time-like patterns."""
+    """Find documents/interjections that contain time-like patterns in first 10 words."""
     results = []
+    
+    def has_time_in_first_10_words(text):
+        """Check if time pattern appears in first 10 words."""
+        if not text:
+            return False
+        words = text.split()[:10]
+        first_10_text = " ".join(words)
+        return TIME_PATTERN.search(first_10_text) is not None
     
     # Check speeches/questions/answers
     for doc in documents:
         text = doc.get("text", "")
-        if TIME_PATTERN.search(text):
+        if has_time_in_first_10_words(text):
             results.append({"type": doc.get("type"), "text": text[:60], "where": "speech"})
         
         # Check interjections
         for ij in doc.get("interjections", []):
             ij_text = ij.get("text", "")
-            if TIME_PATTERN.search(ij_text):
+            if has_time_in_first_10_words(ij_text):
                 results.append({"type": doc.get("type"), "text": ij_text[:60], "where": "interjection"})
         
         # Check answers
         if "answer" in doc:
             ans_text = doc.get("answer", {}).get("text", "")
-            if TIME_PATTERN.search(ans_text):
+            if has_time_in_first_10_words(ans_text):
                 results.append({"type": doc.get("type"), "text": ans_text[:60], "where": "answer"})
             for ij in doc.get("answer", {}).get("interjections", []):
                 ij_text = ij.get("text", "")
-                if TIME_PATTERN.search(ij_text):
+                if has_time_in_first_10_words(ij_text):
                     results.append({"type": doc.get("type"), "text": ij_text[:60], "where": "answer_interjection"})
     
     return results
+
+
+def get_empty_speeches_and_interjections(documents):
+    """Find speeches and interjections with empty or minimal text."""
+    empty_speeches = []
+    empty_interjections = []
+    
+    def is_empty(text):
+        """Check if text is empty after removing whitespace and punctuation."""
+        if not text:
+            return True
+        stripped = text.strip()
+        # Remove all punctuation
+        cleaned = stripped.translate(str.maketrans("", "", string.punctuation))
+        return not cleaned or len(cleaned) < 2
+    
+    for doc in documents:
+        text = doc.get("text", "")
+        if is_empty(text):
+            empty_speeches.append({"type": doc.get("type"), "text": text[:60] if text else "(empty)"})
+        
+        # Check interjections
+        for ij in doc.get("interjections", []):
+            ij_text = ij.get("text", "")
+            if is_empty(ij_text):
+                empty_interjections.append({"type": doc.get("type"), "ij_type": ij.get("type"), "text": ij_text[:60] if ij_text else "(empty)"})
+        
+        # Check answer interjections
+        if "answer" in doc:
+            for ij in doc.get("answer", {}).get("interjections", []):
+                ij_text = ij.get("text", "")
+                if is_empty(ij_text):
+                    empty_interjections.append({"type": "answer", "ij_type": ij.get("type"), "text": ij_text[:60] if ij_text else "(empty)"})
+    
+    return empty_speeches, empty_interjections
 
 
 def generate_report():
@@ -412,8 +457,8 @@ def generate_report():
             report["titles_in_interjection_start"] = len(titles_at_ij_start)
             report["examples_titles_in_interjection_start"] = [d["text"] for d in titles_at_ij_start]
             
-        except Exception as e:
-            report["error"] = str(e)
+        except Exception:
+            report["error"] = traceback.format_exc()
         
         results.append(report)
     
@@ -530,7 +575,7 @@ def print_issue_details(results):
                 "year": year,
                 "issue": "bad_interjecting",
                 "count": r["bad_interjecting_types"],
-                "reason": "'interjecting' text should only appear in type 2 (general) or type 4 (unrecorded) interjections",
+                "reason": "'interjecting' text should only appear in type 2 (general) or type 4 (unrecorded) interjections, although this may be fine",
                 "examples": r.get("examples_bad_interjecting", []),
             })
             
@@ -539,7 +584,7 @@ def print_issue_details(results):
                 "year": year,
                 "issue": "raw_member_interjecting",
                 "count": r["raw_member_interjecting"],
-                "reason": "Speeches contain raw 'members interjecting' text - should be parsed as interjections",
+                "reason": "Speeches contain raw 'members interjecting' text -- might be a interjections",
                 "examples": r.get("examples_raw_member_interjecting", []),
             })
             
@@ -548,7 +593,7 @@ def print_issue_details(results):
                 "year": year,
                 "issue": "title_in_speech_start",
                 "count": r["titles_in_speech_start"],
-                "reason": "Title at start of speech - should have been extracted as interjection",
+                "reason": "Title at start of speech failed to be stripped from text",
                 "examples": r.get("examples_titles_in_speech_start", []),
             })
             
@@ -575,7 +620,7 @@ def print_issue_details(results):
                 "year": year,
                 "issue": "times_in_content",
                 "count": r["times_in_content"],
-                "reason": "Content contains times that may be misplaced or need special handling",
+                "reason": "Content contains times that should be striped",
                 "examples": r.get("examples_times_in_content", []),
             })
     
