@@ -3,62 +3,23 @@ from parsers.hansard_base_model import (
     ChamberSpeechExtractor,
     print_tag_tree,
 )
-from parsers.hansard2011 import SpeechExtractor2011
+from parsers.eras import SpeechExtractorModern
+
 from parsers.errors import *
 import string
 
 import re
 
 
-class SpeechExtractor2012(SpeechExtractor2011):
+class SpeechExtractor2012(SpeechExtractorModern):
 
     def __init__(self, element):
         super().__init__(element)
         self.name_to_href = {}
 
-    def extract(self):
-        author = self._extract_talker(self.root)
-        interjections, text = self._extract_text(
-            self.root, record_office_interjector=True, 
-            record_unrecored_interjector=False
-        )
 
-        # Dirty fix for when the whole thing is an 'interjection'
-        if interjections:
-            interjections, text = self._interjection_fix(interjections, text, author)
 
-        return author, interjections, text
 
-    def _is_interjection_element(self, et_elem):
-        """
-        Returns True if the element is an interjection, otherwise False.
-        """
-        # All elements are paras now
-        for span in et_elem.findall(".//span"):
-            class_attr = span.get("class", "")
-            if class_attr in [
-                "HPS-OfficeInterjecting",
-                "HPS-OfficeContinuation",
-                "HPS-OfficeSpeech",
-                "HPS-MemberIInterjecting",
-                "HPS-GeneralIInterjecting",
-                "HPS-MemberInterjecting",
-                "HPS-GeneralInterjecting",
-            ]:
-                if span.text and span.text.strip():
-                    return True
-
-            # Or a contiuation or speech by the speaker
-            elif class_attr in {
-                "HPS-MemberSpeech",
-            }:
-                member_continuation_text = span.text
-                if member_continuation_text and any(
-                    role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
-                ):
-                    return True
-        return False
 
     def _interjection_type(self, et_elem):
         a_element = self._get_a_element(et_elem)

@@ -3,11 +3,11 @@ from parsers.hansard_base_model import (
     ChamberSpeechExtractor,
 )
 
-from parsers.hansard1998 import SpeechExtractor1998
+from parsers.eras import SpeechExtractorMassDigitisation
 from parsers.errors import *
 
 
-class SpeechExtractor2000(SpeechExtractor1998):
+class SpeechExtractor2000(SpeechExtractorMassDigitisation):
     """
     For years 2000 onwards.
     Difference from 1998: if interjection has no text, it's an unrecorded interjection.
@@ -56,4 +56,5 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+
 

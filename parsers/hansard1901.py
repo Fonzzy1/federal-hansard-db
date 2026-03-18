@@ -1,15 +1,15 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
-    SpeechExtractor,
     ChamberSpeechExtractor,
 )
+from parsers.eras import SpeechExtractorMassDigitisation
 
 from parsers.errors import *
 import re
 import string
 
 
-class SpeechExtractor1901(SpeechExtractor):
+class SpeechExtractor1901(SpeechExtractorMassDigitisation):
 
     def _get_speech_element_children(self, elem):
         # The tags that "contain" others

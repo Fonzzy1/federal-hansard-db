@@ -243,12 +243,15 @@ async def load_politician_metadata(db: Client) -> None:
     log("Finished loading metadata.")
 
 
-async def scrape_and_parse_sources(db: Client) -> None:
+async def scrape_and_parse_sources(db: Client, source_id: int = None) -> None:
 
     sitting_day_override = fixes["sitting_day_override"]
     log("Scraping and parsing sources...")
 
-    sources = await db.source.find_many()
+    if source_id:
+        sources = await db.source.find_many(where={"id": source_id})
+    else:
+        sources = await db.source.find_many()
     sources.reverse()
 
     for source in sources:
@@ -378,13 +381,16 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Finished joining authors.")
 
 
-async def reparse_all_sources(db: Client) -> None:
+async def reparse_all_sources(db: Client, source_id: int = None) -> None:
     """Re-parse all existing raw documents."""
     log("Re-parsing all existing raw documents...")
 
     sitting_day_override = fixes["sitting_day_override"]
 
-    sources = await db.source.find_many()
+    if source_id:
+        sources = await db.source.find_many(where={"id": source_id})
+    else:
+        sources = await db.source.find_many()
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
     await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
@@ -532,6 +538,9 @@ async def main():
     parser.add_argument(
         "--reparse", action="store_true", help="Re-parse all raw documents."
     )
+    parser.add_argument(
+        "--source-id", type=int, help="Only process this specific source ID."
+    )
     args = parser.parse_args()
 
     console.rule("[bold blue]Pipeline Start")
@@ -540,12 +549,12 @@ async def main():
 
     await seed_sources(db)
     await reset_politician_links(db)
-    await load_politician_metadata(db)
 
     if args.reparse:
-        await reparse_all_sources(db)
+        await reparse_all_sources(db, args.source_id)
     else:
-        await scrape_and_parse_sources(db)
+        await load_politician_metadata(db)
+        await scrape_and_parse_sources(db, args.source_id)
 
     await join_politicians_to_raw_authors(db)
     await check_authors_join(db)

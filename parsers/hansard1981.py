@@ -1,13 +1,13 @@
 from parsers.hansard_base_model import (
     HansardExtractor,
-    SpeechExtractor,
     ChamberSpeechExtractor,
 )
+from parsers.eras import SpeechExtractorEarlyDigital
 
 from parsers.errors import *
 
 
-class SpeechExtractor1981(SpeechExtractor):
+class SpeechExtractor1981(SpeechExtractorEarlyDigital):
 
     def _get_speech_element_children(self, elem):
         return elem.getchildren()

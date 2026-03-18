@@ -3,14 +3,13 @@ from parsers.hansard_base_model import (
     ChamberSpeechExtractor,
     print_tag_tree,
 )
-from parsers.hansard2012 import SpeechExtractor2012
+from parsers.eras import SpeechExtractorModern
+
 from parsers.errors import *
-import string
-
-import re
 
 
-class SpeechExtractor2021(SpeechExtractor2012):
+
+class SpeechExtractor2021(SpeechExtractorModern):
 
     def __init__(self, element):
         super().__init__(element)
@@ -116,6 +115,8 @@ class SpeechExtractor2021(SpeechExtractor2012):
                 return "unrecorded"
             else:
                 return "general"
+        if t == "HPS-MemberIInterjecting":
+            return 'unrecorded'
         if t == "HPS-GeneralInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":

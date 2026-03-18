@@ -2,13 +2,14 @@ from parsers.hansard_base_model import (
     HansardExtractor,
     ChamberSpeechExtractor,
 )
+from parsers.eras import SpeechExtractorEarlyDigital
 from parsers.hansard1992 import SpeechExtractor1992
 
 from parsers.errors import *
 import string
 
 
-class SpeechExtractor1997(SpeechExtractor1992):
+class SpeechExtractor1997(SpeechExtractorEarlyDigital):
 
     def _interjection_type(self, et_elem):
         # If the usual attribute is present, use it

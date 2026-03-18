@@ -57,6 +57,28 @@ return {
     },
 
     {
+        name = "Reparse Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--reparse", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
+        name = "Update Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
         name = "Reset DB",
         builder = function(_)
             return {
