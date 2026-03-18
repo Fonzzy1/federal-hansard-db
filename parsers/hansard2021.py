@@ -118,9 +118,7 @@ class SpeechExtractor2021(SpeechExtractorModern):
         if t == "HPS-MemberIInterjecting":
             return 'unrecorded'
         if t == "HPS-GeneralInterjecting":
-            return "general"
-        if t == "HPS-GeneralInterjecting":
-            return "general"
+            return "unattributed"
         if t == "HPS-MemberInterjecting":
             member_text = ""
             name_spans = et_elem.xpath(

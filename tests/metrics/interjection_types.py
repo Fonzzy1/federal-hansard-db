@@ -89,3 +89,22 @@ class Type4InterjectionCountMetric(CountMetric):
     
     def count(self, documents: list) -> int:
         return sum(1 for ij in get_all_interjections(documents) if ij.get("type") == 4)
+
+
+class Type5InterjectionCountMetric(CountMetric):
+    """Count type 5 (unattributed) interjections."""
+    
+    @property
+    def name(self) -> str:
+        return "t5_unattributed"
+    
+    @property
+    def display_name(self) -> str:
+        return "T5 Unattributed"
+    
+    @property
+    def description(self) -> str:
+        return "Type 5 interjections - unattributed (text present but no definitive author)"
+    
+    def count(self, documents: list) -> int:
+        return sum(1 for ij in get_all_interjections(documents) if ij.get("type") == 5)

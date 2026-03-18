@@ -44,7 +44,7 @@ class SpeechExtractor2012(SpeechExtractorModern):
         if t == "HPS-GeneralIInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":
-            return "general"
+            return "unattributed"
         if t == "HPS-GeneralInterjecting":
             return "general"
         if t == "HPS-MemberInterjecting":

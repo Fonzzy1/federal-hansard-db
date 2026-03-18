@@ -196,10 +196,7 @@ class SpeechExtractor:
         general - the interjection is not attribuited to a specific speaker
         unrecorded - the interjection is attributed, but the actual speech is
         not recorded
-        unconfirmed_speaker - the interjection appears to be from a named
-        speaker but cannot be confirmed (e.g. inferred from inline bold text)
-
-
+        unattributed - there is text, but no definitive author attribution
         """
 
         raise FailedInterjectionTypeAssingment(et_elem)
@@ -212,6 +209,7 @@ class SpeechExtractor:
              2 - general - the interjection is not attribuited to a specific speaker
              3 - office - the speaker, president, or clerk, made the interjection
              4 - unrecorded - the interjection is attributed, but the actual speech is not recorded
+             5 - unattributed - there is text, but no definitive author attribution
         """
         if not self._is_interjection_element(et_elem):
             return 0
@@ -225,8 +223,10 @@ class SpeechExtractor:
                 return 3
             elif t == "unrecorded":
                 return 4
-            else:
+            elif t == "unattributed":
                 return 5
+            else:
+                raise FailedInterjectionTypeAssingment(et_elem)
 
     def _get_speech_element_children(self, elem):
         """
@@ -274,6 +274,7 @@ class SpeechExtractor:
                         "author": author,
                         "sequence": interj_count,
                         "type": interject_type,
+                        "description": self._extract_description(child)
                     }
                 )
                 out_text.append(f"[{key}]")
@@ -289,6 +290,9 @@ class SpeechExtractor:
         # Remove all leading non-alphanumeric characters except [ 
         text = re.sub(r"^[^a-zA-Z0-9[]+", "", text)
         return text.strip()
+
+    def _extract_description(self,elem):
+        return ""
 
 
 def print_tag_tree(element, max_depth, indent=0):

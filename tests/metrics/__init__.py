@@ -5,7 +5,6 @@ Each file in this package contains a single Metric class.
 Run with: python3 tests/run_report.py
 """
 
-from .base import Metric, MetricResult, CountMetric, IssueMetric
 
 # Import all metrics for discovery
 from .doc_count import DocumentCountMetric
@@ -18,13 +17,7 @@ from .interjection_types import (
     Type2InterjectionCountMetric,
     Type3InterjectionCountMetric,
     Type4InterjectionCountMetric,
-)
-from .empty_author import EmptyAuthorMetric
-from .empty_author_types import (
-    Type1EmptyAuthorMetric,
-    Type2EmptyAuthorMetric,
-    Type3EmptyAuthorMetric,
-    Type4EmptyAuthorMetric,
+    Type5InterjectionCountMetric,
 )
 from .doc_no_author import EmptyDocAuthorMetric
 from .titles_in_content import TitlesInContentMetric
@@ -35,6 +28,7 @@ from .empty_text import EmptyTextMetric
 from .non_office_keywords import NonOfficeWithKeywordsMetric
 from .bad_interjecting import BadInterjectingTypesMetric
 from .raw_member_interjecting import RawMemberInterjectingMetric
+from .interjection_structure import InterjectionStructureMetric
 
 
 # All metrics - add new metrics here
@@ -49,12 +43,7 @@ ALL_METRICS = [
     Type2InterjectionCountMetric,
     Type3InterjectionCountMetric,
     Type4InterjectionCountMetric,
-    # Issues
-    EmptyAuthorMetric,
-    Type1EmptyAuthorMetric,
-    Type2EmptyAuthorMetric,
-    Type3EmptyAuthorMetric,
-    Type4EmptyAuthorMetric,
+    Type5InterjectionCountMetric,
     EmptyDocAuthorMetric,
     TitlesInContentMetric,
     TitleAtSpeechStartMetric,
@@ -64,6 +53,7 @@ ALL_METRICS = [
     NonOfficeWithKeywordsMetric,
     BadInterjectingTypesMetric,
     RawMemberInterjectingMetric,
+    InterjectionStructureMetric,
 ]
 
 

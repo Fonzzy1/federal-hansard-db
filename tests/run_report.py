@@ -7,7 +7,14 @@ Run with: python3 tests/run_report.py
 
 import sys
 import traceback
+import json
+import datetime
+import importlib
 from pathlib import Path
+import xml.etree.ElementTree as ET
+
+# Directory to save parsed outputs
+PARSED_OUTPUT_DIR = Path("/tmp/hansard_parsed")
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -24,21 +31,21 @@ from parsers import (
     hansard2021,
 )
 from tests.metrics import get_all_metrics
-from tests.metrics.base import MetricResult
+from tests.metrics.base import MetricResult, CountMetric, IssueMetric
 
 TESTS_DIR = Path(__file__).parent / "xml"
 
-# Map year ranges to parser modules
-PARSER_MAPPING = {
-    (1901, 1980): hansard1901,
-    (1981, 1991): hansard1981,
-    (1992, 1996): hansard1992,
-    (1997, 1997): hansard1997,
-    (1998, 1999): hansard1998,
-    (2000, 2011): hansard2000,
-    (2012, 2012): hansard2011,
-    (2012, 2021): hansard2012,
-    (2022, 2026): hansard2021,
+# Parser mapping from seed sources
+PARSER_BY_MODULE = {
+    "parsers.hansard1901": hansard1901,
+    "parsers.hansard1981": hansard1981,
+    "parsers.hansard1992": hansard1992,
+    "parsers.hansard1997": hansard1997,
+    "parsers.hansard1998": hansard1998,
+    "parsers.hansard2000": hansard2000,
+    "parsers.hansard2011": hansard2011,
+    "parsers.hansard2012": hansard2012,
+    "parsers.hansard2021": hansard2021,
 }
 
 
@@ -47,14 +54,73 @@ def get_all_test_files():
     return sorted(f for f in TESTS_DIR.glob("*.xml") if f.stem != "test" and not f.stem.endswith(".xml"))
 
 
-def get_parser_for_year(year):
-    """Get parser module for a given year."""
-    if year == "2025a":
-        return hansard2021
-    year = int(year)
-    for (start, end), parser in PARSER_MAPPING.items():
-        if start <= year <= end:
-            return parser
+def get_date_from_xml(file_path):
+    """Extract date from XML file."""
+    try:
+        tree = ET.parse(file_path)
+        root = tree.getroot()
+        date_elem = root.find(".//date")
+        if date_elem is not None and date_elem.text:
+            return datetime.datetime.strptime(date_elem.text, "%Y-%m-%d").date()
+    except Exception:
+        pass
+    return None
+
+
+def load_sources_from_seed():
+    """Load source date ranges from seed.py."""
+    # Read the seed.py file and extract sources
+    seed_path = Path(__file__).parent.parent / "scripts" / "seed.py"
+    with open(seed_path) as f:
+        content = f.read()
+    
+    # Parse sources from the file
+    sources = []
+    # Simple regex to extract id, parserModule, from_day, to_day
+    import re
+    pattern = r'"id":\s*(\d+).*?"parserModule":\s*"([^"]+)".*?"from_day":\s*"([^"]+)".*?"to_day":\s*"([^"]+)"'
+    matches = re.findall(pattern, content, re.DOTALL)
+    
+    for match in matches:
+        source_id, parser_module, from_day, to_day = match
+        from_date = datetime.datetime.strptime(from_day, "%Y-%m-%d").date()
+        to_date = datetime.datetime.strptime(to_day, "%Y-%m-%d").date()
+        parser = PARSER_BY_MODULE.get(parser_module)
+        if parser:
+            sources.append({
+                "id": int(source_id),
+                "from_date": from_date,
+                "to_date": to_date,
+                "parser": parser,
+            })
+    
+    return sorted(sources, key=lambda x: x["from_date"])
+
+
+# Load sources once
+SOURCES = load_sources_from_seed()
+
+
+def get_parser_for_file(test_file):
+    """Get parser module based on XML file date."""
+    # Get date from XML
+    file_date = get_date_from_xml(test_file)
+    if file_date is None:
+        # Fallback: try to use filename as year
+        try:
+            year_int = int(test_file.stem)
+            for source in SOURCES:
+                if source["from_date"].year <= year_int <= source["to_date"].year:
+                    return source["parser"]
+        except ValueError:
+            pass
+        return None
+    
+    # Find matching source by date range
+    for source in SOURCES:
+        if source["from_date"] <= file_date <= source["to_date"]:
+            return source["parser"]
+    
     return None
 
 
@@ -75,7 +141,7 @@ def generate_report():
     
     for test_file in test_files:
         year = test_file.stem
-        parser = get_parser_for_year(year)
+        parser = get_parser_for_file(test_file)
         
         report = {
             "year": year,
@@ -102,6 +168,12 @@ def generate_report():
                 results.append(report)
                 continue
             
+            # Save parsed result to file
+            PARSED_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            output_file = PARSED_OUTPUT_DIR / f"{year}.json"
+            with open(output_file, "w") as f:
+                json.dump(parsed_result, f, indent=2, ensure_ascii=False)
+            
             # Run each metric
             for metric_cls in metric_classes:
                 metric = metric_cls()
@@ -119,35 +191,10 @@ def generate_report():
     return results
 
 
-# Define which metrics are "counts" (basic stats) vs "issues" (problems to flag)
-COUNT_METRICS = [
-    "docs",
-    "speeches", 
-    "questions",
-    "answers",
-    "total_interjections",
-    "t1_speaker",
-    "t2_general",
-    "t3_office",
-    "t4_unrecorded",
-]
 
-ISSUE_METRICS = [
-    "empty_author",
-    "t1_empty_author",
-    "t2_empty_author",
-    "t3_empty_author",
-    "t4_empty_author",
-    "doc_no_author",
-    "titles_in_content",
-    "title_at_speech_start",
-    "title_at_ij_start",
-    "times_in_content",
-    "empty_text",
-    "non_office_keywords",
-    "bad_interjecting",
-    "raw_member_interjecting",
-]
+all_metrics = get_all_metrics()
+COUNT_METRICS = [m().name for m in all_metrics if issubclass(m, CountMetric)]
+ISSUE_METRICS = [m().name for m in all_metrics if issubclass(m, IssueMetric)]
 
 
 def print_report(results):

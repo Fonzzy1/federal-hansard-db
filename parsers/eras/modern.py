@@ -61,14 +61,29 @@ class SpeechExtractorModern(SpeechExtractor):
         # Only grab text from HPS-Normal spans
         if elem.tag.lower() == "span" and elem.get("class") in (
             "HPS-Normal",
-            "HPS-Small",
-            "HPS-MemberIInterjecting",
-            "HPS-GeneralIInterjecting",
+            "HPS-Small"
         ):
             parts = [elem.text] + [c.tail for c in elem]
             return "".join(p for p in parts if p).strip()
         for p in elem.getchildren():
             para_text = self._pull_paras(p)
+            if para_text:
+                texts.append(para_text)
+        return "\n".join(texts)
+
+    def _extract_description(self, elem):
+        """Pull text from span elements with specific HPS classes."""
+        texts = []
+        # Only grab text from HPS-Normal spans
+        if elem.tag.lower() == "span" and elem.get("class") in (
+            "HPS-MemberIInterjecting",
+            "HPS-GeneralIInterjecting",
+            "HPS-GeneralInterjecting",
+        ):
+            parts = [elem.text] + [c.tail for c in elem]
+            return "".join(p for p in parts if p).strip()
+        for p in elem.getchildren():
+            para_text = self._extract_description(p)
             if para_text:
                 texts.append(para_text)
         return "\n".join(texts)
