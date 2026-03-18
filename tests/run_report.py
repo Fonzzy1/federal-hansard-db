@@ -332,7 +332,7 @@ def print_report(results):
         print("ERRORS")
         print("=" * 80)
         for r in errors:
-            print(f"{r['year']}: {r['error'][:100]}")
+            print(f"{r['year']}: {r['error']}")
 
 
 def print_issue_details(results):
