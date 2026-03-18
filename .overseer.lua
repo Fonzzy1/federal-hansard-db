@@ -1,17 +1,4 @@
--- Source definitions matching scripts/seed.py
-local sources = {
-    { id = 1, name = "Hansard 1901-1980" },
-    { id = 2, name = "Hansard 1981-1991" },
-    { id = 3, name = "Hansard 1992-1996" },
-    { id = 4, name = "Hansard 1997" },
-    { id = 5, name = "Hansard 1998-1999" },
-    { id = 6, name = "Hansard 2000-2011" },
-    { id = 7, name = "Hansard 2011" },
-    { id = 8, name = "Hansard 2012-2021" },
-    { id = 9, name = "Hansard 2021-Present" },
-}
-
-local tasks = {
+return {
     {
         name = "Up DB",
         builder = function(_)
@@ -70,6 +57,28 @@ local tasks = {
     },
 
     {
+        name = "Reparse Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--reparse", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
+        name = "Update Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
         name = "Reset DB",
         builder = function(_)
             return {
@@ -105,28 +114,3 @@ local tasks = {
         end,
     },
 }
-
--- Generate Update and Reparse tasks for each source
-for _, source in ipairs(sources) do
-    table.insert(tasks, {
-        name = "Update " .. source.name,
-        builder = function(_)
-            return {
-                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--source-id", tostring(source.id) },
-                components = { "default" },
-            }
-        end,
-    })
-
-    table.insert(tasks, {
-        name = "Reparse " .. source.name,
-        builder = function(_)
-            return {
-                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--reparse", "--source-id", tostring(source.id) },
-                components = { "default" },
-            }
-        end,
-    })
-end
-
-return tasks
