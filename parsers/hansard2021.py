@@ -106,14 +106,11 @@ class SpeechExtractor2021(SpeechExtractorModern):
         if t == "HPS-OfficeContinuation":
             return "office"
         if t == "HPS-GeneralIInterjecting":
-            if et_elem.attrib.get("href"):
-                return "unrecorded"
-            else:
                 return "general"
         if t == "HPS-MemberIInterjecting":
-            return 'unrecorded'
+            return 'general'
         if t == "HPS-GeneralInterjecting":
-            return "unattributed"
+            return "general"
         if t == "HPS-MemberInterjecting":
             member_text = ""
             name_spans = et_elem.xpath(

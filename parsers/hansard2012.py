@@ -31,11 +31,11 @@ class SpeechExtractor2012(SpeechExtractorModern):
         if t == "HPS-OfficeContinuation":
             return "office"
         if t == "HPS-MemberIInterjecting":
-            return "unrecorded"
+            return "general"
         if t == "HPS-GeneralIInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":
-            return "unattributed"
+            return "general"
         if t == "HPS-GeneralInterjecting":
             return "general"
         if t == "HPS-MemberInterjecting":

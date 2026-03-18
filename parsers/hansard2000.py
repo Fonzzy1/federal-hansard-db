@@ -28,27 +28,15 @@ class SpeechExtractor2000(SpeechExtractorMassDigitisation):
         # Has a talk.start element but no para (actual text) within it
         talk_start = et_elem.find(".//talk.start")
         if talk_start is not None:
-            # If there's no para element within talk.start, it's unrecorded
+            # If there's no para element within talk.start, it's a general
             para = talk_start.find("para")
             if para is None:
-                return "unrecorded"
-            text, desc = self._extract_text_and_description(et_elem)
-            text_clean = self._clean_text(text)
-            desc_clean = self._clean_text(desc)
-            if text_clean:
-                return 'speaker'
-            elif desc_clean:
-                return 'unrecorded'
-           
+                return "general"
+            else:
+                return "speaker"
+        
+        # If we grabed a para elelemtn - then its going to be genral
         if et_elem.tag.lower() == 'para':
-            text, desc = self._extract_text_and_description(et_elem)
-
-            # Remove punctuation and whitespace before checking
-            text_clean = self._clean_text(text)
-            desc_clean = self._clean_text(desc)
-            if text_clean and desc_clean:
-                return 'unattributed'
-            elif desc_clean:
                 return 'general'
             
         # Otherwise, use the 1998 logic

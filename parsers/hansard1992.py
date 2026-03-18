@@ -28,6 +28,7 @@ class SpeechExtractor1992(SpeechExtractorEarlyDigital):
         # Else, check if this is a PARA with a bold procedural keyword
         if et_elem.tag.lower() == "para":
             child = et_elem.find(".//emphasis")
+            ## TODO again check the bolding thingo
             if child is not None:
                 if (
                     child.attrib.get("font-weight", "") == "BOLD"
@@ -38,7 +39,7 @@ class SpeechExtractor1992(SpeechExtractorEarlyDigital):
                     child.attrib.get("font-slant", "") == "ITAL"
                     and child.text is not None
                 ):
-                    return self._check_if_general_or_unrecorded(et_elem)
+                    return "general"
 
 
 

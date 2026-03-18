@@ -56,6 +56,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         # uppercase
         if et_elem.tag.lower() == "para":
             child = et_elem.find(".//emphasis")
+            ## TODO bring out to later elements
             if child is not None:
                 if (
                     child.attrib.get("font-weight", "") == "BOLD"
@@ -93,16 +94,6 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                         return True
 
         return False
-
-    def _interjection_type(self, et_elem):
-        if et_elem.get("chair") == "1":
-            return "office"
-        
-        # Para elements with "interjecting" are always general interjections
-        if et_elem.tag.lower() == "para":
-            return self._check_if_general_or_unrecorded(et_elem)
-
-        return "speaker"
 
 
     def _extract_talker(self, elem):
@@ -147,11 +138,4 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         return text
 
 
-    def _check_if_general_or_unrecorded(self,elem):
-        para_text = "".join(t.strip() for t in elem.itertext())
-        para_text = para_text.translate(str.maketrans("", "", "—\"':,.!?"))
-        words = para_text.split()
-        if any(w.lower() in ("mr", "mrs", "ms", "miss", "dr", "senator", "speaker", "madam", "chairman") for w in words):
-            return "unrecorded"
-        return "general"
 

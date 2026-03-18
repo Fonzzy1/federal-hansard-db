@@ -59,17 +59,16 @@ class SpeechExtractor2011(SpeechExtractorModern):
         if t == "HPS-MemberSpeech":
             return "office"
         if t == "HPS-MemberIInterjecting":
-            return "unrecorded"
+            return "general"
         if t == "HPS-GeneralIInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":
-            return "unattributed"
+            return "general"
         if t == "HPS-MemberInterjecting":
             if a_element.getparent().get("href"):
                 return "speaker"
             else:
                 return "general"
-
         if t == "HPS-GeneralInterjecting":
             return "general"
 

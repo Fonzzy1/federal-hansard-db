@@ -200,67 +200,10 @@ class SpeechExtractor:
     def _extract_talker(self, elem):
         raise FailedTalkerExtractionException(elem)
 
-    def _extract_text_and_description(self, elem):
-        """Extract text and description from para elements.
-        
-        Description exists only at the start of the first para if:
-        - The para has class="italic", OR
-        - There's no text before the first child AND first child is inline italic
-        """
-
-        
-        # Get list of paras to cheok
-        if elem.tag.lower() in ("para", "p"):
-            paras = [elem]
-        
-        else:
-            paras = elem.findall(".//para") or elem.findall(".//p")
-        
-        if not paras:
-            return "", ""
-        
-        first_para = paras[0]
-        
-        # Case 1: para has class="italic" → all is description
-        if first_para.attrib.get("class") == "italic":
-            description = "".join(first_para.itertext()).strip()
-            return "", description
-        
-        # Case 2: Check if first child is italic with NO text before it
-        # elem.text is the text before the first child element
-        has_text_before = first_para.text and first_para.text.strip()
-        
-        if not has_text_before:
-            # Find first element child that is emphasis or inline
-            first_child = None
-            for child in first_para:
-                if child.tag in ('emphasis', 'inline'):
-                    first_child = child
-                    break
-            
-            if first_child is not None and hasattr(first_child, 'tag') and is_italic(first_child): # First child is italic with no text before → it's a description
-                description = "".join(first_child.itertext()).strip()
-                # Get all text excluding the italic
-                all_text = re.sub(r"\s+", " ", "".join(first_para.itertext())).strip()
-                text = all_text.replace(description, "", 1).strip()
-                return text, description
-        
-        # No description found - all content is text
-        all_texts = []
-        for para in paras:
-            para_text = re.sub(r"\s+", " ", "".join(para.itertext())).strip()
-            if para_text:
-                all_texts.append(para_text)
-        
-        return " ".join(all_texts), ""
 
     def _pull_paras(self, elem):
-        text, _ = self._extract_text_and_description(elem)
+        text = "".join(elem.itertext())
         return text
-
-    def _extract_description(self, elem):
-        _, description = self._extract_text_and_description(elem)
-        return description
 
     def _is_interjection_element(self, et_elem):
         """
@@ -272,10 +215,8 @@ class SpeechExtractor:
         """
         speaker - there is a member of parliament who said the interjection
         office - the speaker, president, or clerk, made the interjection
-        general - the interjection is not attribuited to a specific speaker
-        unrecorded - the interjection is attributed, but the actual speech is
-        not recorded
-        unattributed - there is text, but no definitive author attribution
+        general - the interjection is not complete and is more of a description
+        of an interjection rather than a recorded one. 
         """
 
         raise FailedInterjectionTypeAssingment(et_elem)
@@ -285,10 +226,10 @@ class SpeechExtractor:
         Returns:
           0 - not an interjection
              1 - speaker - there is a member of parliament who said the interjection
-             2 - general - the interjection is not attribuited to a specific speaker
+             2 - general - the interjection is not complete - either attributed
+             but we don't know what is said, or not atributed. These
+             interjections often include stage directions within the text
              3 - office - the speaker, president, or clerk, made the interjection
-             4 - unrecorded - the interjection is attributed, but the actual speech is not recorded
-             5 - unattributed - there is text, but no definitive author attribution
         """
         if not self._is_interjection_element(et_elem):
             return 0
@@ -300,10 +241,6 @@ class SpeechExtractor:
                 return 2
             elif t == "office":
                 return 3
-            elif t == "unrecorded":
-                return 4
-            elif t == "unattributed":
-                return 5
             else:
                 raise FailedInterjectionTypeAssingment(et_elem)
 
@@ -324,8 +261,6 @@ class SpeechExtractor:
     def _extract_text(
         self,
         elem,
-        record_office_interjector=False,
-        record_unrecored_interjector=False,
     ):
         # Simplest format
         children = self._get_speech_element_children(elem)
@@ -337,23 +272,15 @@ class SpeechExtractor:
             # Collect all consecutive interjections
             if interject_type:
                 key = f"INTERJECTION{interj_count:02d}"
-                if interject_type == 1:
-                    author = self._extract_talker(child)
-                elif record_office_interjector and interject_type == 3:
-                    author = self._extract_talker(child)
-                elif record_unrecored_interjector and interject_type == 4:
-                    author = self._extract_talker(child)
-                elif interject_type == 3:
+                author = self._extract_talker(child)
+                if interject_type == 3 and author == "":
                     author = "10000"
-                else:
-                    author = ""
                 interjections.append(
                     {
                         "text": self._clean_text(self._pull_paras(child)),
                         "author": author,
                         "sequence": interj_count,
                         "type": interject_type,
-                        "description": self._clean_text(self._extract_description(child))
                     }
                 )
                 out_text.append(f"[{key}]")
@@ -453,29 +380,6 @@ class HansardExtractor:
                     raw_chambers["answers.to.questions"].append(element)
             else:
                 raw_chambers["chamber"].append(element)
-
-        # # Special check for qeustions on notice
-        # main_element = raw_chambers.get("chamber")
-        # if main_element is not None:
-        #     debates = [
-        #         x for x in list(main_element) if x.tag.lower() == "debate"
-        #     ]
-        #     for element in debates:
-        #         debate_info = element.find("debateinfo")
-        #         if (
-        #             debate_info is not None
-        #             and debate_info.findtext("type")
-        #             and "notice" in debate_info.findtext("type").lower()
-        #             and "answer" in debate_info.findtext("type").lower()
-        #         ):
-        #             raw_chambers["chamber"].remove(element)
-        #             if "answers.to.questions" in raw_chambers.keys():
-        #                 raw_chambers["answers.to.questions"].append(element)
-        #             else:
-        #                 raw_chambers["answers.to.questions"] = ET.Element(
-        #                     "answers.to.questions"
-        #                 )
-        #                 raw_chambers["answers.to.questions"].append(element)
 
         return raw_chambers
 
