@@ -12,12 +12,7 @@ class SpeechExtractor1981(SpeechExtractorEarlyDigital):
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
 
-    def _extract_talker(self, elem):
-        result = elem.get("nameid")
-        if result:
-            return result
-        else:
-            return ""
+
 
     def _is_interjection_element(self, et_elem):
         """
@@ -38,19 +33,6 @@ class SpeechExtractor1981(SpeechExtractorEarlyDigital):
         
         return False
 
-    def _interjection_type(self, et_elem):
-        if et_elem.get("chair") == "1":
-            return "office"
-        
-        # Para elements with "interjecting" are always general interjections
-        if et_elem.tag.lower() == "para":
-            para_text = "".join(t.strip() for t in et_elem.itertext())
-            para_text = para_text.translate(str.maketrans("", "", "—\"':,.!?"))
-            words = para_text.split()
-            if len(words) < 5 and any("interject" in w.lower() for w in words):
-                return "general"
-        
-        return "speaker"
 
 
 def parse(file_text):

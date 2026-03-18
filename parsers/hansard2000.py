@@ -6,6 +6,8 @@ from parsers.hansard_base_model import (
 from parsers.eras import SpeechExtractorMassDigitisation
 from parsers.errors import *
 
+import string
+
 
 class SpeechExtractor2000(SpeechExtractorMassDigitisation):
     """
@@ -19,8 +21,6 @@ class SpeechExtractor2000(SpeechExtractorMassDigitisation):
             self.root, record_office_interjector=True,
             record_unrecored_interjector=True
         )
-
-
         return author, interjections, text
 
     def _interjection_type(self, et_elem):
@@ -32,17 +32,25 @@ class SpeechExtractor2000(SpeechExtractorMassDigitisation):
             para = talk_start.find("para")
             if para is None:
                 return "unrecorded"
-            
-            # If the only content is in an italic inline block, it's unrecorded
-            # e.g., <para><inline font-style="italic">Senator Abetz interjecting—</inline></para>
-            inline_italic = para.find("inline[@font-style='italic']")
-            if inline_italic is not None:
-                # Check if this is the only content (no other text)
-                para_text = "".join(para.itertext()).strip()
-                italic_text = "".join(inline_italic.itertext()).strip()
-                if para_text == italic_text:
-                    return "unrecorded"
+            text, desc = self._extract_text_and_description(et_elem)
+            text_clean = self._clean_text(text)
+            desc_clean = self._clean_text(desc)
+            if text_clean:
+                return 'speaker'
+            elif desc_clean:
+                return 'unrecorded'
+           
+        if et_elem.tag.lower() == 'para':
+            text, desc = self._extract_text_and_description(et_elem)
 
+            # Remove punctuation and whitespace before checking
+            text_clean = self._clean_text(text)
+            desc_clean = self._clean_text(desc)
+            if text_clean and desc_clean:
+                return 'unattributed'
+            elif desc_clean:
+                return 'general'
+            
         # Otherwise, use the 1998 logic
         return super()._interjection_type(et_elem)
 

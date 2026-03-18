@@ -13,19 +13,10 @@ import re
 
 class SpeechExtractor2012(SpeechExtractorModern):
 
-    def __init__(self, element):
-        super().__init__(element)
-        self.name_to_href = {}
-
-
-
-
-
     def _interjection_type(self, et_elem):
         a_element = self._get_a_element(et_elem)
         if  a_element is None:
             return False
-
 
         t = a_element.get("class")
 

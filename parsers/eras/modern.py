@@ -20,9 +20,10 @@ class SpeechExtractorModern(SpeechExtractor):
     Contains common logic shared by parsers in this period.
     """
 
-    def __init__(self, element):
+    def __init__(self, element, parliament=None):
         super().__init__(element)
         self.name_to_href = {}
+        self.parliament = parliament
 
     def _is_interjection_element(self, et_elem):
         """
@@ -111,7 +112,7 @@ class SpeechExtractorModern(SpeechExtractor):
         interjections, text = self._extract_text(
             self.root,
             record_office_interjector=True,
-            record_unrecored_interjector=False,
+            record_unrecored_interjector=True,
         )
 
         # Dirty fix for when the whole thing is an 'interjection'
@@ -134,14 +135,12 @@ class SpeechExtractorModern(SpeechExtractor):
         if result is not None:
             if result.text:
                 return result.text
-            else:
-                return ""
 
         # case when we are getting a inline general inerjection
         if elem.tag.lower() == "a" and elem.get("href"):
             return elem.get("href")
 
-        # Case when we are looking at interjections
+       # Case when we are looking at interjections
         a_element = elem.find("./span/a")
         if a_element is not None and a_element.get("href"):
             href = a_element.get("href")
@@ -161,6 +160,32 @@ class SpeechExtractorModern(SpeechExtractor):
                 potential_id = self.name_to_href.get(name_text)
                 if potential_id:
                     return potential_id
+
+        # For type 4 (unrecorded) interjections, use name + parliament as author
+        if self._interjection_flag(elem) == 4:
+            span_text = elem.find(".//span[@class='HPS-MemberIInterjecting']")
+            if span_text is not None and span_text.text:
+                # Extract name and remove titles
+                name = span_text.text.strip()
+                name = name.replace("interjecting", "").strip()
+                # Remove common title prefixes
+                title_prefixes = [
+                    "Senator ", "Senator", "Mr ", "Mr", "Mrs ", "Mrs",
+                    "Ms ", "Ms", "Dr ", "Dr", "Hon ", "Hon",
+                    "The Hon. ", "The Hon.", "President ", "President",
+                    "Mr. ", "Ms. ", "Mrs. ", "Dr. "
+                ]
+                for prefix in title_prefixes:
+                    if name.lower().startswith(prefix.lower()):
+                        name = name[len(prefix):]
+                        break
+                # Use name + parliament number (lowercase)
+                parliament = getattr(self, 'parliament', None)
+                if parliament:
+                    return f"{name.lower()}@{parliament}"
+                return ""
+
+ 
         # Finally if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:

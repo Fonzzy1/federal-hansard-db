@@ -11,11 +11,6 @@ from parsers.errors import *
 
 class SpeechExtractor2021(SpeechExtractorModern):
 
-    def __init__(self, element):
-        super().__init__(element)
-        self.name_to_href = {}
-
-
     def extract(self):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(

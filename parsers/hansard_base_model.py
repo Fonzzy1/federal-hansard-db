@@ -3,14 +3,16 @@ import re
 from lxml import html
 import lxml.etree as ET
 from parsers.errors import *
+import re
 
 
 class ChamberSpeechExtractor:
 
-    def __init__(self, element, date, speech_parsing_class):
+    def __init__(self, element, date, speech_parsing_class, parliament=None):
         self.speech_parsing_class = speech_parsing_class
         self.root = element
         self.date = date
+        self.parliament = parliament
 
         # Build child → parent map
         self.parent_map = {
@@ -81,10 +83,10 @@ class ChamberSpeechExtractor:
             if elem["type"] == "question" and "answer" in elem.keys():
                 title = self._get_debate_info(elem["question"])
                 q_author, q_interjections, q_text = self.speech_parsing_class(
-                    elem["question"]
+                    elem["question"], parliament = self.parliament
                 ).extract()
                 a_author, a_interjections, a_text = self.speech_parsing_class(
-                    elem["answer"]
+                    elem["answer"], parliament = self.parliament
                 ).extract()
                 entry = {
                     "type": "question",
@@ -101,10 +103,33 @@ class ChamberSpeechExtractor:
                     },
                 }
                 results.append(entry)
+            elif elem["type"] == "question" and "answer" in elem.keys():
+                # Question with answer - need to set parliament before calling extract
+                q_extractor = self.speech_parsing_class(elem["question"],parliament = self.parliament)
+                q_author, q_interjections, q_text = q_extractor.extract()
+                
+                a_extractor = self.speech_parsing_class(elem["answer"],parliament = self.parliament)
+                a_author, a_interjections, a_text = a_extractor.extract()
+                
+                entry = {
+                    "type": "question",
+                    "interjections": q_interjections,
+                    "text": q_text,
+                    "author": q_author,
+                    "title": self._get_debate_info(elem["question"]),
+                    "answer": {
+                        "type": "answer",
+                        "author": a_author,
+                        "text": a_text,
+                        "interjections": a_interjections,
+                        "title": self._get_debate_info(elem["question"]),
+                    },
+                }
+                results.append(entry)
             elif elem["type"] == "question" and "answer" not in elem.keys():
-                q_author, q_interjections, q_text = self.speech_parsing_class(
-                    elem["question"]
-                ).extract()
+                q_extractor = self.speech_parsing_class(elem["question"],parliament = self.parliament)
+                q_extractor.parliament = self.parliament
+                q_author, q_interjections, q_text = q_extractor.extract()
 
                 entry = {
                     "type": "question",
@@ -116,9 +141,11 @@ class ChamberSpeechExtractor:
                 results.append(entry)
 
             elif elem["type"] in ["answer", "speech"]:
-                author, interjections, text = self.speech_parsing_class(
-                    elem["element"]
-                ).extract()
+                speech_extractor = self.speech_parsing_class(elem["element"],
+                                                             parliament =
+                                                             self.parliament)
+                speech_extractor.parliament = self.parliament
+                author, interjections, text = speech_extractor.extract()
                 entry = {
                     "type": elem["type"],
                     "author": author,
@@ -161,8 +188,9 @@ class ChamberSpeechExtractor:
 
 
 class SpeechExtractor:
-    def __init__(self, element):
+    def __init__(self, element, parliament = None):
         self.root = element
+        self.parliament = parliament
 
     def extract(self):
         author = self._extract_talker(self.root)
@@ -172,21 +200,72 @@ class SpeechExtractor:
     def _extract_talker(self, elem):
         raise FailedTalkerExtractionException(elem)
 
-    def _pull_paras(self, elem):
-        texts = []
-        if elem.tag.lower() in ("p", "para"):
-            return re.sub(r"\s+", " ", "".join(elem.itertext())).strip()
-        for p in elem.getchildren():
-            para_text = self._pull_paras(p)
+    def _extract_text_and_description(self, elem):
+        """Extract text and description from para elements.
+        
+        Description exists only at the start of the first para if:
+        - The para has class="italic", OR
+        - There's no text before the first child AND first child is inline italic
+        """
+
+        
+        # Get list of paras to cheok
+        if elem.tag.lower() in ("para", "p"):
+            paras = [elem]
+        
+        else:
+            paras = elem.findall(".//para") or elem.findall(".//p")
+        
+        if not paras:
+            return "", ""
+        
+        first_para = paras[0]
+        
+        # Case 1: para has class="italic" → all is description
+        if first_para.attrib.get("class") == "italic":
+            description = "".join(first_para.itertext()).strip()
+            return "", description
+        
+        # Case 2: Check if first child is italic with NO text before it
+        # elem.text is the text before the first child element
+        has_text_before = first_para.text and first_para.text.strip()
+        
+        if not has_text_before:
+            # Find first element child that is emphasis or inline
+            first_child = None
+            for child in first_para:
+                if child.tag in ('emphasis', 'inline'):
+                    first_child = child
+                    break
+            
+            if first_child is not None and hasattr(first_child, 'tag') and is_italic(first_child): # First child is italic with no text before → it's a description
+                description = "".join(first_child.itertext()).strip()
+                # Get all text excluding the italic
+                all_text = re.sub(r"\s+", " ", "".join(first_para.itertext())).strip()
+                text = all_text.replace(description, "", 1).strip()
+                return text, description
+        
+        # No description found - all content is text
+        all_texts = []
+        for para in paras:
+            para_text = re.sub(r"\s+", " ", "".join(para.itertext())).strip()
             if para_text:
-                texts.append(para_text)
-        return "\n".join(texts)
+                all_texts.append(para_text)
+        
+        return " ".join(all_texts), ""
+
+    def _pull_paras(self, elem):
+        text, _ = self._extract_text_and_description(elem)
+        return text
+
+    def _extract_description(self, elem):
+        _, description = self._extract_text_and_description(elem)
+        return description
 
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
         """
-
         return False
 
     def _interjection_type(self, et_elem):
@@ -274,7 +353,7 @@ class SpeechExtractor:
                         "author": author,
                         "sequence": interj_count,
                         "type": interject_type,
-                        "description": self._extract_description(child)
+                        "description": self._clean_text(self._extract_description(child))
                     }
                 )
                 out_text.append(f"[{key}]")
@@ -290,9 +369,6 @@ class SpeechExtractor:
         # Remove all leading non-alphanumeric characters except [ 
         text = re.sub(r"^[^a-zA-Z0-9[]+", "", text)
         return text.strip()
-
-    def _extract_description(self,elem):
-        return ""
 
 
 def print_tag_tree(element, max_depth, indent=0):
@@ -333,12 +409,14 @@ class HansardExtractor:
     def extract(self):
         chambers = self._get_distinct_chambers()
         info_dict = self.get_session_info()
+        parliament = info_dict.get("parliament")
         return_list = [info_dict.copy() for _ in chambers]
         for i, (k, v) in enumerate(chambers.items()):
             parser = self.chamber_parsing_class(
                 v,
                 info_dict["date"],
                 speech_parsing_class=self.speech_parsing_class,
+                parliament=parliament,
             )
             try:
                 docs = parser.extract()
@@ -468,6 +546,7 @@ class HansardExtractor:
 
         # Remove all break elements
         string = re.sub(r"<BREAK[^>]*>", "", string, flags=re.IGNORECASE)
+        string = re.sub(r"<TAB[^>]*>", "", string, flags=re.IGNORECASE)
 
         # Step 4: Parse using forgiving HTML parser
         try:
@@ -511,3 +590,11 @@ class HansardExtractor:
 
         # If no valid date found, raise an error
         raise ValueError("No valid session date found in the XML.")
+
+def is_italic(el):
+    if el.tag == "inline":
+        return (  el.attrib.get("font-weight") == "bold" or el.attrib.get("font-style") == "italic" or el.attrib.get("class") == "italic")
+    elif el.tag.lower()== 'emphasis':
+       return el.attrib.get('font-slant') == "ITAL"
+    else:
+       return False

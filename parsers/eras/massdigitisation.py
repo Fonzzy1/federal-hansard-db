@@ -59,6 +59,8 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return "10000"
         return ""
 
+
+ 
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
@@ -77,7 +79,11 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         if et_elem.tag.lower() == 'para':
             child = et_elem.find("./inline")
             if child is not None:
-                if (
+                if child.attrib.get("font-weight", "") == "bold":
+                    has_text_before = et_elem.text and et_elem.text.strip()
+                    if not has_text_before:
+                        return True
+                elif (
                     child.attrib.get("font-style", "") == "italic"
                     and child.text is not None
                 ):
@@ -104,7 +110,9 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             ):
                 return True
 
-        return False
+        else:
+            return False
+
 
     def _interjection_type(self, et_elem):
         """Determine the type of interjection."""
@@ -125,6 +133,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return "general"
         else:
             return "speaker"
+
 
 
     def _clean_text(self, text):
@@ -161,3 +170,6 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         
         return text
 
+
+
+    

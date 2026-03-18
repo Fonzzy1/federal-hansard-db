@@ -50,29 +50,89 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         """
         Returns True if the element is an interjection, otherwise False.
         """
-        # Check element tag
         if et_elem.tag.lower() in {"interject", "interjection"}:
             return True
+        # 2. Tag is PARA and has a bold EMPHASIS with procedural keywords in
+        # uppercase
+        if et_elem.tag.lower() == "para":
+            child = et_elem.find(".//emphasis")
+            if child is not None:
+                if (
+                    child.attrib.get("font-weight", "") == "BOLD"
+                    and child.text is not None
+                ):
+                    if (
+                        "CHAIR" in child.text
+                        or "PRESIDENT" in child.text
+                        or "SPEAKER" in child.text
+                        or "CLERK" in child.text
+                    ):
+                        return True
+                elif (
+                    child.attrib.get("font-slant", "") == "ITAL"
+                    and child.text is not None
+                ):
+                    # Check if the whole thing is in italics - indicates general
+                    # interjection
+
+                    para_text = "".join(t.strip() for t in et_elem.itertext())
+                    para_text = para_text.translate(
+                        str.maketrans("", "", string.punctuation)
+                    )
+
+                    emph_text = "".join(t.strip() for t in child.itertext())
+                    emph_text = emph_text.translate(
+                        str.maketrans("", "", string.punctuation)
+                    )
+                    # If all text is inside the emphasis element, the texts should match
+                    if (
+                        para_text == emph_text
+                        and para_text != ""
+                        and "interject" in para_text.lower()
+                    ):
+                        return True
+
         return False
 
     def _interjection_type(self, et_elem):
-        """Determine the type of interjection."""
         if et_elem.get("chair") == "1":
             return "office"
+        
+        # Para elements with "interjecting" are always general interjections
+        if et_elem.tag.lower() == "para":
+            return self._check_if_general_or_unrecorded(et_elem)
+
         return "speaker"
 
-    def _interjection_type_with_general(self, et_elem):
-        """Determine the type of interjection including general type."""
-        if et_elem.get("chair") == "1":
-            return "office"
-        return "speaker"
 
     def _extract_talker(self, elem):
-        """Extract talker from nameid attribute."""
-        result = elem.get("nameid")
+        result = elem.get("nameid", None)
         if result:
             return result
+        # for type 4 (unrecorded) interjections, use name + parliament as author
+        if self._interjection_flag(elem) == 4:
+            span_text = "".join(elem.text.itertext())
+            # extract name and remove titles
+            name = span_text.strip()
+            name = name.replace("interjecting", "").strip()
+            # remove all punctuation
+            name = name.translate(str.maketrans("", "", "—\"':,.!?-()"))
+            # remove common title prefixes
+            title_prefixes = [
+                "senator ", "senator", "mr ", "mr", "mrs ", "mrs",
+                "ms ", "ms", "dr ", "dr", "hon ", "hon",
+                "the hon. ", "the hon.", "president ", "president",
+                "mr. ", "ms. ", "mrs. ", "dr. "
+            ]
+            for prefix in title_prefixes:
+                if name.lower().startswith(prefix.lower()):
+                    name = name[len(prefix):]
+                    break
+            # use name + parliament number (lowercase)
+            return f"{name.lower()}@{self.parliament}"
+
         return ""
+
 
     def _clean_text(self, text):
 
@@ -106,3 +166,13 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         text = super()._clean_text(text)
         
         return text
+
+
+    def _check_if_general_or_unrecorded(self,elem):
+        para_text = "".join(t.strip() for t in elem.itertext())
+        para_text = para_text.translate(str.maketrans("", "", "—\"':,.!?"))
+        words = para_text.split()
+        if any(w.lower() in ("mr", "mrs", "ms", "miss", "dr", "senator", "speaker", "madam", "chairman") for w in words):
+            return "unrecorded"
+        return "general"
+

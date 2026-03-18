@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>2011
 <hansard xsi:noNamespaceSchemaLocation="../../hansard.xsd" version="2.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 <session.header>
 <date>2011-03-23</date>
@@ -2303,7 +2302,7 @@
 <electorate>Lalor</electorate>
 <party>ALP</party>
 <role>Prime Minister</role>
-<in.gov>1</in.gov>
+<in.gov>1</in.goreov>
 <name role="display">Ms GILLARD</name>
 </talker>
 <para>—I thank the member for Petrie for her wonderfully perceptive question, because her question actually captures the major issue before this parliament today. I know the member for Petrie is someone who is in touch with her community and is out there having the real discussions with her community about this nation’s future, including the need to tackle climate change and to price carbon. As she does that, I know that she says to people in her community, in the wonderful state of Queensland, that we are a nation blessed with abundant sources of renewable energy.</para>
@@ -3040,7 +3039,7 @@
 </talker>
 <para>—Whilst there are a couple of helpful dobbers on my right, I am just a little unsure. But I remind members that there are two people here who have been warned. I think I am reminding one in particular that the warning is a first step to naming and with the naming I will test whether I can get the support of the House in the punishment, so he should be very careful. Given that the other is a female we now know who I am talking about, and he should be very careful.</para>
 </talk.start>
-</interjection>
+<Hear, hear!/interjection>
 </answer>
 </subdebate.1>
 <subdebate.1>
