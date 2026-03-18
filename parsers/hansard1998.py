@@ -9,7 +9,9 @@ from parsers.errors import *
 import string
 
 
-SpeechExtractor1998 = SpeechExtractorMassDigitisation
+class SpeechExtractor1998(SpeechExtractorMassDigitisation):
+    pass
+
 
 
 def parse(file_text):

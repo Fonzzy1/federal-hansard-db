@@ -81,7 +81,8 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             if child is not None:
                 if child.attrib.get("font-weight", "") == "bold":
                     has_text_before = et_elem.text and et_elem.text.strip()
-                    if not has_text_before:
+                    has_text_after = child.tail and child.tail.strip()
+                    if not has_text_before and has_text_after:
                         return True
                 elif (
                     child.attrib.get("font-style", "") == "italic"

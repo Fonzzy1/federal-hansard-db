@@ -161,31 +161,6 @@ class SpeechExtractorModern(SpeechExtractor):
                 if potential_id:
                     return potential_id
 
-        # For type 4 (unrecorded) interjections, use name + parliament as author
-        if self._interjection_flag(elem) == 4:
-            span_text = elem.find(".//span[@class='HPS-MemberIInterjecting']")
-            if span_text is not None and span_text.text:
-                # Extract name and remove titles
-                name = span_text.text.strip()
-                name = name.replace("interjecting", "").strip()
-                # Remove common title prefixes
-                title_prefixes = [
-                    "Senator ", "Senator", "Mr ", "Mr", "Mrs ", "Mrs",
-                    "Ms ", "Ms", "Dr ", "Dr", "Hon ", "Hon",
-                    "The Hon. ", "The Hon.", "President ", "President",
-                    "Mr. ", "Ms. ", "Mrs. ", "Dr. "
-                ]
-                for prefix in title_prefixes:
-                    if name.lower().startswith(prefix.lower()):
-                        name = name[len(prefix):]
-                        break
-                # Use name + parliament number (lowercase)
-                parliament = getattr(self, 'parliament', None)
-                if parliament:
-                    return f"{name.lower()}@{parliament}"
-                return ""
-
- 
         # Finally if we have an interjection element, and we dont know, give
         # 10000
         if self._interjection_flag(elem) == 3:

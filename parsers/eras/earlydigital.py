@@ -33,7 +33,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                 subchildren = child.getchildren()
                 for sub in subchildren:
                     # Only move para elements that are interjections with content
-                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub) and self._interjection_flag != 3:
                         # Check that the para has meaningful text content
                         sub_text = "".join(sub.itertext()).strip()
                         if sub_text:  # Only move if there's actual content
@@ -110,27 +110,6 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         if result:
             return result
         # for type 4 (unrecorded) interjections, use name + parliament as author
-        if self._interjection_flag(elem) == 4:
-            span_text = "".join(elem.text.itertext())
-            # extract name and remove titles
-            name = span_text.strip()
-            name = name.replace("interjecting", "").strip()
-            # remove all punctuation
-            name = name.translate(str.maketrans("", "", "—\"':,.!?-()"))
-            # remove common title prefixes
-            title_prefixes = [
-                "senator ", "senator", "mr ", "mr", "mrs ", "mrs",
-                "ms ", "ms", "dr ", "dr", "hon ", "hon",
-                "the hon. ", "the hon.", "president ", "president",
-                "mr. ", "ms. ", "mrs. ", "dr. "
-            ]
-            for prefix in title_prefixes:
-                if name.lower().startswith(prefix.lower()):
-                    name = name[len(prefix):]
-                    break
-            # use name + parliament number (lowercase)
-            return f"{name.lower()}@{self.parliament}"
-
         return ""
 
 

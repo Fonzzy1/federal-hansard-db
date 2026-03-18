@@ -68,8 +68,8 @@ class InterjectionStructureMetric(IssueMetric):
             
             elif ij_type == 4:
                 # Type 4: should have author, might have description, no text
-                if not author:
-                    issues.append({**ij, "issue": "Type 4 missing author"})
+                if not author and not description:
+                    issues.append({**ij, "issue": "Type 4 missing author/description"})
                 if text:
                     issues.append({**ij, "issue": "Type 4 should not have text"})
 
