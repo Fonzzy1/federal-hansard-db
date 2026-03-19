@@ -14,16 +14,26 @@ class SpeechExtractor:
     def _extract_talker(self, elem):
         raise FailedTalkerExtractionException(elem)
 
-
     def _pull_paras(self, elem):
+        text = "".join(elem.itertext())
+        return text
+
+
+    def _extract_inline_talker(self, elem):
+        raise FailedTalkerExtractionException(elem)
+
+    def _pull_inline_paras(self, elem):
         text = "".join(elem.itertext())
         return text
 
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
+        The second element tells us if ther interjection is inline - or has a
+        lot of information that can be parsed similarly to a speech
         """
-        return False
+        return False, False
+
 
     def _interjection_type(self, et_elem):
         """
@@ -35,6 +45,18 @@ class SpeechExtractor:
 
         raise FailedInterjectionTypeAssingment(et_elem)
 
+    def interjection_type_inline(self,et_elem):
+
+        """
+        speaker - there is a member of parliament who said the interjection
+        office - the speaker, president, or clerk, made the interjection
+        general - the interjection is not complete and is more of a description
+        of an interjection rather than a recorded one. 
+        """
+
+        raise FailedInterjectionTypeAssingment(et_elem)
+
+
     def _interjection_flag(self, et_elem):
         """
         Returns:
@@ -45,16 +67,20 @@ class SpeechExtractor:
              interjections often include stage directions within the text
              3 - office - the speaker, president, or clerk, made the interjection
         """
-        if not self._is_interjection_element(et_elem):
-            return 0
+        is_element, is_inline = self._is_interjection_element(et_elem)
+        if not is_element:
+            return 0, False
         else:
-            t = self._interjection_type(et_elem)
+            if is_inline:
+                t = self._interjection_type(et_elem)
+            else: 
+                t = self._interjection_type_inline(et_elem)
             if t == "speaker":
-                return 1
+                return 1, is_inline
             elif t == "general":
-                return 2
+                return 2, is_inline
             elif t == "office":
-                return 3
+                return 3, is_inline
             else:
                 raise FailedInterjectionTypeAssingment(et_elem)
 
@@ -82,16 +108,21 @@ class SpeechExtractor:
         out_text = []
         interj_count = 1
         for i, child in enumerate(children):
-            interject_type = self._interjection_flag(child)
+            interject_type, is_inline = self._interjection_flag(child)
             # Collect all consecutive interjections
             if interject_type:
                 key = f"INTERJECTION{interj_count:02d}"
-                author = self._extract_talker(child)
+                if is_inline:
+                    text = self._pull_inline_paras(child)
+                    author = self._extract_inline_talker(child)
+                else:
+                    text = self._pull_paras(child)
+                    author = self._extract_talker(child)
                 if interject_type == 3 and author == "":
                     author = "10000"
                 interjections.append(
                     {
-                        "text": self._clean_text(self._pull_paras(child)),
+                        "text": self._clean_text(text),
                         "author": author,
                         "sequence": interj_count,
                         "type": interject_type,
