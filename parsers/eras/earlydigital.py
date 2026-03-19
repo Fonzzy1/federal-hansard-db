@@ -8,7 +8,7 @@ Common characteristics:
 - Uses para elements with emphasis for formatting
 """
 
-from parsers.hansard_base_model import SpeechExtractor
+from parsers.speech_extractor import SpeechExtractor
 
 import string
 

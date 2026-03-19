@@ -12,7 +12,7 @@ Common characteristics:
 - Complex element hierarchy with quote and list nesting
 """
 
-from parsers.hansard_base_model import SpeechExtractor
+from parsers.speech_extractor import SpeechExtractor
 
 import string
 

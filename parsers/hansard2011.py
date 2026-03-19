@@ -1,8 +1,5 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-    print_tag_tree,
-)
+from parsers.hansard_extractor import HansardExtractor, print_tag_tree
+from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorModern
 
 from parsers.errors import *

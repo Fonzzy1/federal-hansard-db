@@ -9,7 +9,7 @@ Common characteristics:
 - Complex interjection detection via CSS class names
 """
 
-from parsers.hansard_base_model import SpeechExtractor
+from parsers.speech_extractor import SpeechExtractor
 
 import re
 
