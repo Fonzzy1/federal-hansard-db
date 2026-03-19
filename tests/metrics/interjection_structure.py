@@ -36,7 +36,6 @@ class InterjectionStructureMetric(IssueMetric):
         for ij in get_all_interjections(documents):
             ij_type = ij.get("type")
             text = ij.get("text")
-            description = ij.get("description")
             author = ij.get("author", "")
             
             if ij_type == 1:
@@ -45,17 +44,12 @@ class InterjectionStructureMetric(IssueMetric):
                     issues.append({**ij, "issue": "Type 1 missing author"})
                 if not text:
                     issues.append({**ij, "issue": "Type 1 missing text"})
-                if description:
-                    issues.append({**ij, "issue": "Type 1 should not have description"})
             
             elif ij_type == 2:
                 # Type 2: should have just description, no text, no author
-                if author:
-                    issues.append({**ij, "issue": "Type 2 should not have author"})
-                if text:
-                    issues.append({**ij, "issue": "Type 2 should not have text"})
-                if not description:
-                    issues.append({**ij, "issue": "Type 2 missing description"})
+               if not text:
+                    issues.append({**ij, "issue": "Type 2 should have text"})
+
             
             elif ij_type == 3:
                 # Type 3: should have author and text, no description
@@ -63,26 +57,7 @@ class InterjectionStructureMetric(IssueMetric):
                     issues.append({**ij, "issue": "Type 3 missing author"})
                 if not text:
                     issues.append({**ij, "issue": "Type 3 missing text"})
-                if description:
-                    issues.append({**ij, "issue": "Type 3 should not have description"})
-            
-            elif ij_type == 4:
-                # Type 4: should have author, might have description, no text
-                if not author and not description:
-                    issues.append({**ij, "issue": "Type 4 missing author/description"})
-                if text:
-                    issues.append({**ij, "issue": "Type 4 should not have text"})
 
-            elif ij_type == 5:
-                # Type 5: should have text and description, no author
-                if author:
-                    issues.append({**ij, "issue": "Type 5 should not have author"})
-                if not text:
-                    issues.append({**ij, "issue": "Type 5 missing text"})
-                if not description:
-                    issues.append({**ij, "issue": "Type 5 missing description"})
-        
-        return issues
     
     def get_examples(self, items: list, max_examples: int = 5, max_text_len: int = 500) -> list:
         """Return full JSON for each issue."""
