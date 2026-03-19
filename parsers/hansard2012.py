@@ -3,14 +3,12 @@ from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorModern
 
 from parsers.errors import *
-import string
 
-import re
 
 
 class SpeechExtractor2012(SpeechExtractorModern):
 
-    def _interjection_type(self, et_elem):
+    def _interjection_type_inline(self, et_elem):
         a_element = self._get_a_element(et_elem)
         if  a_element is None:
             return False
@@ -45,6 +43,35 @@ class SpeechExtractor2012(SpeechExtractorModern):
             else:
                 return "speaker"
         return False
+
+    def _interjection_type(self, et_elem):
+        a_element = self._get_a_element(et_elem)
+        if  a_element is None:
+            return False
+
+        t = a_element.get("class")
+
+        # In this case we know it has to be the speaker becuase you wont
+        # interject yourself
+        if t == "HPS-MemberContinuation":
+            return "office"
+        # In this case we know it has to be the speaker becuase you wont
+        # interject yourself
+        if t == "HPS-MemberSpeech":
+            return "office"
+        if t == "HPS-MemberIInterjecting":
+            return "general"
+        if t == "HPS-GeneralIInterjecting":
+            return "general"
+        if t == "HPS-GeneralInterjecting":
+            return "general"
+        if t == "HPS-MemberInterjecting":
+            if a_element.getparent().get("href"):
+                return "speaker"
+            else:
+                return "general"
+        if t == "HPS-GeneralInterjecting":
+            return "general"
 
 def parse(file_text):
     try:

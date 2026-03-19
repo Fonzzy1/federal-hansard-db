@@ -23,6 +23,8 @@ class SpeechExtractor1992(SpeechExtractorEarlyDigital):
             else:
                 return "speaker"
 
+    def _interjection_type_inline(self,et_elem):
+
         # Else, check if this is a PARA with a bold procedural keyword
         if et_elem.tag.lower() == "para":
             child = et_elem.find(".//emphasis")
