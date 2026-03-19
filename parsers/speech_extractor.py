@@ -1,4 +1,6 @@
+from parsers.errors import *
 import re
+from typing import Literal, Tuple, List
 
 
 class SpeechExtractor:
@@ -11,22 +13,23 @@ class SpeechExtractor:
         interjections, text = self._extract_text(self.root)
         return author, interjections, text
 
-    def _extract_talker(self, elem):
+    def _extract_talker(self, elem) -> str:
         raise FailedTalkerExtractionException(elem)
+        return ""
 
-    def _pull_paras(self, elem):
+    def _pull_paras(self, elem) -> str:
         text = "".join(elem.itertext())
         return text
 
-
-    def _extract_inline_talker(self, elem):
+    def _extract_inline_talker(self, elem) -> str:
         raise FailedTalkerExtractionException(elem)
+        return ""
 
-    def _pull_inline_paras(self, elem):
+    def _pull_inline_paras(self, elem) -> str:
         text = "".join(elem.itertext())
         return text
 
-    def _is_interjection_element(self, et_elem):
+    def _is_interjection_element(self, et_elem) -> Tuple[bool, bool]:
         """
         Returns True if the element is an interjection, otherwise False.
         The second element tells us if ther interjection is inline - or has a
@@ -35,7 +38,7 @@ class SpeechExtractor:
         return False, False
 
 
-    def _interjection_type(self, et_elem):
+    def _interjection_type(self, et_elem) -> Literal['speaker', 'office', 'general'] | None:
         """
         speaker - there is a member of parliament who said the interjection
         office - the speaker, president, or clerk, made the interjection
@@ -45,7 +48,7 @@ class SpeechExtractor:
 
         raise FailedInterjectionTypeAssingment(et_elem)
 
-    def interjection_type_inline(self,et_elem):
+    def _interjection_type_inline(self, et_elem) -> Literal['speaker', 'office', 'general'] | None:
 
         """
         speaker - there is a member of parliament who said the interjection
@@ -57,7 +60,7 @@ class SpeechExtractor:
         raise FailedInterjectionTypeAssingment(et_elem)
 
 
-    def _interjection_flag(self, et_elem):
+    def _interjection_flag(self, et_elem) -> Tuple[Literal[0,1,2,3], bool]:
         """
         Returns:
           0 - not an interjection
@@ -72,9 +75,9 @@ class SpeechExtractor:
             return 0, False
         else:
             if is_inline:
-                t = self._interjection_type(et_elem)
-            else: 
                 t = self._interjection_type_inline(et_elem)
+            else: 
+                t = self._interjection_type(et_elem)
             if t == "speaker":
                 return 1, is_inline
             elif t == "general":
@@ -84,7 +87,7 @@ class SpeechExtractor:
             else:
                 raise FailedInterjectionTypeAssingment(et_elem)
 
-    def _get_speech_element_children(self, elem):
+    def _get_speech_element_children(self, elem) -> list:
         """
         Default implementation: filter out division elements and return remaining children.
         Subclasses can override for more specific handling.
@@ -98,10 +101,7 @@ class SpeechExtractor:
                 out.append(child)
         return out
 
-    def _extract_text(
-        self,
-        elem,
-    ):
+    def _extract_text ( self, elem) -> Tuple[List, str]:
         # Simplest format
         children = self._get_speech_element_children(elem)
         interjections = []
@@ -137,7 +137,7 @@ class SpeechExtractor:
 
         return interjections, final_main_text
 
-    def _clean_text(self, text):
+    def _clean_text(self, text) -> str:
         # Remove all leading non-alphanumeric characters except [ 
         text = re.sub(r"^[^a-zA-Z0-9[]+", "", text)
         return text.strip()
