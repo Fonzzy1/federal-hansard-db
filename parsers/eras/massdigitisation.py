@@ -55,27 +55,25 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         result = elem.find("talk.start/talker/name.id")
         if result is not None and result.text is not None:
             return result.text
-        if self._interjection_flag(elem) == 3:
-            return "10000"
         return ""
 
-
- 
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
         """
         # Check element tag
         if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
+            return True, False
         if et_elem.tag.lower() in {"talk.start"}:
             author = et_elem.find("talker/name.id")
             if author is not None and author.text == "10000":
-                return True
+                return True, False
         if et_elem.tag.lower() in {"continue"}:
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
-                return True
+                return True, False
+
+        # And all the inline interjcetions
         if et_elem.tag.lower() == 'para':
             child = et_elem.find("./inline")
             if child is not None:
@@ -83,7 +81,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                     has_text_before = et_elem.text and et_elem.text.strip()
                     has_text_after = child.tail and child.tail.strip()
                     if not has_text_before and has_text_after:
-                        return True
+                        return True, True
                 elif (
                     child.attrib.get("font-style", "") == "italic"
                     and child.text is not None
@@ -103,16 +101,15 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                         and para_text != ""
                         and "interject" in para_text.lower()
                     ):
-                        return True
+                        return True, True
             elif (
                 et_elem.attrib.get("class") == "italic"
                 and et_elem.text
                 and "interject" in et_elem.text
             ):
-                return True
+                return True, True
 
-        else:
-            return False
+        return False, False
 
 
     def _interjection_type(self, et_elem):
@@ -129,16 +126,16 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 return "office"
             else:
                 return "speaker"
-        elif et_elem.tag.lower() == "para":
-            # This will generally be a general interjection
-            return "general"
-        else:
-            return "speaker"
+
+    def _interjection_type_inline(self, et_elem):
+        return "general"
+
+    def _extract_inline_talker(self, elem):
+        return ""
 
 
 
     def _clean_text(self, text):
-
 
         # Check if there's a title in brackets or parentheses at the start and remove it
         import re

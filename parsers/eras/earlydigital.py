@@ -51,7 +51,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         Returns True if the element is an interjection, otherwise False.
         """
         if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
+            return True, False
         # 2. Tag is PARA and has a bold EMPHASIS with procedural keywords in
         # uppercase
         if et_elem.tag.lower() == "para":
@@ -68,7 +68,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                         or "SPEAKER" in child.text
                         or "CLERK" in child.text
                     ):
-                        return True
+                        return True, True
                 elif (
                     child.attrib.get("font-slant", "") == "ITAL"
                     and child.text is not None
@@ -91,17 +91,50 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                         and para_text != ""
                         and "interject" in para_text.lower()
                     ):
-                        return True
+                        return True, True
 
-        return False
+        return False, False
 
 
     def _extract_talker(self, elem):
         result = elem.get("nameid", None)
         if result:
             return result
-        # for type 4 (unrecorded) interjections, use name + parliament as author
         return ""
+
+    def _extract_inline_talker(self, elem):
+        result = elem.get("nameid", None)
+        if result:
+            return result
+        return ""
+
+
+    def _interjection_type(self, et_elem):
+        # If the usual attribute is present, use it
+        if et_elem.tag.lower() in {"interject", "interjection"}:
+            if et_elem.get("chair") == "1":
+                return "office"
+            else:
+                return "speaker"
+
+    def _interjection_type_inline(self,et_elem):
+
+        # Else, check if this is a PARA with a bold procedural keyword
+        if et_elem.tag.lower() == "para":
+            child = et_elem.find(".//emphasis")
+            ## TODO again check the bolding thingo
+            if child is not None:
+                if (
+                    child.attrib.get("font-weight", "") == "BOLD"
+                    and child.text is not None
+                ):
+                    return "office"
+                elif (
+                    child.attrib.get("font-slant", "") == "ITAL"
+                    and child.text is not None
+                ):
+                    return "general"
+        return "general"
 
 
     def _clean_text(self, text):
@@ -131,6 +164,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
             if has_title and len(before) < 60:
                 text = after
         
+
         
         # Strip leading whitespace/punctuation
         text = super()._clean_text(text)
