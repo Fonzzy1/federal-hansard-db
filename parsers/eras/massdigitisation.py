@@ -14,6 +14,7 @@ Common characteristics:
 
 from parsers.speech_extractor import SpeechExtractor
 
+import re
 import string
 
 
@@ -58,6 +59,8 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         return ""
 
     def _pull_paras(self,elem):
+
+
         texts = []
         if elem.tag.lower() ==  'para':
             return "".join(elem.itertext())
@@ -151,30 +154,33 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
     def _clean_text(self, text):
 
+        text = text.lstrip()
+
+        title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+
         # Check if there's a title in brackets or parentheses at the start and remove it
-        import re
-        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))\s*'
+        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))'
         match = re.match(bracket_title_pattern, text)
         if match:
             bracket_content = match.group(1)
             # Check if the bracketed content looks like a title
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
             if any(ti in bracket_content for ti in title_indicators):
                 text = text[match.end():]
         
-        # If there's a " - " in the text, check if the part before it looks like a title
-        if "-" in text:
-            parts = text.split("-", 1)
-            before = parts[0].strip()
-            after = parts[1].strip()
-            
-            # Check if the part before " - " contains title-like elements
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
-            has_title = any(ti in before for ti in title_indicators)
-            
-            # If the part before " - " is short and has a title, remove it
-            if has_title and len(before) < 60:
-                text = after
+        # # If there's a " - " in the text, check if the part before it looks like a title
+        # for dash in ['-','—']:
+        #     if dash in text:
+        #         parts = text.split(dash, 1)
+        #         before = parts[0].strip()
+        #         after = parts[1].strip()
+                
+        #         # Check if the part before " - " contains title-like elements
+        #         has_title = any(ti in before for ti in title_indicators)
+                
+        #         # If the part before " - " is short and has a title, remove it
+        #         if has_title and len(before) < 60:
+        #             text = after
+        #             break
         
         
         # Strip leading whitespace/punctuation

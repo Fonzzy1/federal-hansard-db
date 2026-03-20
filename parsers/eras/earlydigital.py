@@ -95,6 +95,15 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
 
         return False, False
 
+    def _pull_paras(self,elem):
+        texts = []
+        if elem.tag.lower() ==  'para':
+            return "".join(elem.itertext())
+        else:
+            for child in elem.getchildren():
+                texts.append(self._pull_paras(child))
+            return "".join(texts)
+
 
     def _extract_talker(self, elem):
         result = elem.get("nameid", None)

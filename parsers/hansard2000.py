@@ -21,8 +21,11 @@ class SpeechExtractor2000(SpeechExtractorMassDigitisation):
             # There might be an description only element here for a unrecored
             # intejection that needs to be caught
             else:
-                if para.find("inline") is not None and not para.text.strip():
-                    return 'general'
+                # See if there is an inline. If there is no text before the
+                # inline then it is a description and needs to be parsed as a
+                # general interjection
+                if para.find("inline") is not None and (not para.text or (para.text and not para.text.strip())):
+                        return 'general'
             
         # Otherwise, use the unversal logic
         return super()._interjection_type(et_elem)
