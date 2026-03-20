@@ -144,6 +144,13 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 return "speaker"
 
     def _interjection_type_inline(self, et_elem):
+        # check if there is an inline:
+        if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
+            inline = et_elem.find('inline')
+            if inline.text:
+                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]:
+                    if role in inline.text:
+                        return "office"
         return "general"
 
     def _extract_inline_talker(self, elem):
