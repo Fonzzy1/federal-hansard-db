@@ -70,6 +70,18 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return "".join(texts)
 
     def _pull_inline_paras(self,elem):
+        # Most of the time we grab everything, with the exception of speaker
+        # interjections, where we dont grab the speaker name info which sits
+        # within the inline element
+        if elem.find("inline") is not None and (not elem.text or (elem.text and not elem.text.strip())):
+            inline = elem.find('inline')
+            if inline.text:
+                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]:
+                    if role in inline.text:
+                        elem.pop(inline)
+                        break
+
+
         return "".join(elem.itertext())
             
 
