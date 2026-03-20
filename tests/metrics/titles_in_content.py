@@ -1,5 +1,5 @@
 """
-Metric: Find titles (Mr, Senator, etc.) in content.
+Metric: Find titles (Mr, Senator, etc.) in speech content.
 """
 
 import re
@@ -12,7 +12,7 @@ TITLE_PATTERN = re.compile(r'\b(Mr|Mrs|Ms|Dr|Senator|Sir|Madam|Hon)\s+[A-Z]{2,}\
 
 
 class TitlesInContentMetric(IssueMetric):
-    """Find content containing title patterns."""
+    """Find speech/answer content containing title patterns."""
     
     @property
     def name(self) -> str:
@@ -24,7 +24,7 @@ class TitlesInContentMetric(IssueMetric):
     
     @property
     def description(self) -> str:
-        return "Content containing title patterns (Mr, Senator, Sir, etc.) - may indicate missed interjections"
+        return "Speech/answer content containing title patterns (Mr, Senator, Sir, etc.) - may indicate missed interjections"
     
     def find_issues(self, documents: list) -> list:
         issues = []
@@ -35,20 +35,10 @@ class TitlesInContentMetric(IssueMetric):
             if TITLE_PATTERN.search(text):
                 issues.append({"type": d.get("type"), "text": text[:60], "where": "speech"})
             
-            # Check interjections
-            for ij in d.get("interjections", []):
-                ij_text = ij.get("text", "")
-                if TITLE_PATTERN.search(ij_text):
-                    issues.append({"type": d.get("type"), "text": ij_text[:60], "where": "interjection"})
-            
             # Check answers
             if "answer" in d:
                 ans_text = d.get("answer", {}).get("text", "")
                 if TITLE_PATTERN.search(ans_text):
                     issues.append({"type": d.get("type"), "text": ans_text[:60], "where": "answer"})
-                for ij in d.get("answer", {}).get("interjections", []):
-                    ij_text = ij.get("text", "")
-                    if TITLE_PATTERN.search(ij_text):
-                        issues.append({"type": d.get("type"), "text": ij_text[:60], "where": "answer_interjection"})
         
         return issues

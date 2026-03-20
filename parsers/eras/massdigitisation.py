@@ -73,14 +73,15 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         # Most of the time we grab everything, with the exception of speaker
         # interjections, where we dont grab the speaker name info which sits
         # within the inline element
-        if elem.find("inline") is not None and (not elem.text or (elem.text and not elem.text.strip())):
-            inline = elem.find('inline')
-            if inline.text:
-                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]:
-                    if role in inline.text:
-                        elem.pop(inline)
-                        break
-
+        if self._interjection_type_inline(elem) == 'office':
+            while True:
+                bold_inline = elem.find('inline[@font-weight="bold"]')
+                if bold_inline is None:
+                    break
+                elem.remove(bold_inline)
+                # Stop removing once there's actual para text
+                if elem.text and elem.text.strip():
+                    break
 
         return "".join(elem.itertext())
             
@@ -103,39 +104,19 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
         # And all the inline interjcetions
         if et_elem.tag.lower() == 'para':
-            child = et_elem.find("./inline")
-            if child is not None:
-                if child.attrib.get("font-weight", "") == "bold":
-                    has_text_before = et_elem.text and et_elem.text.strip()
-                    has_text_after = child.tail and child.tail.strip()
-                    if not has_text_before and has_text_after:
+                # The bolding indicates a  change of speaker
+                if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
+                    inline = et_elem.find('inline')
+                    if inline.text and (inline.attrib.get("font-weight", "") ==
+                    "bold" or inline.attrib.get('font-style', "") == 'italic'):
                         return True, True
-                elif (
-                    child.attrib.get("font-style", "") == "italic"
-                    and child.text is not None
-                ):
-                    para_text = "".join(t.strip() for t in et_elem.itertext())
-                    para_text = para_text.translate(
-                        str.maketrans("", "", string.punctuation + "—")
-                    )
 
-                    emph_text = "".join(t.strip() for t in child.itertext())
-                    emph_text = emph_text.translate(
-                        str.maketrans("", "", string.punctuation + "—")
-                    )
-                    # If all text is inside the emphasis element, the texts should match
-                    if (
-                        para_text == emph_text
-                        and para_text != ""
-                        and "interject" in para_text.lower()
-                    ):
-                        return True, True
-            elif (
-                et_elem.attrib.get("class") == "italic"
-                and et_elem.text
-                and "interject" in et_elem.text
-            ):
-                return True, True
+                if (
+                    et_elem.attrib.get("class") == "italic"
+                    and et_elem.text
+                    and "interject" in et_elem.text
+                ):
+                    return True, True
 
         return False, False
 
@@ -156,14 +137,28 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 return "speaker"
 
     def _interjection_type_inline(self, et_elem):
-        # check if there is an inline:
-        if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
-            inline = et_elem.find('inline')
+        # Only consider inlines at the start (before any non-inline text)
+        # Stop as soon as we hit text in the tail (after an inline)
+
+        
+        inlines = et_elem.findall('inline[@font-weight="bold"]')
+        if not inlines:
+            return "general"
+        
+        # Check inlines in order
+        for inline in inlines:
+            # Check bold inline for office roles
             if inline.text:
                 for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]:
                     if role in inline.text:
                         return "office"
-        return "general"
+        
+            # If there's meaningful text in the tail, we've hit speech content - stop
+            if inline.tail and inline.tail.strip():
+                break
+            
+        # Has bold inlines but no office roles found
+        return "speaker"
 
     def _extract_inline_talker(self, elem):
         # No good way for finiding inline talkers in mass digistised documents

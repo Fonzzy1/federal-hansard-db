@@ -19,6 +19,7 @@ from .interjection_types import (
 )
 from .doc_no_author import EmptyDocAuthorMetric
 from .titles_in_content import TitlesInContentMetric
+from .titles_in_interjections import TitlesInInterjectionsMetric
 from .title_at_speech_start import TitleAtSpeechStartMetric
 from .title_at_ij_start import TitleAtInterjectionStartMetric
 from .times_in_content import TimesInContentMetric
@@ -42,6 +43,7 @@ ALL_METRICS = [
     Type3InterjectionCountMetric,
     EmptyDocAuthorMetric,
     TitlesInContentMetric,
+    TitlesInInterjectionsMetric,
     TitleAtSpeechStartMetric,
     TitleAtInterjectionStartMetric,
     TimesInContentMetric,
