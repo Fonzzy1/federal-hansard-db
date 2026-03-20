@@ -57,6 +57,19 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return result.text
         return ""
 
+    def _pull_paras(self,elem):
+        texts = []
+        if elem.tag.lower() ==  'para':
+            return "".join(elem.itertext())
+        else:
+            for child in elem.getchildren():
+                texts.append(self._pull_paras(child))
+            return "".join(texts)
+
+    def _pull_inline_paras(self,elem):
+        return "".join(elem.itertext())
+            
+
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
@@ -131,6 +144,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         return "general"
 
     def _extract_inline_talker(self, elem):
+        # No good way for finiding inline talkers in mass digistised documents
         return ""
 
 
