@@ -5,7 +5,7 @@ from parsers.eras import SpeechExtractorMassDigitisation
 from parsers.errors import *
 import string
 
-
+# Can just use the base class
 class SpeechExtractor1998(SpeechExtractorMassDigitisation):
     pass
 
