@@ -140,7 +140,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         # Only consider inlines at the start (before any non-inline text)
         # Stop as soon as we hit text in the tail (after an inline)
 
-        
+
         inlines = et_elem.findall('inline[@font-weight="bold"]')
         if not inlines:
             return "general"
@@ -149,7 +149,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         for inline in inlines:
             # Check bold inline for office roles
             if inline.text:
-                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]:
+                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR", "DEPUTY"]:
                     if role in inline.text:
                         return "office"
         
