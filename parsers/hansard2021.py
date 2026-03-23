@@ -62,7 +62,7 @@ class SpeechExtractor2021(SpeechExtractorModern):
             member_text = member_text.strip().replace(" ", "")
             if any(
                 role in member_text
-                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
+                for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
             ):
                 return "office"
             else:

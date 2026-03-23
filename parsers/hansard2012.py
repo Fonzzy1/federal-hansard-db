@@ -37,7 +37,7 @@ class SpeechExtractor2012(SpeechExtractorModern):
             member_text = a_element.text
             if member_text and any(
                 role in member_text
-                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
+                for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
             ):
                 return "office"
             else:

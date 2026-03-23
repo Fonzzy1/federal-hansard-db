@@ -84,6 +84,7 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
                         "CHAIR" in child.text
                         or "PRESIDENT" in child.text
                         or "SPEAKER" in child.text
+                        or "DEPUTY" in child.text
                         or "CLERK" in child.text
                     ):
                         return "office"

@@ -35,7 +35,7 @@ class SpeechExtractor2011(SpeechExtractorModern):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
+                    for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
                     return True
         return False
