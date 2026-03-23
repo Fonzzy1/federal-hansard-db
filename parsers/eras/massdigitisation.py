@@ -12,6 +12,8 @@ Common characteristics:
 - Complex element hierarchy with quote and list nesting
 """
 
+import re
+
 from parsers.speech_extractor import SpeechExtractor
 
 import re
@@ -108,7 +110,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
                     inline = et_elem.find('inline')
                     if inline.text and (inline.attrib.get("font-weight", "") ==
-                    "bold" or inline.attrib.get('font-style', "") == 'italic'):
+                    "bold" or inline.attrib.get('font-style', "") == 'italic') and re.search(r'\b[A-Z]+\b', inline.text):
                         return True, True
 
                 if (
@@ -161,8 +163,27 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         return "speaker"
 
     def _extract_inline_talker(self, elem):
-        # No good way for finiding inline talkers in mass digistised documents
-        return ""
+        # Find the elements in the inlines
+        # if its a type 3, then just let it happen
+        if self._interjection_type_inline(elem) == 'office':
+            return ""
+
+
+        inline_texts = []
+        inlines = elem.findall('inline[@font-weight="bold"]')
+        if not inlines:
+            return ""
+        for inline in inlines:
+            if inline.text:
+                inline_texts.append(inline.text.strip())
+            if inline.tail and inline.tail.strip():
+                break
+        # Because these are going to be a mess, add the parliament year to them
+        inline_texts.append(str(self.parliament))
+
+        return "".join(inline_texts)
+
+
 
 
 
