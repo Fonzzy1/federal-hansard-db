@@ -12,6 +12,7 @@ Common characteristics:
 - Complex element hierarchy with quote and list nesting
 """
 
+import copy
 import re
 
 from parsers.speech_extractor import SpeechExtractor
@@ -72,14 +73,23 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return "".join(texts)
 
     def _pull_inline_paras(self,elem):
+        # Make a copy so modifications don't affect the original element
+        elem = copy.deepcopy(elem)
+
         # Most of the time we grab everything, with the exception of speaker
         # interjections, where we dont grab the speaker name info which sits
         # within the inline element
-        if self._interjection_type_inline(elem) == 'office':
+        if self._interjection_type_inline(elem) != 'general':
             while True:
                 bold_inline = elem.find('inline[@font-weight="bold"]')
                 if bold_inline is None:
                     break
+                # Preserve the tail before removing
+                if bold_inline.tail:
+                    if elem.text:
+                        elem.text += bold_inline.tail
+                    else:
+                        elem.text = bold_inline.tail
                 elem.remove(bold_inline)
                 # Stop removing once there's actual para text
                 if elem.text and elem.text.strip():
@@ -106,11 +116,19 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
         # And all the inline interjcetions
         if et_elem.tag.lower() == 'para':
+
+
                 # The bolding indicates a  change of speaker
                 if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
                     inline = et_elem.find('inline')
-                    if inline.text and (inline.attrib.get("font-weight", "") ==
-                    "bold" or inline.attrib.get('font-style', "") == 'italic') and re.search(r'\b[A-Z]+\b', inline.text):
+
+                    # Boldiing inicates either a reference to another speaker
+                    # a change of speaker, check for capitalisation
+                    if inline.text and inline.attrib.get("font-weight", "") == "bold" and re.search(r'\b[A-Z]+\b', inline.text):
+                        return True, True
+
+                    # Italics are more general 
+                    if inline.text and inline.attrib.get('font-style', "") == 'italic':
                         return True, True
 
                 if (
@@ -165,7 +183,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
     def _extract_inline_talker(self, elem):
         # Find the elements in the inlines
         # if its a type 3, then just let it happen
-        if self._interjection_type_inline(elem) == 'office':
+        if self._interjection_type_inline(elem) == "office" :
             return ""
 
 
@@ -175,7 +193,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return ""
         for inline in inlines:
             if inline.text:
-                inline_texts.append(inline.text.strip())
+                inline_texts.append(re.sub(r'[^a-zA-Z0-9]', '', inline.text.strip().upper()))
             if inline.tail and inline.tail.strip():
                 break
         # Because these are going to be a mess, add the parliament year to them
@@ -188,6 +206,9 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
 
     def _clean_text(self, text):
+
+        #Strip leading whitespace/punctuation
+        text = super()._clean_text(text)
 
         text = text.lstrip()
 
@@ -202,27 +223,26 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             if any(ti in bracket_content for ti in title_indicators):
                 text = text[match.end():]
         
-        # # If there's a " - " in the text, check if the part before it looks like a title
-        # for dash in ['-','—']:
-        #     if dash in text:
-        #         parts = text.split(dash, 1)
-        #         before = parts[0].strip()
-        #         after = parts[1].strip()
-                
-        #         # Check if the part before " - " contains title-like elements
-        #         has_title = any(ti in before for ti in title_indicators)
-                
-        #         # If the part before " - " is short and has a title, remove it
-        #         if has_title and len(before) < 60:
-        #             text = after
-        #             break
+        # If there's a " - " in the text, check if the part before it looks like a title
+        for dash in ['-','—']:
+            if dash in text:
+                parts = text.split(dash, 1)
+                before = parts[0].strip()
+                after = parts[1].strip()
+            
+                # Check if the part before " - " contains title-like elements
+                has_title = any(ti in before for ti in title_indicators)
+            
+                # If the part before " - " is short and has a title, remove it
+                if has_title and len(re.sub(r'[^a-zA-Z0-9]', '', before)) < 25 and len(re.sub(r'[^a-zA-Z0-9]', '', after)) > 5  and "INTERJECTION" not in before:
+                    text = after
+                    break
         
         
-        # Strip leading whitespace/punctuation
+        #Strip leading whitespace/punctuation
         text = super()._clean_text(text)
         
         return text
 
 
 
-    

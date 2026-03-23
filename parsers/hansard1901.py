@@ -58,12 +58,6 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
         elif len(set(alt_name_ids)) == 1:
             return alt_name_ids[0]
         
-        # If no talker found and element is a para with bold text, extract the bold content
-        elif elem.tag.lower() == 'para' and self._is_interjection_element(elem):
-            child = elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                return child.text
-        
         else:
             return ""
 
@@ -77,46 +71,8 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
                 return "office"
-        elif et_elem.tag.lower() == 'para':
-            child = et_elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                if (
-                        "CHAIR" in child.text
-                        or "PRESIDENT" in child.text
-                        or "SPEAKER" in child.text
-                        or "DEPUTY" in child.text
-                        or "CLERK" in child.text
-                    ):
-                        return "office"
-                else:
-                        return "speaker"
-            elif child.attrib.get("font-style", "") == "italic":
-                return "general"
-        else:
-            return "speaker"
+        return "speaker"
 
-    def _clean_text(self, text):
-
-        text = super()._clean_text(text)
-        
-        # If there's a " - " in the text, check if the part before it looks like a title
-
-        if "-" in text:
-            parts = text.split("-", 1)
-            before = parts[0].strip()
-            after = parts[1].strip()
-            
-            # Check if the part before " - " contains title-like elements
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
-            has_title = any(ti in before for ti in title_indicators)
-            
-            # If the part before " - " is short and has a title, remove it
-            if has_title and len(before) < 60:
-                text = after
-
-        # Strip leading whitespace/punctuation
-        
-        return text
 
 
 def parse(file_text):
@@ -128,4 +84,5 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+
 
