@@ -141,36 +141,37 @@ class SpeechExtractorModern(SpeechExtractor):
         if result is not None:
             if result.text:
                 return result.text
+        return ""
 
     def _extract_inline_talker(self, elem):
 
-        # case when we are getting a inline general inerjection
-        if elem.tag.lower() == "a" and elem.get("href"):
-            return elem.get("href")
+       # case when we are getting a inline general inerjection
+       if elem.tag.lower() == "a" and elem.get("href"):
+           return elem.get("href")
 
-       # Case when we are looking at interjections that are not given a href
+       #Case when we are looking at interjections that are not given a href
        # because because they have already interjected
-        a_element = elem.find("./span/a")
-        if a_element is not None and a_element.get("href"):
-            href = a_element.get("href")
-            name_text = "".join(
-                char
-                for char in elem.find("./span/a/span").text
-                if char.isalnum()
-            )
-            self.name_to_href[name_text] = href
-            return href
-        elif a_element is None:
-            name_text = elem.find("./span/span").text
-            if name_text:
-                name_text = "".join(
-                    char for char in name_text if char.isalnum()
-                )
-                potential_id = self.name_to_href.get(name_text)
-                if potential_id:
-                    return potential_id
+       a_element = elem.find("./span/a")
+       if a_element is not None and a_element.get("href"):
+           href = a_element.get("href")
+           name_text = "".join(
+               char
+               for char in elem.find("./span/a/span").text
+               if char.isalnum()
+           )
+           self.name_to_href[name_text] = href
+           return href
+       elif a_element is None:
+           name_text = elem.find("./span/span").text
+           if name_text:
+               name_text = "".join(
+                   char for char in name_text if char.isalnum()
+               )
+               potential_id = self.name_to_href.get(name_text)
+               if potential_id:
+                   return potential_id
 
-        return ""
+       return ""
 
     def _get_a_element(self, et_elem):
         """Get the anchor element for interjection type detection."""
