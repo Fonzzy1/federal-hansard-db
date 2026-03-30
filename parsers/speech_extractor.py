@@ -14,6 +14,7 @@ class SpeechExtractor:
         return author, interjections, text
 
     def _extract_talker(self, elem) -> str:
+        # Should always be overwritten
         raise FailedTalkerExtractionException(elem)
         return ""
 
@@ -22,6 +23,7 @@ class SpeechExtractor:
         return text
 
     def _extract_inline_talker(self, elem) -> str:
+        # Should always be overwritten
         raise FailedTalkerExtractionException(elem)
         return ""
 
@@ -60,7 +62,7 @@ class SpeechExtractor:
         raise FailedInterjectionTypeAssingment(et_elem)
 
 
-    def _interjection_flag(self, et_elem) -> Tuple[Literal[0,1,2,3], bool]:
+    def _interjection_flag(self, et_elem) -> Tuple[Literal[0,1,2,3,4], bool]:
         """
         Returns:
           0 - not an interjection
@@ -69,6 +71,7 @@ class SpeechExtractor:
              but we don't know what is said, or not atributed. These
              interjections often include stage directions within the text
              3 - office - the speaker, president, or clerk, made the interjection
+            4 - error in interjection type assignement
         """
         is_element, is_inline = self._is_interjection_element(et_elem)
         if not is_element:
@@ -85,7 +88,7 @@ class SpeechExtractor:
             elif t == "office":
                 return 3, is_inline
             else:
-                raise FailedInterjectionTypeAssingment(et_elem)
+                return 4, is_inline
 
     def _get_speech_element_children(self, elem) -> list:
         """
