@@ -73,6 +73,30 @@ def choose_bump():
         exit(1)
 
 
+def choose_suffix():
+    """Choose an optional suffix like -dev or -beta"""
+    print("\nSelect release suffix (optional):")
+    print("  0) none (stable release)")
+    print("  1) -dev")
+    print("  2) -beta")
+    print("  3) -alpha")
+    print("  4) custom")
+    choice = input("Enter choice (0/1/2/3/4): ").strip()
+    if choice == "0":
+        return ""
+    elif choice == "1":
+        return "-dev"
+    elif choice == "2":
+        return "-beta"
+    elif choice == "3":
+        return "-alpha"
+    elif choice == "4":
+        return input("Enter custom suffix (e.g., -rc1): ").strip()
+    else:
+        print("Invalid choice.")
+        exit(1)
+
+
 # -------------------------------------------------------
 # DETERMINE TAG
 # -------------------------------------------------------
@@ -85,7 +109,9 @@ except:
 
 current_version = parse_semver(latest_tag)
 bump_type = choose_bump()
-TAG = bump_version(current_version, bump_type)
+base_tag = bump_version(current_version, bump_type)
+suffix = choose_suffix()
+TAG = f"{base_tag}{suffix}"
 RELEASE_NAME = f"Federal Hansard DB {TAG}"
 
 print("Previous tag:", latest_tag)
@@ -109,8 +135,10 @@ run(split_cmd)
 # -------------------------------------------------------
 # CREATE GITHUB RELEASE
 # -------------------------------------------------------
+# Mark as prerelease if suffix indicates dev/beta/alpha
+is_prerelease = suffix != "" and suffix.startswith(("-dev", "-beta", "-alpha"))
 release = repo.create_git_release(
-    tag=TAG, name=RELEASE_NAME, message="", draft=False, prerelease=False
+    tag=TAG, name=RELEASE_NAME, message="", draft=False, prerelease=is_prerelease
 )
 print("Created new release:", release.html_url)
 
