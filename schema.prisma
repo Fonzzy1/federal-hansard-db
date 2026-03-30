@@ -157,8 +157,7 @@ model Document {
 
 model Interjection {
     id          Int       @id @default(autoincrement())
-    text        String?   // For types 1, 3 - the actual spoken text; nullable since types 2,4,5 store in description
-    description String?   // For types 2 (general), 4 (unrecorded), 5 (unattributed) - stores the unspoken text
+    text        String? // For types 1, 3 - the actual spoken text; nullable since types 2,4,5 store in description
     rawAuthor   rawAuthor @relation(fields: [rawAuthorId], references: [id])
     document    Document? @relation(fields: [documentId], references: [id])
     documentId  Int?

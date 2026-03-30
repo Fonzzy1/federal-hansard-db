@@ -76,7 +76,6 @@ def build_interjections(interjections, sitting_day):
         "create": [
             {
                 "text": inter.get("text"),
-                "description": inter.get("description"),
                 "sequence": inter["sequence"],
                 "rawAuthor": raw_author_connect_or_create(
                     inter["author"], sitting_day
