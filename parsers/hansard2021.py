@@ -45,6 +45,8 @@ class SpeechExtractor2021(SpeechExtractorModern):
             return "office"
         if t == "HPS-OfficeContinuation":
             return "office"
+        if t == "HPS-OfficeSpeech":
+            return "office"
         if t == "HPS-GeneralIInterjecting":
                 return "general"
         if t == "HPS-MemberIInterjecting":

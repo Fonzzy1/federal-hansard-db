@@ -48,8 +48,6 @@ class SpeechExtractorModern(SpeechExtractor):
                     return True, True
 
 
-
-
             # Or a contiuation or speech by the speaker
             elif class_attr in {
                 "HPS-MemberSpeech",
