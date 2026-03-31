@@ -96,7 +96,6 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                     break
 
         return "".join(elem.itertext())
-            
 
     def _is_interjection_element(self, et_elem):
         """

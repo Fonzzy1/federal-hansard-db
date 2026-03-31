@@ -25,7 +25,7 @@ class SpeechExtractor2011(SpeechExtractorModern):
                 "HPS-GeneralInterjecting",
                 "HPS-OfficeInterjecting"
             ]:
-                return True
+                return True, True
 
             # Or a contiuation or speech by the speaker
             elif class_attr in {
@@ -37,10 +37,10 @@ class SpeechExtractor2011(SpeechExtractorModern):
                     role in member_continuation_text
                     for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
-                    return True
-        return False
+                    return True, True
+        return False, False
 
-    def _interjection_type(self, et_elem):
+    def _interjection_type_inline(self, et_elem):
         a_element = self._get_a_element(et_elem)
         if  a_element is None:
             return False

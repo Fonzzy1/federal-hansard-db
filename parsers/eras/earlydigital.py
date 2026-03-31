@@ -124,8 +124,8 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         if et_elem.tag.lower() in {"interject", "interjection"}:
             if et_elem.get("chair") == "1":
                 return "office"
-            else:
-                return "speaker"
+        return "speaker"
+
 
     def _interjection_type_inline(self,et_elem):
 
