@@ -300,31 +300,31 @@ async def scrape_and_parse_sources(db: Client, source_id: int = None) -> None:
                 for name, info in new_documents.items():
                     try:
                         raw_document_text = module.scraper(info["path"])
-                        raw_inserted_document = await db.rawdocument.create(
-                            data={
-                                "name": name,
-                                "text": raw_document_text,
-                                "is_proof": info["is_proof"],
-                                "sourceId": source.id,
-                            }
-                        )
-                        override = sitting_day_override_for_source.get(
-                            raw_inserted_document.name, None
-                        )
-                        parsed_document = parser(raw_inserted_document.text)
-                        for extract in parsed_document:
-                            sitting_day = await create_sitting_day(
-                                db, extract, override
+                        if raw_document_text:
+                            raw_inserted_document = await db.rawdocument.create(
+                                data={
+                                    "name": name,
+                                    "text": raw_document_text,
+                                    "is_proof": info["is_proof"],
+                                    "sourceId": source.id,
+                                }
                             )
-                            for document in extract["documents"]:
-                                await insert_document(
-                                    db,
-                                    document,
-                                    raw_inserted_document.id,
-                                    sitting_day,
+                            override = sitting_day_override_for_source.get(
+                                raw_inserted_document.name, None
+                            )
+                            parsed_document = parser(raw_inserted_document.text)
+                            for extract in parsed_document:
+                                sitting_day = await create_sitting_day(
+                                    db, extract, override
                                 )
-                        progress.advance(task_docs)
-
+                                for document in extract["documents"]:
+                                    await insert_document(
+                                        db,
+                                        document,
+                                        raw_inserted_document.id,
+                                        sitting_day,
+                                    )
+                            progress.advance(task_docs)
                     except Exception as e:
                         print(e)
                         print(name)

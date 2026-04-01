@@ -27,6 +27,8 @@ def request_with_rate_limit_exception(url, retries=5, delay=20):
                 return response
             elif response.status_code == 403:
                 time.sleep(delay + random.uniform(0, delay))
+            elif response.status_code == 404:
+                return None
             else:
                 time.sleep(delay)
         except requests.RequestException:
@@ -166,9 +168,9 @@ def file_list_extractor(
     return xml_links
 
 
-def scraper(path: str) -> str:
+def scraper(path: str) -> str|None:
     """Fetch and return text for a given XML file path."""
     response = request_with_rate_limit_exception(path)
     if not response:
-        raise Exception(f"Error: Could not fetch {path}")
+        return None
     return response.text
