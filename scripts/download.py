@@ -16,7 +16,25 @@ RESTORED_FILE = f"{DB_NAME}.backup"
 # Replace these with your repo and release
 REPO_OWNER = "fonzzy1"
 REPO_NAME = "federal-hansard-db"
-RELEASE_TAG = None  # None = latest release
+RELEASE_TAG = None  # None = latest release (can also be set to specific tag)
+
+
+def choose_release_type():
+    """Choose whether to download stable or prerelease (beta/dev)"""
+    print("\nSelect release type:")
+    print("  1) stable (main/latest)")
+    print("  2) beta/alpha (prerelease)")
+    print("  3) specific tag")
+    choice = input("Enter choice (1/2/3): ").strip()
+    if choice == "1":
+        return "stable"
+    elif choice == "2":
+        return "prerelease"
+    elif choice == "3":
+        return input("Enter specific tag (e.g., v1.2.3-beta): ").strip()
+    else:
+        print("Invalid choice.")
+        exit(1)
 
 # --- Create local folder ---
 os.makedirs(BACKUP_DIR, exist_ok=True)
@@ -24,18 +42,42 @@ os.makedirs(BACKUP_DIR, exist_ok=True)
 # -------------------------------------------------------
 # GET RELEASE INFO
 # -------------------------------------------------------
-# If latest release
-if RELEASE_TAG is None:
-    api_url = (
-        f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
-    )
-else:
+# Determine which release to fetch
+if RELEASE_TAG is not None:
+    # Explicit tag set in config
     api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{RELEASE_TAG}"
+else:
+    # Interactive selection
+    release_type = choose_release_type()
+    if release_type == "stable":
+        api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
+    elif release_type == "prerelease":
+        # Get all releases and find the latest prerelease
+        api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases"
+    else:
+        # Specific tag
+        api_url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/tags/{release_type}"
 
 resp = requests.get(api_url)
 resp.raise_for_status()
-release = resp.json()
-print(f"Downloading release: {release['tag_name']}")
+data = resp.json()
+
+# Handle list of releases (when fetching all for prerelease)
+if isinstance(data, list):
+    # Find latest prerelease
+    prerelease = None
+    for r in data:
+        if r.get("prerelease", False):
+            prerelease = r
+            break
+    if prerelease is None:
+        print("No prerelease (beta/alpha) versions found.")
+        exit(1)
+    release = prerelease
+    print(f"Using latest prerelease: {release['tag_name']}")
+else:
+    release = data
+    print(f"Downloading release: {release['tag_name']}")
 
 # -------------------------------------------------------
 # DOWNLOAD ASSETS

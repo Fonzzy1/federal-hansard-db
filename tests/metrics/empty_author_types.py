@@ -101,3 +101,25 @@ class Type4EmptyAuthorMetric(IssueMetric):
             ij for ij in get_all_interjections(documents)
             if ij.get("type") == 4 and not ij.get("author", "")
         ]
+
+
+class Type5EmptyAuthorMetric(IssueMetric):
+    """Find type 5 (unattributed) interjections with empty author."""
+    
+    @property
+    def name(self) -> str:
+        return "t5_empty_author"
+    
+    @property
+    def display_name(self) -> str:
+        return "T5 Empty Author"
+    
+    @property
+    def description(self) -> str:
+        return "Type 5 (unattributed) interjections with empty author"
+    
+    def find_issues(self, documents: list) -> list:
+        return [
+            ij for ij in get_all_interjections(documents)
+            if ij.get("type") == 5 and not ij.get("author", "")
+        ]

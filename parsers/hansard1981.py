@@ -1,7 +1,5 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-)
+from parsers.hansard_extractor import HansardExtractor
+from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorEarlyDigital
 
 from parsers.errors import *
@@ -12,12 +10,6 @@ class SpeechExtractor1981(SpeechExtractorEarlyDigital):
     def _get_speech_element_children(self, elem):
         return elem.getchildren()
 
-    def _extract_talker(self, elem):
-        result = elem.get("nameid")
-        if result:
-            return result
-        else:
-            return ""
 
     def _is_interjection_element(self, et_elem):
         """
@@ -25,7 +17,7 @@ class SpeechExtractor1981(SpeechExtractorEarlyDigital):
         """
         # Check element tag
         if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
+            return True,False
         
         # Check for para elements with "interjecting" in them (less than 5 words = general interjection)
         if et_elem.tag.lower() == "para":
@@ -34,23 +26,11 @@ class SpeechExtractor1981(SpeechExtractorEarlyDigital):
             para_text = para_text.translate(str.maketrans("", "", "—\"':,.!?"))
             words = para_text.split()
             if len(words) < 5 and any("interject" in w.lower() for w in words):
-                return True
+                return True, True
         
-        return False
+        return False, False
 
-    def _interjection_type(self, et_elem):
-        if et_elem.get("chair") == "1":
-            return "office"
-        
-        # Para elements with "interjecting" are always general interjections
-        if et_elem.tag.lower() == "para":
-            para_text = "".join(t.strip() for t in et_elem.itertext())
-            para_text = para_text.translate(str.maketrans("", "", "—\"':,.!?"))
-            words = para_text.split()
-            if len(words) < 5 and any("interject" in w.lower() for w in words):
-                return "general"
-        
-        return "speaker"
+
 
 
 def parse(file_text):

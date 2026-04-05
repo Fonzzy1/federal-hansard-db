@@ -1,15 +1,14 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-    print_tag_tree,
-)
+from parsers.hansard_extractor import HansardExtractor, print_tag_tree
+from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorMassDigitisation
 
 from parsers.errors import *
 import string
 
+# Can just use the base class
+class SpeechExtractor1998(SpeechExtractorMassDigitisation):
+    pass
 
-SpeechExtractor1998 = SpeechExtractorMassDigitisation
 
 
 def parse(file_text):

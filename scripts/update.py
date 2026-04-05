@@ -32,7 +32,7 @@ def log(msg: str) -> None:
 
 
 def apply_raw_author_fixes(author, sitting_day):
-    speaker_fix = fixes['speaker_alt_names']
+    speaker_fix = fixes["speaker_alt_names"]
     if author in speaker_fix:
         return "10000"
 
@@ -75,7 +75,7 @@ def build_interjections(interjections, sitting_day):
     return {
         "create": [
             {
-                "text": inter["text"],
+                "text": inter.get("text"),
                 "sequence": inter["sequence"],
                 "rawAuthor": raw_author_connect_or_create(
                     inter["author"], sitting_day
@@ -300,31 +300,31 @@ async def scrape_and_parse_sources(db: Client, source_id: int = None) -> None:
                 for name, info in new_documents.items():
                     try:
                         raw_document_text = module.scraper(info["path"])
-                        raw_inserted_document = await db.rawdocument.create(
-                            data={
-                                "name": name,
-                                "text": raw_document_text,
-                                "is_proof": info["is_proof"],
-                                "sourceId": source.id,
-                            }
-                        )
-                        override = sitting_day_override_for_source.get(
-                            raw_inserted_document.name, None
-                        )
-                        parsed_document = parser(raw_inserted_document.text)
-                        for extract in parsed_document:
-                            sitting_day = await create_sitting_day(
-                                db, extract, override
+                        if raw_document_text:
+                            raw_inserted_document = await db.rawdocument.create(
+                                data={
+                                    "name": name,
+                                    "text": raw_document_text,
+                                    "is_proof": info["is_proof"],
+                                    "sourceId": source.id,
+                                }
                             )
-                            for document in extract["documents"]:
-                                await insert_document(
-                                    db,
-                                    document,
-                                    raw_inserted_document.id,
-                                    sitting_day,
+                            override = sitting_day_override_for_source.get(
+                                raw_inserted_document.name, None
+                            )
+                            parsed_document = parser(raw_inserted_document.text)
+                            for extract in parsed_document:
+                                sitting_day = await create_sitting_day(
+                                    db, extract, override
                                 )
-                        progress.advance(task_docs)
-
+                                for document in extract["documents"]:
+                                    await insert_document(
+                                        db,
+                                        document,
+                                        raw_inserted_document.id,
+                                        sitting_day,
+                                    )
+                            progress.advance(task_docs)
                     except Exception as e:
                         print(e)
                         print(name)
@@ -381,19 +381,17 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
     log("Finished joining authors.")
 
 
-async def reparse_all_sources(db: Client, source_id: int = None) -> None:
+async def reparse_all_sources(db: Client) -> None:
     """Re-parse all existing raw documents."""
     log("Re-parsing all existing raw documents...")
 
     sitting_day_override = fixes["sitting_day_override"]
 
-    if source_id:
-        sources = await db.source.find_many(where={"id": source_id})
-    else:
-        sources = await db.source.find_many()
+    sources = await db.source.find_many()
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
     await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
+    await db.query_raw('TRUNCATE "rawAuthor" CASCADE;')
 
     for source in sources:
         console.rule(f"[bold blue]{source.name}")
@@ -551,7 +549,7 @@ async def main():
     await reset_politician_links(db)
 
     if args.reparse:
-        await reparse_all_sources(db, args.source_id)
+        await reparse_all_sources(db)
     else:
         await load_politician_metadata(db)
         await scrape_and_parse_sources(db, args.source_id)

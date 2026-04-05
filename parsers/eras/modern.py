@@ -9,7 +9,7 @@ Common characteristics:
 - Complex interjection detection via CSS class names
 """
 
-from parsers.hansard_base_model import SpeechExtractor
+from parsers.speech_extractor import SpeechExtractor
 
 import re
 
@@ -20,15 +20,19 @@ class SpeechExtractorModern(SpeechExtractor):
     Contains common logic shared by parsers in this period.
     """
 
-    def __init__(self, element):
+    def __init__(self, element, parliament=None):
         super().__init__(element)
         self.name_to_href = {}
+        self.parliament = parliament
 
     def _is_interjection_element(self, et_elem):
         """
         Returns True if the element is an interjection, otherwise False.
+        All interejctions are inline because they are all paras
         """
-        # All elements are paras now
+        # All elements are paras - therefor all interjections are inline
+
+        # Start with the 
         for span in et_elem.findall(".//span"):
             class_attr = span.get("class", "")
             if class_attr in [
@@ -41,7 +45,8 @@ class SpeechExtractorModern(SpeechExtractor):
                 "HPS-GeneralInterjecting",
             ]:
                 if span.text and span.text.strip():
-                    return True
+                    return True, True
+
 
             # Or a contiuation or speech by the speaker
             elif class_attr in {
@@ -50,20 +55,18 @@ class SpeechExtractorModern(SpeechExtractor):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
+                    for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
-                    return True
-        return False
+                    return True, True
+        return False, False
 
     def _pull_paras(self, elem):
         """Pull text from span elements with specific HPS classes."""
         texts = []
-        # Only grab text from HPS-Normal spans
+        # Only grab text from HPS-Normal spans.
         if elem.tag.lower() == "span" and elem.get("class") in (
             "HPS-Normal",
-            "HPS-Small",
-            "HPS-MemberIInterjecting",
-            "HPS-GeneralIInterjecting",
+            "HPS-Small"
         ):
             parts = [elem.text] + [c.tail for c in elem]
             return "".join(p for p in parts if p).strip()
@@ -72,6 +75,27 @@ class SpeechExtractorModern(SpeechExtractor):
             if para_text:
                 texts.append(para_text)
         return "\n".join(texts)
+
+
+    def _pull_inline_paras(self, elem):
+
+        """Pull text from span elements with specific HPS classes."""
+        # Try for a Memberinterjecting - just desc needed
+        spans = elem.findall('.//span[@class="HPS-MemberIInterjecting"]') + elem.findall(".//span[@class='HPS-GeneralIInterjecting']")
+        for span in spans:
+            if span.text:
+                return span.text
+        # Try for a generalinterjecting
+        spans = elem.findall('.//span[@class="HPS-GeneralInterjecting"]')
+        for span in spans:
+            if span.text:
+                return span.text + (span.tail or '')
+        
+        # All other cases are simple
+        return self._pull_paras(elem)
+
+
+
 
     def _interjection_fix(self, interjections, text, author):
         """Fix for when the whole speech is actually an interjection."""
@@ -95,8 +119,6 @@ class SpeechExtractorModern(SpeechExtractor):
         author = self._extract_talker(self.root)
         interjections, text = self._extract_text(
             self.root,
-            record_office_interjector=True,
-            record_unrecored_interjector=False,
         )
 
         # Dirty fix for when the whole thing is an 'interjection'
@@ -119,39 +141,37 @@ class SpeechExtractorModern(SpeechExtractor):
         if result is not None:
             if result.text:
                 return result.text
-            else:
-                return ""
-
-        # case when we are getting a inline general inerjection
-        if elem.tag.lower() == "a" and elem.get("href"):
-            return elem.get("href")
-
-        # Case when we are looking at interjections
-        a_element = elem.find("./span/a")
-        if a_element is not None and a_element.get("href"):
-            href = a_element.get("href")
-            name_text = "".join(
-                char
-                for char in elem.find("./span/a/span").text
-                if char.isalnum()
-            )
-            self.name_to_href[name_text] = href
-            return href
-        elif a_element is None:
-            name_text = elem.find("./span/span").text
-            if name_text:
-                name_text = "".join(
-                    char for char in name_text if char.isalnum()
-                )
-                potential_id = self.name_to_href.get(name_text)
-                if potential_id:
-                    return potential_id
-        # Finally if we have an interjection element, and we dont know, give
-        # 10000
-        if self._interjection_flag(elem) == 3:
-            return "10000"
-
         return ""
+
+    def _extract_inline_talker(self, elem):
+
+       # case when we are getting a inline general inerjection
+       if elem.tag.lower() == "a" and elem.get("href"):
+           return elem.get("href")
+
+       #Case when we are looking at interjections that are not given a href
+       # because because they have already interjected
+       a_element = elem.find("./span/a")
+       if a_element is not None and a_element.get("href"):
+           href = a_element.get("href")
+           name_text = "".join(
+               char
+               for char in elem.find("./span/a/span").text
+               if char.isalnum()
+           )
+           self.name_to_href[name_text] = href
+           return href
+       elif a_element is None:
+           name_text = elem.find("./span/span").text
+           if name_text:
+               name_text = "".join(
+                   char for char in name_text if char.isalnum()
+               )
+               potential_id = self.name_to_href.get(name_text)
+               if potential_id:
+                   return potential_id
+
+       return ""
 
     def _get_a_element(self, et_elem):
         """Get the anchor element for interjection type detection."""

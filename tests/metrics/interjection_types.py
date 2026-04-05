@@ -71,21 +71,3 @@ class Type3InterjectionCountMetric(CountMetric):
     def count(self, documents: list) -> int:
         return sum(1 for ij in get_all_interjections(documents) if ij.get("type") == 3)
 
-
-class Type4InterjectionCountMetric(CountMetric):
-    """Count type 4 (unrecorded) interjections."""
-    
-    @property
-    def name(self) -> str:
-        return "t4_unrecorded"
-    
-    @property
-    def display_name(self) -> str:
-        return "T4 Unrecorded"
-    
-    @property
-    def description(self) -> str:
-        return "Type 4 interjections - unrecorded/general crowd reactions"
-    
-    def count(self, documents: list) -> int:
-        return sum(1 for ij in get_all_interjections(documents) if ij.get("type") == 4)

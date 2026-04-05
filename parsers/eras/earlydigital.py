@@ -8,7 +8,7 @@ Common characteristics:
 - Uses para elements with emphasis for formatting
 """
 
-from parsers.hansard_base_model import SpeechExtractor
+from parsers.speech_extractor import SpeechExtractor
 
 import string
 
@@ -33,7 +33,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                 subchildren = child.getchildren()
                 for sub in subchildren:
                     # Only move para elements that are interjections with content
-                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub) and self._interjection_flag(sub)[0] != 3:
                         # Check that the para has meaningful text content
                         sub_text = "".join(sub.itertext()).strip()
                         if sub_text:  # Only move if there's actual content
@@ -50,29 +50,102 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
         """
         Returns True if the element is an interjection, otherwise False.
         """
-        # Check element tag
         if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
-        return False
+            return True, False
+        # 2. Tag is PARA and has a bold EMPHASIS with procedural keywords in
+        # uppercase
+        if et_elem.tag.lower() == "para":
+            child = et_elem.find(".//emphasis")
+            ## TODO bring out to later elements
+            if child is not None:
+                if (
+                    child.attrib.get("font-weight", "") == "BOLD"
+                    and child.text is not None
+                ):
+                    if (
+                        "CHAIR" in child.text
+                        or "PRESIDENT" in child.text
+                        or "SPEAKER" in child.text
+                        or "DEPUTY" in child.text
+                        or "CLERK" in child.text
+                    ):
+                        return True, True
+                elif (
+                    child.attrib.get("font-slant", "") == "ITAL"
+                    and child.text is not None
+                ):
+                    # Check if the whole thing is in italics - indicates general
+                    # interjection
 
-    def _interjection_type(self, et_elem):
-        """Determine the type of interjection."""
-        if et_elem.get("chair") == "1":
-            return "office"
-        return "speaker"
+                    para_text = "".join(t.strip() for t in et_elem.itertext())
+                    para_text = para_text.translate(
+                        str.maketrans("", "", string.punctuation)
+                    )
 
-    def _interjection_type_with_general(self, et_elem):
-        """Determine the type of interjection including general type."""
-        if et_elem.get("chair") == "1":
-            return "office"
-        return "speaker"
+                    emph_text = "".join(t.strip() for t in child.itertext())
+                    emph_text = emph_text.translate(
+                        str.maketrans("", "", string.punctuation)
+                    )
+                    # If all text is inside the emphasis element, the texts should match
+                    if (
+                        para_text == emph_text
+                        and para_text != ""
+                        and "interject" in para_text.lower()
+                    ):
+                        return True, True
+
+        return False, False
+
+    def _pull_paras(self,elem):
+        texts = []
+        if elem.tag.lower() ==  'para':
+            return "".join(elem.itertext())
+        else:
+            for child in elem.getchildren():
+                texts.append(self._pull_paras(child))
+            return "".join(texts)
+
 
     def _extract_talker(self, elem):
-        """Extract talker from nameid attribute."""
-        result = elem.get("nameid")
+        result = elem.get("nameid", None)
         if result:
             return result
         return ""
+
+    def _extract_inline_talker(self, elem):
+        result = elem.get("nameid", None)
+        if result:
+            return result
+        return ""
+
+
+    def _interjection_type(self, et_elem):
+        # If the usual attribute is present, use it
+        if et_elem.tag.lower() in {"interject", "interjection"}:
+            if et_elem.get("chair") == "1":
+                return "office"
+        return "speaker"
+
+
+    def _interjection_type_inline(self,et_elem):
+
+        # Else, check if this is a PARA with a bold procedural keyword
+        if et_elem.tag.lower() == "para":
+            child = et_elem.find(".//emphasis")
+            ## TODO again check the bolding thingo
+            if child is not None:
+                if (
+                    child.attrib.get("font-weight", "") == "BOLD"
+                    and child.text is not None
+                ):
+                    return "office"
+                elif (
+                    child.attrib.get("font-slant", "") == "ITAL"
+                    and child.text is not None
+                ):
+                    return "general"
+        return "general"
+
 
     def _clean_text(self, text):
 
@@ -101,8 +174,12 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
             if has_title and len(before) < 60:
                 text = after
         
+
         
         # Strip leading whitespace/punctuation
         text = super()._clean_text(text)
         
         return text
+
+
+

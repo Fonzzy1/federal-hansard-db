@@ -62,14 +62,14 @@ async def seed(db: Prisma):
             "name": "Hansard 2012-2021",
             "parserModule": "parsers.hansard2012",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args_dict": {"from_day": "2012-01-01", "to_day": "2021-09-30"},
+            "args_dict": {"from_day": "2012-01-01", "to_day": "2021-09-05"},
         },
         {
             "id": 9,
             "name": "Hansard 2021-Present",
             "parserModule": "parsers.hansard2021",
             "scraperModule": "scrapers.parli_info_hansard",
-            "args_dict": {"from_day": "2021-10-01", "to_day": "2026-12-31"},
+            "args_dict": {"from_day": "2021-09-06", "to_day": "2026-12-31"},
         },
     ]
 

@@ -1,7 +1,5 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-)
+from parsers.hansard_extractor import HansardExtractor
+from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorMassDigitisation
 
 from parsers.errors import *
@@ -60,64 +58,9 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
         elif len(set(alt_name_ids)) == 1:
             return alt_name_ids[0]
         
-        # If no talker found and element is a para with bold text, extract the bold content
-        elif elem.tag.lower() == 'para' and self._is_interjection_element(elem):
-            child = elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                return child.text
-        
         else:
             return ""
 
-    def _is_interjection_element(self, et_elem):
-        """
-        Returns True if the element is an interjection, otherwise False.
-        """
-        # Check element tag
-        if et_elem.tag.lower() in {"interject", "interjection"}:
-            return True
-        if et_elem.tag.lower() in {"talk.start"}:
-            author = et_elem.find("talker/name.id")
-            if author is not None and author.text == "10000":
-                return True
-        if et_elem.tag.lower() in {"continue"}:
-            author = et_elem.find("talk.start/talker/name.id")
-            if author is not None and author.text == "10000":
-                return True
-        if et_elem.tag.lower() == 'para':
-            child = et_elem.find("./inline")
-            if child is not None:
-                if child.attrib.get("font-weight", "") == "bold":
-                    return True
-                elif (
-                    child.attrib.get("font-style", "") == "italic"
-                    and child.text is not None
-                ):
-                    para_text = "".join(t.strip() for t in et_elem.itertext())
-                    para_text = para_text.translate(
-                        str.maketrans("", "", string.punctuation + "—")
-                    )
-
-                    emph_text = "".join(t.strip() for t in child.itertext())
-                    emph_text = emph_text.translate(
-                        str.maketrans("", "", string.punctuation + "—")
-                    )
-                    # If all text is inside the emphasis element, the texts should match
-                    if (
-                        para_text == emph_text
-                        and para_text != ""
-                        and "interject" in para_text.lower()
-                    ):
-                        return True
-            elif (
-                et_elem.attrib.get("class") == "italic"
-                and et_elem.text
-                and "interject" in et_elem.text
-            ):
-                return True
-
-        else:
-            return False
 
     def _interjection_type(self, et_elem):
         if et_elem.tag.lower() in {"talk.start"}:
@@ -128,45 +71,8 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
             author = et_elem.find("talk.start/talker/name.id")
             if author is not None and author.text == "10000":
                 return "office"
-        elif et_elem.tag.lower() == 'para':
-            child = et_elem.find("./inline")
-            if child is not None and child.attrib.get("font-weight", "") == "bold":
-                if (
-                        "CHAIR" in child.text
-                        or "PRESIDENT" in child.text
-                        or "SPEAKER" in child.text
-                        or "CLERK" in child.text
-                    ):
-                        return "office"
-                else:
-                        return "speaker"
-            elif child.attrib.get("font-style", "") == "italic":
-                return "general"
-        else:
-            return "speaker"
+        return "speaker"
 
-    def _clean_text(self, text):
-
-        text = super()._clean_text(text)
-        
-        # If there's a " - " in the text, check if the part before it looks like a title
-
-        if "-" in text:
-            parts = text.split("-", 1)
-            before = parts[0].strip()
-            after = parts[1].strip()
-            
-            # Check if the part before " - " contains title-like elements
-            title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
-            has_title = any(ti in before for ti in title_indicators)
-            
-            # If the part before " - " is short and has a title, remove it
-            if has_title and len(before) < 60:
-                text = after
-
-        # Strip leading whitespace/punctuation
-        
-        return text
 
 
 def parse(file_text):
@@ -178,4 +84,5 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
+
 

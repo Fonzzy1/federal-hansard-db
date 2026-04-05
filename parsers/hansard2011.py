@@ -1,8 +1,5 @@
-from parsers.hansard_base_model import (
-    HansardExtractor,
-    ChamberSpeechExtractor,
-    print_tag_tree,
-)
+from parsers.hansard_extractor import HansardExtractor, print_tag_tree
+from parsers.chamber_speech_extractor import ChamberSpeechExtractor
 from parsers.eras import SpeechExtractorModern
 
 from parsers.errors import *
@@ -12,12 +9,6 @@ import re
 
 
 class SpeechExtractor2011(SpeechExtractorModern):
-
-    def __init__(self, element):
-        super().__init__(element)
-        self.name_to_href = {}
-
-
 
 
     def _is_interjection_element(self, et_elem):
@@ -34,7 +25,7 @@ class SpeechExtractor2011(SpeechExtractorModern):
                 "HPS-GeneralInterjecting",
                 "HPS-OfficeInterjecting"
             ]:
-                return True
+                return True, True
 
             # Or a contiuation or speech by the speaker
             elif class_attr in {
@@ -44,12 +35,12 @@ class SpeechExtractor2011(SpeechExtractorModern):
                 member_continuation_text = span.text
                 if member_continuation_text and any(
                     role in member_continuation_text
-                    for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR"]
+                    for role in ["SPEAKER", "DEPUTY", "CLERK", "PRESIDENT", "CHAIR"]
                 ):
-                    return True
-        return False
+                    return True, True
+        return False, False
 
-    def _interjection_type(self, et_elem):
+    def _interjection_type_inline(self, et_elem):
         a_element = self._get_a_element(et_elem)
         if  a_element is None:
             return False
@@ -65,7 +56,7 @@ class SpeechExtractor2011(SpeechExtractorModern):
         if t == "HPS-MemberSpeech":
             return "office"
         if t == "HPS-MemberIInterjecting":
-            return "unrecorded"
+            return "general"
         if t == "HPS-GeneralIInterjecting":
             return "general"
         if t == "HPS-GeneralInterjecting":
@@ -75,7 +66,6 @@ class SpeechExtractor2011(SpeechExtractorModern):
                 return "speaker"
             else:
                 return "general"
-
         if t == "HPS-GeneralInterjecting":
             return "general"
 

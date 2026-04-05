@@ -26,7 +26,7 @@ class InterjectionCountMetric(CountMetric):
     
     @property
     def description(self) -> str:
-        return "Total number of all interjections (types 1-4 combined)"
+        return "Total number of all interjections (types 1-5 combined)"
     
     def count(self, documents: list) -> int:
         return len(get_all_interjections(documents))

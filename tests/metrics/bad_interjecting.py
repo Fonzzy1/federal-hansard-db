@@ -28,11 +28,11 @@ class BadInterjectingTypesMetric(IssueMetric):
     
     @property
     def description(self) -> str:
-        return "'interjecting' text found in non-type2/non-type4 interjections"
+        return "'interjecting' text found in non-type2/non-type4/non-type5 interjections"
     
     def find_issues(self, documents: list) -> list:
         return [
             ij for ij in get_all_interjections(documents)
-            if ij.get("type") not in [2, 4]
+            if ij.get("type") not in [2, 4, 5]
             and "members interjecting" in ij.get("text", "").lower()
         ]
