@@ -30,7 +30,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
     def _get_speech_element_children(self, elem):
         """
         Extract children with special handling for embedded para interjections.
-        
+
         See 1994 line 1087 for why this is needed.
         """
         out = []
@@ -41,7 +41,9 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 subchildren = child.getchildren()
                 for sub in subchildren:
                     # Only move para elements that are interjections with content
-                    if sub.tag.lower() == "para" and self._is_interjection_element(sub):
+                    if sub.tag.lower() == "para" and all(
+                        self._is_interjection_element(sub)
+                    ):
                         # Check that the para has meaningful text content
                         sub_text = "".join(sub.itertext()).strip()
                         if sub_text:  # Only move if there's actual content
@@ -61,25 +63,24 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
             return result.text
         return ""
 
-    def _pull_paras(self,elem):
-
+    def _pull_paras(self, elem):
 
         texts = []
-        if elem.tag.lower() ==  'para':
+        if elem.tag.lower() == "para":
             return "".join(elem.itertext())
         else:
             for child in elem.getchildren():
                 texts.append(self._pull_paras(child))
             return "".join(texts)
 
-    def _pull_inline_paras(self,elem):
+    def _pull_inline_paras(self, elem):
         # Make a copy so modifications don't affect the original element
         elem = copy.deepcopy(elem)
 
         # Most of the time we grab everything, with the exception of speaker
         # interjections, where we dont grab the speaker name info which sits
         # within the inline element
-        if self._interjection_type_inline(elem) != 'general':
+        if self._interjection_type_inline(elem) != "general":
             while True:
                 bold_inline = elem.find('inline[@font-weight="bold"]')
                 if bold_inline is None:
@@ -114,31 +115,48 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                 return True, False
 
         # And all the inline interjcetions
-        if et_elem.tag.lower() == 'para':
+        if et_elem.tag.lower() in ["para", "p"]:
 
+            # The bolding indicates a  change of speaker
+            if et_elem.find("inline") is not None and (
+                not et_elem.text or (et_elem.text and not et_elem.text.strip())
+            ):
+                inline = et_elem.find("inline")
 
-                # The bolding indicates a  change of speaker
-                if et_elem.find("inline") is not None and (not et_elem.text or (et_elem.text and not et_elem.text.strip())):
-                    inline = et_elem.find('inline')
-
-                    # Boldiing inicates either a reference to another speaker
-                    # a change of speaker, check for capitalisation
-                    if inline.text and inline.attrib.get("font-weight", "") == "bold" and re.search(r'\b[A-Z]+\b', inline.text):
-                        return True, True
-
-                    # Italics are more general 
-                    if inline.text and inline.attrib.get('font-style', "") == 'italic':
-                        return True, True
-
+                # Boldiing inicates either a reference to another speaker
+                # a change of speaker, check for capitalisation or the reference
+                # to a member or a senator. Finaly confirm that there is text to
+                # pull
                 if (
-                    et_elem.attrib.get("class") == "italic"
-                    and et_elem.text
-                    and "interject" in et_elem.text
+                    inline.text
+                    and inline.attrib.get("font-weight", "") == "bold"
+                    and (
+                        re.search(r"\b[A-Z]+\b", inline.text)
+                        # Cases when it says 'an opppositon member'
+                        or "member" in inline.text
+                        or "senator" in inline.text
+                    )
+                    and self._clean_text(self._pull_inline_paras(et_elem))
                 ):
                     return True, True
 
-        return False, False
+                # Italics are more general
+                if (
+                    inline.text
+                    and inline.attrib.get("font-style", "") == "italic"
+                ):
+                    if "interject" in inline.text:
+                        return True, True
 
+            # if the whole block is an italic and there is a interject elem.
+            if (
+                et_elem.attrib.get("class") == "italic"
+                and et_elem.text
+                and "interject" in et_elem.text
+            ):
+                return True, True
+
+        return False, False
 
     def _interjection_type(self, et_elem):
         """Determine the type of interjection."""
@@ -159,23 +177,28 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         # Only consider inlines at the start (before any non-inline text)
         # Stop as soon as we hit text in the tail (after an inline)
 
-
         inlines = et_elem.findall('inline[@font-weight="bold"]')
         if not inlines:
             return "general"
-        
+
         # Check inlines in order
         for inline in inlines:
             # Check bold inline for office roles
             if inline.text:
-                for role in ["SPEAKER", "CLERK", "PRESIDENT", "CHAIR", "DEPUTY"]:
+                for role in [
+                    "SPEAKER",
+                    "CLERK",
+                    "PRESIDENT",
+                    "CHAIR",
+                    "DEPUTY",
+                ]:
                     if role in inline.text:
                         return "office"
-        
+
             # If there's meaningful text in the tail, we've hit speech content - stop
             if inline.tail and inline.tail.strip():
                 break
-            
+
         # Has bold inlines but no office roles found
         return "speaker"
 
@@ -185,42 +208,52 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
 
     def _clean_text(self, text):
 
-        #Strip leading whitespace/punctuation
+        # Strip leading whitespace/punctuation
         text = super()._clean_text(text)
 
         text = text.lstrip()
 
-        title_indicators = ["Mr", "Mrs", "Ms", "Dr", "Senator", "Sir", "Madam", "Hon"]
+        title_indicators = [
+            "Mr",
+            "Mrs",
+            "Ms",
+            "Dr",
+            "Senator",
+            "Sir",
+            "Madam",
+            "Hon",
+        ]
 
         # Check if there's a title in brackets or parentheses at the start and remove it
-        bracket_title_pattern = r'^(?:\[|\()([^\]\)]+)(?:\]|\))'
+        bracket_title_pattern = r"^(?:\[|\()([^\]\)]+)(?:\]|\))"
         match = re.match(bracket_title_pattern, text)
         if match:
             bracket_content = match.group(1)
             # Check if the bracketed content looks like a title
             if any(ti in bracket_content for ti in title_indicators):
-                text = text[match.end():]
-        
+                text = text[match.end() :]
+
         # If there's a " - " in the text, check if the part before it looks like a title
-        for dash in ['-','—']:
+        for dash in ["-", "—"]:
             if dash in text:
                 parts = text.split(dash, 1)
                 before = parts[0].strip()
                 after = parts[1].strip()
-            
+
                 # Check if the part before " - " contains title-like elements
                 has_title = any(ti in before for ti in title_indicators)
-            
+
                 # If the part before " - " is short and has a title, remove it
-                if has_title and len(re.sub(r'[^a-zA-Z0-9]', '', before)) < 25 and len(re.sub(r'[^a-zA-Z0-9]', '', after)) > 5  and "INTERJECTION" not in before:
+                if (
+                    has_title
+                    and len(re.sub(r"[^a-zA-Z0-9]", "", before)) < 25
+                    and len(re.sub(r"[^a-zA-Z0-9]", "", after)) > 5
+                    and "INTERJECTION" not in before
+                ):
                     text = after
                     break
-        
-        
-        #Strip leading whitespace/punctuation
+
+        # Strip leading whitespace/punctuation
         text = super()._clean_text(text)
-        
+
         return text
-
-
-

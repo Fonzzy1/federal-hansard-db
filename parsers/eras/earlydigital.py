@@ -33,7 +33,7 @@ class SpeechExtractorEarlyDigital(SpeechExtractor):
                 subchildren = child.getchildren()
                 for sub in subchildren:
                     # Only move para elements that are interjections with content
-                    if sub.tag.lower() == "para" and self._is_interjection_element(sub) and self._interjection_flag != 3:
+                    if sub.tag.lower() == "para" and self._is_interjection_element(sub) and self._interjection_flag(sub)[0] != 3:
                         # Check that the para has meaningful text content
                         sub_text = "".join(sub.itertext()).strip()
                         if sub_text:  # Only move if there's actual content

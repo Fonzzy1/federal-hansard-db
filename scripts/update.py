@@ -32,7 +32,7 @@ def log(msg: str) -> None:
 
 
 def apply_raw_author_fixes(author, sitting_day):
-    speaker_fix = fixes['speaker_alt_names']
+    speaker_fix = fixes["speaker_alt_names"]
     if author in speaker_fix:
         return "10000"
 

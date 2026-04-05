@@ -42,3 +42,33 @@ def parse(file_text):
     return results
 
 
+
+elem = ET.fromstring("""
+<question>
+<talk.start>
+<talker>
+<time.stamp>15:20:00</time.stamp>
+<page.no>1176</page.no>
+<name role="metadata">Causley, Ian, MP</name>
+<name role="display">Mr CAUSLEY</name>
+<name.id>4K6</name.id>
+<electorate>Page</electorate>
+<party>NP</party>
+<in.gov>1</in.gov>
+<first.speech>0</first.speech>
+</talker>
+<para>
+—My question is directed to the Minister for Children and Youth Affairs representing the Minister for Family and Community Services. Can the minister outline any changes to the age pension, and is he aware of any alternative policies?
+</para>
+</talk.start>
+<para>
+<inline font-weight="bold">An opposition member</inline>
+—Go the duck!
+</para>
+</question>""")
+
+self = SpeechExtractor2000(elem)
+self.extract()
+p = self._get_speech_element_children(elem)[1]
+self._is_interjection_element(p)
+
