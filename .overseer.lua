@@ -57,6 +57,28 @@ return {
     },
 
     {
+        name = "Reparse Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--reparse", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
+        name = "Update Source ID",
+        builder = function(params)
+            local source_id = params.source_id or "1"
+            return {
+                cmd = { "docker", "compose", "run", "--build", "update", "scripts/update.py", "--source-id", source_id },
+                components = { "default" },
+            }
+        end,
+    },
+
+    {
         name = "Reset DB",
         builder = function(_)
             return {
@@ -71,6 +93,19 @@ return {
         builder = function(_)
             return {
                 cmd = { "pgcli", "postgresql://prisma_user:prisma_password@localhost:5432/prisma_db" },
+                components = {
+                    { "open_output", direction = "float", on_start = "always", focus = true },
+                    "default"
+                },
+            }
+        end,
+    },
+
+    {
+        name = "Parser Report",
+        builder = function(_)
+            return {
+                cmd = { "python3", "tests/run_report.py" },
                 components = {
                     { "open_output", direction = "float", on_start = "always", focus = true },
                     "default"

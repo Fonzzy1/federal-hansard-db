@@ -32,6 +32,10 @@ def log(msg: str) -> None:
 
 
 def apply_raw_author_fixes(author, sitting_day):
+    speaker_fix = fixes["speaker_alt_names"]
+    if author in speaker_fix:
+        return "10000"
+
     for key in [author, f"_{author}"]:
         fix = fixes["raw_author_fixes"].get(key)
         if not fix:
@@ -71,7 +75,7 @@ def build_interjections(interjections, sitting_day):
     return {
         "create": [
             {
-                "text": inter["text"],
+                "text": inter.get("text"),
                 "sequence": inter["sequence"],
                 "rawAuthor": raw_author_connect_or_create(
                     inter["author"], sitting_day
@@ -239,16 +243,19 @@ async def load_politician_metadata(db: Client) -> None:
     log("Finished loading metadata.")
 
 
-async def scrape_and_parse_sources(db: Client) -> None:
+async def scrape_and_parse_sources(db: Client, source_id: int = None) -> None:
 
     sitting_day_override = fixes["sitting_day_override"]
     log("Scraping and parsing sources...")
 
-    sources = await db.source.find_many()
+    if source_id:
+        sources = await db.source.find_many(where={"id": source_id})
+    else:
+        sources = await db.source.find_many()
     sources.reverse()
 
     for source in sources:
-        log(f"Processing source: [cyan]{source.name}[/cyan]")
+        console.rule(f"[bold blue]{source.name}")
 
         module = importlib.import_module(source.scraperModule)
         parser = importlib.import_module(source.parserModule).parse
@@ -293,31 +300,31 @@ async def scrape_and_parse_sources(db: Client) -> None:
                 for name, info in new_documents.items():
                     try:
                         raw_document_text = module.scraper(info["path"])
-                        raw_inserted_document = await db.rawdocument.create(
-                            data={
-                                "name": name,
-                                "text": raw_document_text,
-                                "is_proof": info["is_proof"],
-                                "sourceId": source.id,
-                            }
-                        )
-                        override = sitting_day_override_for_source.get(
-                            raw_inserted_document.name, None
-                        )
-                        parsed_document = parser(raw_inserted_document.text)
-                        for extract in parsed_document:
-                            sitting_day = await create_sitting_day(
-                                db, extract, override
+                        if raw_document_text:
+                            raw_inserted_document = await db.rawdocument.create(
+                                data={
+                                    "name": name,
+                                    "text": raw_document_text,
+                                    "is_proof": info["is_proof"],
+                                    "sourceId": source.id,
+                                }
                             )
-                            for document in extract["documents"]:
-                                await insert_document(
-                                    db,
-                                    document,
-                                    raw_inserted_document.id,
-                                    sitting_day,
+                            override = sitting_day_override_for_source.get(
+                                raw_inserted_document.name, None
+                            )
+                            parsed_document = parser(raw_inserted_document.text)
+                            for extract in parsed_document:
+                                sitting_day = await create_sitting_day(
+                                    db, extract, override
                                 )
-                        progress.advance(task_docs)
-
+                                for document in extract["documents"]:
+                                    await insert_document(
+                                        db,
+                                        document,
+                                        raw_inserted_document.id,
+                                        sitting_day,
+                                    )
+                            progress.advance(task_docs)
                     except Exception as e:
                         print(e)
                         print(name)
@@ -365,7 +372,7 @@ async def join_politicians_to_raw_authors(db: Client) -> None:
                     data={"parliamentarian": {"connect": {"id": matched_id}}},
                 )
             else:
-                if auth.name not in ignore_ids:
+                if auth.name not in ignore_ids and auth.name != "10000":
                     console.print(
                         f"[yellow]⚠[/yellow] Could not match: {auth.name} (possible alt name)"
                     )
@@ -384,9 +391,10 @@ async def reparse_all_sources(db: Client) -> None:
 
     await db.query_raw('TRUNCATE "Document" CASCADE;')
     await db.query_raw('TRUNCATE "SittingDay" CASCADE;')
+    await db.query_raw('TRUNCATE "rawAuthor" CASCADE;')
 
     for source in sources:
-        log(f"Re-parsing source: [cyan]{source.name}[/cyan]")
+        console.rule(f"[bold blue]{source.name}")
 
         parser = importlib.import_module(source.parserModule).parse
 
@@ -464,6 +472,7 @@ async def check_authors_join(db):
     WHERE s_match.id IS NULL 
        AND sd."chamber" <> 'Answers Upon Notice'
 
+
     GROUP BY
         p.id,
         p."firstName",
@@ -527,6 +536,9 @@ async def main():
     parser.add_argument(
         "--reparse", action="store_true", help="Re-parse all raw documents."
     )
+    parser.add_argument(
+        "--source-id", type=int, help="Only process this specific source ID."
+    )
     args = parser.parse_args()
 
     console.rule("[bold blue]Pipeline Start")
@@ -535,12 +547,12 @@ async def main():
 
     await seed_sources(db)
     await reset_politician_links(db)
-    await load_politician_metadata(db)
 
     if args.reparse:
         await reparse_all_sources(db)
     else:
-        await scrape_and_parse_sources(db)
+        await load_politician_metadata(db)
+        await scrape_and_parse_sources(db, args.source_id)
 
     await join_politicians_to_raw_authors(db)
     await check_authors_join(db)

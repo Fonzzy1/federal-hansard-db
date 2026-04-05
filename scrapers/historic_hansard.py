@@ -14,17 +14,13 @@ def ensure_dir(path):
 
 
 def grab_and_format_yyyymmdd(s):
-    # Grab all digits in order
     digits = re.findall(r"\d", s)
-    if len(digits) < 8:
-        return s  # Not enough digits
-    # Take the first 8 digits and join them
     yyyymmdd = "".join(digits[:8])
     try:
         date_obj = datetime.strptime(yyyymmdd, "%Y%m%d")
-        return date_obj.strftime("%Y-%m-%d")
-    except:
-        return s
+        return date_obj
+    except ValueError:
+        return False
 
 
 def download_from_github():
@@ -62,18 +58,44 @@ def download_from_github():
     return extracted_folder
 
 
-def file_list_extractor():
+def file_list_extractor(from_day, to_day, use_fine_dates=True):
+
+    from_date = datetime.strptime(from_day, "%Y-%m-%d")
+    to_date = datetime.strptime(to_day, "%Y-%m-%d")
 
     path = download_from_github()
     file_dict = {}
     for house in ["senate", "hofreps"]:
         for year in os.listdir(os.path.join(path, house)):
-            for file in os.listdir(os.path.join(path, house, year)):
-                # is always not a proof document if in historic
-                file_dict[f"{house}-{grab_and_format_yyyymmdd(file)}"] = {
-                    "path": os.path.join(path, house, year, file),
-                    "is_proof": False,
-                }
+            if from_date.year <= int(year) <= to_date.year:
+                for file in os.listdir(os.path.join(path, house, year)):
+                    if use_fine_dates:
+                        # is always not a proof document if in historic
+                        date = grab_and_format_yyyymmdd(file)
+                        if date:
+                            if from_date <= date <= to_date:
+                                file_dict[
+                                    f"{house}-{grab_and_format_yyyymmdd(file)}"
+                                ] = {
+                                    "path": os.path.join(
+                                        path, house, year, file
+                                    ),
+                                    "is_proof": False,
+                                }
+                        else:
+                            raise ValueError(f"Cannot Parse Date from {file}")
+                    else:
+                        date = grab_and_format_yyyymmdd(file)
+                        if date:
+                            file_dict[f"{house}-{date}"] = {
+                                "path": os.path.join(path, house, year, file),
+                                "is_proof": False,
+                            }
+                        else:
+                            file_dict[f"{house}-{file}"] = {
+                                "path": os.path.join(path, house, year, file),
+                                "is_proof": False,
+                            }
     return file_dict
 
 

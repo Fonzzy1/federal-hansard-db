@@ -1,6 +1,6 @@
 {
     "sitting_day_override": {
-        "2": {
+        "6": {
             "hofreps-2009-06-03": "2009-06-03",
             "senate-2010-02-23": "2010-02-23"
         }
@@ -715,6 +715,9 @@
         "HK5": [
             "30HK5"
         ],
+        "3M6": [
+            "3M9"
+        ],
         "PJ4": [
             "P4J4"
         ],
@@ -889,21 +892,8 @@
             9
         ]
     },
-    "ignore_ids": [
-        "10000",
+    "speaker_alt_names": [
         "20000",
-        "TS4",
-        "UNKNOWN",
-        "Unknown",
-        "TO3",
-        "COO",
-        "009C3",
-        "QT2",
-        "R56",
-        "R56",
-        "G5F",
-        "DVB",
-        "GYB",
         "j10000",
         "W10000",
         "1 has anything to do0000",
@@ -927,5 +917,19 @@
         "10000Collins",
         "10000Macdonald",
         "p10000"
+    ],
+    "ignore_ids": [
+        "TS4",
+        "UNKNOWN",
+        "Unknown",
+        "TO3",
+        "COO",
+        "009C3",
+        "QT2",
+        "R56",
+        "R56",
+        "G5F",
+        "DVB",
+        "GYB"
     ]
 }
