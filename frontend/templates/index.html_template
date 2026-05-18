@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sitting Days</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.5rem;
+        border-bottom: 1px solid #ddd;
+      }
+      form {
+        margin-bottom: 1rem;
+      }
+      select,
+      button {
+        margin-right: 0.75rem;
+      }
+      .pagination {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+      }
+      .summary {
+        margin-bottom: 1rem;
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Sitting Days</h1>
+
+    <form method="get" action="/">
+      <label>
+        House
+        <select name="house">
+          <option value="">All</option>
+          {% for house in houses %}
+          <option
+            value="{{ house }}"
+            {%
+            if
+            house=="selected_house"
+            %}selected{%
+            endif
+            %}
+          >
+            {{ house }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <label>
+        Chamber
+        <select name="chamber">
+          <option value="">All</option>
+          {% for chamber in chambers %}
+          <option
+            value="{{ chamber }}"
+            {%
+            if
+            chamber=="selected_chamber"
+            %}selected{%
+            endif
+            %}
+          >
+            {{ chamber }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+
+      <button type="submit">Filter</button>
+      <a href="/">Clear</a>
+    </form>
+
+    <div class="summary">
+      Showing page {{ page }} of {{ total_pages }} ({{ total_count }} sitting
+      days total)
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>House</th>
+          <th>Chamber</th>
+          <th>Parliament</th>
+          <th>Session</th>
+          <th>Period</th>
+          <th>Docs</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for day in days %}
+        <tr>
+          <td>
+            <a href="/day/{{ day.id }}">{{ day.date.strftime('%Y-%m-%d') }}</a>
+          </td>
+          <td>{{ day.house }}</td>
+          <td>{{ day.chamber }}</td>
+          <td>{{ day.parliament or '' }}</td>
+          <td>{{ day.session or '' }}</td>
+          <td>{{ day.period or '' }}</td>
+          <td>{{ day.document_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      {% if has_prev %}
+      <a href="{{ prev_url }}">Previous</a>
+      {% endif %} {% if has_next %}
+      <a href="{{ next_url }}">Next</a>
+      {% endif %}
+    </div>
+  </body>
+</html>

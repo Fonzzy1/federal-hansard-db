@@ -8,4 +8,8 @@ PyGithub
 tqdm
 aiohttp
 beautifulsoup4
+fastapi
+uvicorn
+jinja2
+prisma
 
