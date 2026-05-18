@@ -1,0 +1,160 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="latin" />
+    <title>Sitting Day</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 2rem;
+        line-height: 1.5;
+      }
+      .speech {
+        padding-top: 1rem;
+        margin-top: 1rem;
+      }
+      .speaker {
+        font-weight: bold;
+      }
+      .type {
+        color: #666;
+        font-size: 0.9rem;
+      }
+      .interjection {
+        color: #1d4ed8;
+        text-decoration: underline dotted;
+        cursor: pointer;
+        margin-left: 0.2rem;
+      }
+      .links {
+        margin-top: 0.5rem;
+        font-size: 0.95rem;
+      }
+      h2 {
+        margin-top: 2rem;
+      }
+      p.text {
+        white-space: pre-wrap;
+      }
+
+      .interjection-popup {
+        position: absolute;
+        display: none;
+        max-width: 320px;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        padding: 0.75rem;
+        z-index: 1000;
+        font-size: 0.95rem;
+      }
+
+      .interjection-popup .popup-speaker {
+        font-weight: bold;
+        margin-bottom: 0.35rem;
+      }
+
+      .interjection-popup.visible {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <p><a href="/">← Back</a></p>
+
+    <h1>
+      {{ day.date.strftime('%Y-%m-%d') }} — {{ day.house }} / {{ day.chamber }}
+    </h1>
+
+    <p>
+      Parliament: {{ day.parliament or '' }} | Session: {{ day.session or '' }}
+      | Period: {{ day.period or '' }}
+    </p>
+
+    {% for group in groups %}
+    <section>
+      <h2>{{ group.title }}</h2>
+
+      {% for doc in group.documents %}
+      <article class="speech" id="doc-{{ doc.id }}">
+        <div>
+          <span class="speaker">{{ doc.speaker }}</span>
+          <span class="type">({{ doc.type }})</span>
+        </div>
+        <p class="text">{{ doc.rendered_text | safe }}</p>
+        {% if doc.paired_ids %}
+        <div class="links">
+          Linked: {% for linked_id in doc.paired_ids %}
+          <a href="#doc-{{ linked_id }}">Speech {{ linked_id }}</a>{% if not
+          loop.last %}, {% endif %} {% endfor %}
+        </div>
+        {% endif %}
+      </article>
+      {% endfor %}
+    </section>
+    {% endfor %}
+
+    <div id="interjection-popup" class="interjection-popup" role="tooltip">
+      <div class="popup-speaker"></div>
+      <div class="popup-text"></div>
+    </div>
+
+    <script>
+      const popup = document.getElementById("interjection-popup");
+      const popupSpeaker = popup.querySelector(".popup-speaker");
+      const popupText = popup.querySelector(".popup-text");
+
+      function showPopup(el) {
+        const speaker = el.dataset.speaker || "Unknown speaker";
+        const text = el.dataset.text || "";
+
+        popupSpeaker.textContent = speaker;
+        popupText.textContent = text;
+
+        const rect = el.getBoundingClientRect();
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+
+        popup.style.left = `${rect.left + scrollX}px`;
+        popup.style.top = `${rect.bottom + scrollY + 6}px`;
+        popup.classList.add("visible");
+      }
+
+      function hidePopup() {
+        popup.classList.remove("visible");
+      }
+
+      document.querySelectorAll(".interjection").forEach((el) => {
+        el.addEventListener("mouseenter", () => showPopup(el));
+        el.addEventListener("focus", () => showPopup(el));
+        el.addEventListener("mouseleave", hidePopup);
+        el.addEventListener("blur", hidePopup);
+
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const isVisible = popup.classList.contains("visible");
+          const sameTarget = popup.dataset.target === el.textContent;
+
+          if (isVisible && sameTarget) {
+            hidePopup();
+            popup.dataset.target = "";
+          } else {
+            showPopup(el);
+            popup.dataset.target = el.textContent;
+          }
+        });
+      });
+
+      document.addEventListener("click", (event) => {
+        if (
+          !popup.contains(event.target) &&
+          !event.target.classList.contains("interjection")
+        ) {
+          hidePopup();
+          popup.dataset.target = "";
+        }
+      });
+    </script>
+  </body>
+</html>
