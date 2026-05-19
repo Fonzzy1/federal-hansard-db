@@ -126,7 +126,9 @@ async def index(
     )
 
 
-@app.get("/day/{date_str}/{house_slug}/{chamber_slug}", response_class=HTMLResponse)
+@app.get(
+    "/day/{date_str}/{house_slug}/{chamber_slug}", response_class=HTMLResponse
+)
 async def day_view(
     request: Request,
     date_str: str,
@@ -154,7 +156,8 @@ async def day_view(
         (
             d
             for d in candidates
-            if slugify(d.house) == house_slug and slugify(d.chamber) == chamber_slug
+            if slugify(d.house) == house_slug
+            and slugify(d.chamber) == chamber_slug
         ),
         None,
     )
@@ -244,7 +247,7 @@ async def day_view(
                 f'data-speaker="{safe_speaker}" '
                 f'data-text="{safe_text}" '
                 f'tabindex="0">'
-                f"[{{1: 'SPEAKER', 2: 'GENERAL', 3: 'OFFICE'}.get(interjection['type'], '')} INTERJECTION]"
+                f"[{ {1: 'SPEAKER', 2: 'GENERAL', 3: 'OFFICE'}.get(interjection['type'], '') } INTERJECTION]"
                 f"</span>"
             )
 
