@@ -230,7 +230,11 @@ async def day_view(request: Request, day_id: int):
                 "title": doc.title,
                 "type": doc.type,
                 "rendered_text": rendered_text,
-                "speaker": f"{doc.rawAuthor.parliamentarian.firstName} {doc.rawAuthor.parliamentarian.lastName}",
+                "speaker": (
+                    f"{doc.rawAuthor.parliamentarian.firstName} {doc.rawAuthor.parliamentarian.lastName}"
+                    if doc.rawAuthor.parliamentarian
+                    else "Unknown speaker"
+                ),
                 "paired_ids": deduped_paired_ids,
                 "interjections": interjections,
             }
