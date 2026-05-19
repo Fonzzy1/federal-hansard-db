@@ -48,12 +48,7 @@
           {% for house in houses %}
           <option
             value="{{ house }}"
-            {%
-            if
-            house=="selected_house"
-            %}selected{%
-            endif
-            %}
+            {% if house == selected_house %}selected{% endif %}
           >
             {{ house }}
           </option>
@@ -68,12 +63,7 @@
           {% for chamber in chambers %}
           <option
             value="{{ chamber }}"
-            {%
-            if
-            chamber=="selected_chamber"
-            %}selected{%
-            endif
-            %}
+            {% if chamber == selected_chamber %}selected{% endif %}
           >
             {{ chamber }}
           </option>
@@ -86,8 +76,7 @@
     </form>
 
     <div class="summary">
-      Showing page {{ page }} of {{ total_pages }} ({{ total_count }} sitting
-      days total)
+      Showing page {{ page }}
     </div>
 
     <table>
@@ -99,21 +88,19 @@
           <th>Parliament</th>
           <th>Session</th>
           <th>Period</th>
-          <th>Docs</th>
         </tr>
       </thead>
       <tbody>
         {% for day in days %}
         <tr>
           <td>
-            <a href="/day/{{ day.id }}">{{ day.date.strftime('%Y-%m-%d') }}</a>
+            <a href="{{ day.url }}">{{ day.date.strftime('%Y-%m-%d') }}</a>
           </td>
           <td>{{ day.house }}</td>
           <td>{{ day.chamber }}</td>
           <td>{{ day.parliament or '' }}</td>
           <td>{{ day.session or '' }}</td>
           <td>{{ day.period or '' }}</td>
-          <td>{{ day.document_count }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -122,7 +109,9 @@
     <div class="pagination">
       {% if has_prev %}
       <a href="{{ prev_url }}">Previous</a>
-      {% endif %} {% if has_next %}
+      {% endif %}
+
+      {% if has_next %}
       <a href="{{ next_url }}">Next</a>
       {% endif %}
     </div>

@@ -32,6 +32,16 @@ def build_query_string(**params) -> str:
     return urlencode(clean)
 
 
+def slugify(value: str) -> str:
+    value = value.strip().lower()
+    value = re.sub(r"[^a-z0-9]+", "-", value)
+    return value.strip("-")
+
+
+def build_day_url(day) -> str:
+    return f"/day/{day.date.isoformat()}/{slugify(day.house)}/{slugify(day.chamber)}"
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(
     request: Request,
@@ -72,7 +82,7 @@ async def index(
 
     items = [
         {
-            "id": day.id,
+            "url": build_day_url(day),
             "date": day.date,
             "house": day.house,
             "chamber": day.chamber,
@@ -84,7 +94,7 @@ async def index(
     ]
 
     has_prev = page > 1
-    has_next = skip + len(items)
+    has_next = len(items) == PAGE_SIZE
 
     prev_query = build_query_string(
         house=house,
@@ -116,10 +126,15 @@ async def index(
     )
 
 
-@app.get("/day/{day_id}", response_class=HTMLResponse)
-async def day_view(request: Request, day_id: int):
-    day = await db.sittingday.find_unique(
-        where={"id": day_id},
+@app.get("/day/{date_str}/{house_slug}/{chamber_slug}", response_class=HTMLResponse)
+async def day_view(
+    request: Request,
+    date_str: str,
+    house_slug: str,
+    chamber_slug: str,
+):
+    candidates = await db.sittingday.find_many(
+        where={"date": date_str},
         include={
             "documents": {
                 "include": {
@@ -131,8 +146,17 @@ async def day_view(request: Request, day_id: int):
                     "references": True,
                     "citedBy": True,
                 }
-            }
+            },
         },
+    )
+
+    day = next(
+        (
+            d
+            for d in candidates
+            if slugify(d.house) == house_slug and slugify(d.chamber) == chamber_slug
+        ),
+        None,
     )
 
     if not day:
@@ -140,8 +164,14 @@ async def day_view(request: Request, day_id: int):
 
     doc_ids = [doc.id for doc in day.documents]
 
+    raw_doc = None
+    if day.documents:
+        raw_doc = await db.rawdocument.find_unique(
+            where={"id": day.documents[0].rawDocumentId}
+        )
+
     interjection_rows = await db.interjection.find_many(
-        where={"documentId": {"in": doc_ids}},
+        where={"documentId": {"in": doc_ids}} if doc_ids else None,
         include={
             "rawAuthor": {
                 "include": {
@@ -183,7 +213,7 @@ async def day_view(request: Request, day_id: int):
                         i.rawAuthor.parliamentarian.firstName
                         + " "
                         + i.rawAuthor.parliamentarian.lastName
-                        if i.rawAuthor.parliamentarian
+                        if i.rawAuthor and i.rawAuthor.parliamentarian
                         else "Unknown speaker"
                     ),
                 }
@@ -214,7 +244,7 @@ async def day_view(request: Request, day_id: int):
                 f'data-speaker="{safe_speaker}" '
                 f'data-text="{safe_text}" '
                 f'tabindex="0">'
-                f"[{ {1: 'SPEAKER', 2: 'GENERAL', 3: 'OFFICE'}.get(interjection['type'],"") } INTERJECTION]"
+                f"[{{1: 'SPEAKER', 2: 'GENERAL', 3: 'OFFICE'}.get(interjection['type'], '')} INTERJECTION]"
                 f"</span>"
             )
 
@@ -232,7 +262,7 @@ async def day_view(request: Request, day_id: int):
                 "rendered_text": rendered_text,
                 "speaker": (
                     f"{doc.rawAuthor.parliamentarian.firstName} {doc.rawAuthor.parliamentarian.lastName}"
-                    if doc.rawAuthor.parliamentarian
+                    if doc.rawAuthor and doc.rawAuthor.parliamentarian
                     else "Unknown speaker"
                 ),
                 "paired_ids": deduped_paired_ids,
@@ -261,5 +291,6 @@ async def day_view(request: Request, day_id: int):
         context={
             "day": day,
             "groups": groups,
+            "raw_doc": raw_doc.text if raw_doc else "",
         },
     )
