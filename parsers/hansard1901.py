@@ -57,22 +57,9 @@ class SpeechExtractor1901(SpeechExtractorMassDigitisation):
 
         elif len(set(alt_name_ids)) == 1:
             return alt_name_ids[0]
-        
+
         else:
             return ""
-
-
-    def _interjection_type(self, et_elem):
-        if et_elem.tag.lower() in {"talk.start"}:
-            author = et_elem.find("talker/name.id")
-            if author is not None and author.text == "10000":
-                return "office"
-        elif et_elem.tag.lower() in {"continue"}:
-            author = et_elem.find("talk.start/talker/name.id")
-            if author is not None and author.text == "10000":
-                return "office"
-        return "speaker"
-
 
 
 def parse(file_text):
@@ -84,5 +71,3 @@ def parse(file_text):
     except EmptyDocumentError:
         results = []
     return results
-
-
