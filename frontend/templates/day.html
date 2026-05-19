@@ -37,6 +37,44 @@
         white-space: pre-wrap;
       }
 
+      .page-columns {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 2rem;
+        align-items: start;
+      }
+
+      .rendered-column {
+        min-width: 0;
+      }
+
+      .xml-column {
+        min-width: 0;
+        position: sticky;
+        top: 1rem;
+      }
+
+      .xml-panel {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fafafa;
+        padding: 1rem;
+      }
+
+      .xml-panel h2 {
+        margin-top: 0;
+      }
+
+      .raw-xml {
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-family: monospace;
+        font-size: 0.9rem;
+        margin: 0;
+        max-height: 80vh;
+        overflow: auto;
+      }
+
       .interjection-popup {
         position: absolute;
         display: none;
@@ -58,6 +96,20 @@
       .interjection-popup.visible {
         display: block;
       }
+
+      @media (max-width: 1000px) {
+        .page-columns {
+          grid-template-columns: 1fr;
+        }
+
+        .xml-column {
+          position: static;
+        }
+
+        .raw-xml {
+          max-height: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -72,28 +124,39 @@
       | Period: {{ day.period or '' }}
     </p>
 
-    {% for group in groups %}
-    <section>
-      <h2>{{ group.title }}</h2>
+    <div class="page-columns">
+      <div class="rendered-column">
+        {% for group in groups %}
+        <section>
+          <h2>{{ group.title }}</h2>
 
-      {% for doc in group.documents %}
-      <article class="speech" id="doc-{{ doc.id }}">
-        <div>
-          <span class="speaker">{{ doc.speaker }}</span>
-          <span class="type">({{ doc.type }})</span>
+          {% for doc in group.documents %}
+          <article class="speech" id="doc-{{ doc.id }}">
+            <div>
+              <span class="speaker">{{ doc.speaker }}</span>
+              <span class="type">({{ doc.type }})</span>
+            </div>
+            <p class="text">{{ doc.rendered_text | safe }}</p>
+            {% if doc.paired_ids %}
+            <div class="links">
+              Linked: {% for linked_id in doc.paired_ids %}
+              <a href="#doc-{{ linked_id }}">Speech {{ linked_id }}</a>{% if not
+              loop.last %}, {% endif %} {% endfor %}
+            </div>
+            {% endif %}
+          </article>
+          {% endfor %}
+        </section>
+        {% endfor %}
+      </div>
+
+      <aside class="xml-column">
+        <div class="xml-panel">
+          <h2>Raw Hansard XML</h2>
+          <pre class="raw-xml">{{ raw_doc or '' }}</pre>
         </div>
-        <p class="text">{{ doc.rendered_text | safe }}</p>
-        {% if doc.paired_ids %}
-        <div class="links">
-          Linked: {% for linked_id in doc.paired_ids %}
-          <a href="#doc-{{ linked_id }}">Speech {{ linked_id }}</a>{% if not
-          loop.last %}, {% endif %} {% endfor %}
-        </div>
-        {% endif %}
-      </article>
-      {% endfor %}
-    </section>
-    {% endfor %}
+      </aside>
+    </div>
 
     <div id="interjection-popup" class="interjection-popup" role="tooltip">
       <div class="popup-speaker"></div>
