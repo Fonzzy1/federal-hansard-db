@@ -9,32 +9,56 @@
         margin: 2rem;
         line-height: 1.5;
       }
+
       .speech {
         padding-top: 1rem;
         margin-top: 1rem;
       }
+
       .speaker {
         font-weight: bold;
       }
+
       .type {
         color: #666;
         font-size: 0.9rem;
       }
+
       .interjection {
         color: #1d4ed8;
         text-decoration: underline dotted;
         cursor: pointer;
         margin-left: 0.2rem;
       }
+
       .links {
         margin-top: 0.5rem;
         font-size: 0.95rem;
       }
+
       h2 {
         margin-top: 2rem;
       }
+
       p.text {
         white-space: pre-wrap;
+      }
+
+      .toolbar {
+        margin: 1rem 0 1.5rem 0;
+      }
+
+      .toggle-button {
+        padding: 0.5rem 0.9rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+        font-size: 0.95rem;
+      }
+
+      .toggle-button:hover {
+        background: #f5f5f5;
       }
 
       .page-columns {
@@ -42,6 +66,10 @@
         grid-template-columns: 1.3fr 1fr;
         gap: 2rem;
         align-items: start;
+      }
+
+      .page-columns.xml-hidden {
+        grid-template-columns: 1fr;
       }
 
       .rendered-column {
@@ -52,6 +80,10 @@
         min-width: 0;
         position: sticky;
         top: 1rem;
+      }
+
+      .page-columns.xml-hidden .xml-column {
+        display: none;
       }
 
       .xml-panel {
@@ -65,6 +97,39 @@
         margin-top: 0;
       }
 
+      .xml-search-bar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+      }
+
+      .xml-search-input {
+        flex: 1 1 220px;
+        padding: 0.45rem 0.6rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 0.95rem;
+      }
+
+      .xml-search-button {
+        padding: 0.45rem 0.7rem;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        background: white;
+        cursor: pointer;
+      }
+
+      .xml-search-button:hover {
+        background: #f5f5f5;
+      }
+
+      .xml-search-status {
+        font-size: 0.9rem;
+        color: #555;
+        margin-bottom: 0.75rem;
+      }
+
       .raw-xml {
         white-space: pre-wrap;
         word-break: break-word;
@@ -73,6 +138,16 @@
         margin: 0;
         max-height: 80vh;
         overflow: auto;
+        line-height: 1.4;
+      }
+
+      .xml-match {
+        background: #fde68a;
+        color: inherit;
+      }
+
+      .xml-match.active {
+        background: #f59e0b;
       }
 
       .interjection-popup {
@@ -124,8 +199,19 @@
       | Period: {{ day.period or '' }}
     </p>
 
-    <div class="page-columns">
-      <div class="rendered-column">
+    <div class="toolbar">
+      <button
+        id="toggle-xml-button"
+        class="toggle-button"
+        type="button"
+        aria-expanded="false"
+      >
+        Show Raw XML
+      </button>
+    </div>
+
+    <div id="page-columns" class="page-columns xml-hidden">
+      <div class="rendered-column" id="rendered-column">
         {% for group in groups %}
         <section>
           <h2>{{ group.title }}</h2>
@@ -153,7 +239,40 @@
       <aside class="xml-column">
         <div class="xml-panel">
           <h2>Raw Hansard XML</h2>
-          <pre class="raw-xml">{{ raw_doc or '' }}</pre>
+
+          <div class="xml-search-bar">
+            <input
+              id="xml-search-input"
+              class="xml-search-input"
+              type="text"
+              placeholder="Search XML or select text on the left..."
+            />
+            <button
+              id="xml-search-prev"
+              class="xml-search-button"
+              type="button"
+            >
+              ← Prev
+            </button>
+            <button
+              id="xml-search-next"
+              class="xml-search-button"
+              type="button"
+            >
+              Next →
+            </button>
+            <button
+              id="xml-search-clear"
+              class="xml-search-button"
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+
+          <div id="xml-search-status" class="xml-search-status"></div>
+
+          <pre id="raw-xml" class="raw-xml">{{ raw_doc or '' }}</pre>
         </div>
       </aside>
     </div>
@@ -217,6 +336,169 @@
           hidePopup();
           popup.dataset.target = "";
         }
+      });
+
+      const pageColumns = document.getElementById("page-columns");
+      const toggleXmlButton = document.getElementById("toggle-xml-button");
+
+      function setXmlVisible(visible) {
+        pageColumns.classList.toggle("xml-hidden", !visible);
+        toggleXmlButton.textContent = visible ? "Hide Raw XML" : "Show Raw XML";
+        toggleXmlButton.setAttribute("aria-expanded", String(visible));
+      }
+
+      toggleXmlButton.addEventListener("click", () => {
+        const isHidden = pageColumns.classList.contains("xml-hidden");
+        setXmlVisible(isHidden);
+      });
+
+      const rawXmlEl = document.getElementById("raw-xml");
+      const xmlSearchInput = document.getElementById("xml-search-input");
+      const xmlSearchPrev = document.getElementById("xml-search-prev");
+      const xmlSearchNext = document.getElementById("xml-search-next");
+      const xmlSearchClear = document.getElementById("xml-search-clear");
+      const xmlSearchStatus = document.getElementById("xml-search-status");
+      const renderedColumn = document.getElementById("rendered-column");
+
+      const rawXmlOriginal = rawXmlEl.textContent;
+
+      let xmlMatches = [];
+      let activeMatchIndex = -1;
+
+      function escapeHtml(str) {
+        return str
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function clearXmlSearch() {
+        rawXmlEl.textContent = rawXmlOriginal;
+        xmlMatches = [];
+        activeMatchIndex = -1;
+        xmlSearchStatus.textContent = "";
+      }
+
+      function updateMatchStatus() {
+        if (!xmlMatches.length) {
+          xmlSearchStatus.textContent = xmlSearchInput.value.trim()
+            ? "No matches"
+            : "";
+          return;
+        }
+        xmlSearchStatus.textContent = `Match ${activeMatchIndex + 1} of ${xmlMatches.length}`;
+      }
+
+      function setActiveMatch(index) {
+        if (!xmlMatches.length) {
+          activeMatchIndex = -1;
+          updateMatchStatus();
+          return;
+        }
+
+        xmlMatches.forEach((match) => match.classList.remove("active"));
+
+        activeMatchIndex =
+          ((index % xmlMatches.length) + xmlMatches.length) % xmlMatches.length;
+        const active = xmlMatches[activeMatchIndex];
+        active.classList.add("active");
+        active.scrollIntoView({ behavior: "smooth", block: "center" });
+        updateMatchStatus();
+      }
+
+      function searchXml(term) {
+        const trimmed = term.trim();
+
+        if (!trimmed) {
+          clearXmlSearch();
+          return;
+        }
+
+        const escapedXml = escapeHtml(rawXmlOriginal);
+        const regex = new RegExp(escapeRegExp(trimmed), "gi");
+
+        let found = false;
+        const highlighted = escapedXml.replace(regex, (match) => {
+          found = true;
+          return `<mark class="xml-match">${match}</mark>`;
+        });
+
+        if (!found) {
+          rawXmlEl.textContent = rawXmlOriginal;
+          xmlMatches = [];
+          activeMatchIndex = -1;
+          updateMatchStatus();
+          return;
+        }
+
+        rawXmlEl.innerHTML = highlighted;
+        xmlMatches = Array.from(rawXmlEl.querySelectorAll(".xml-match"));
+        setActiveMatch(0);
+      }
+
+      xmlSearchInput.addEventListener("input", () => {
+        searchXml(xmlSearchInput.value);
+      });
+
+      xmlSearchNext.addEventListener("click", () => {
+        if (!xmlMatches.length) return;
+        setActiveMatch(activeMatchIndex + 1);
+      });
+
+      xmlSearchPrev.addEventListener("click", () => {
+        if (!xmlMatches.length) return;
+        setActiveMatch(activeMatchIndex - 1);
+      });
+
+      xmlSearchClear.addEventListener("click", () => {
+        xmlSearchInput.value = "";
+        clearXmlSearch();
+      });
+
+      function getSelectedText() {
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) return "";
+
+        const text = selection.toString().trim();
+        if (!text) return "";
+
+        const anchorNode = selection.anchorNode;
+        if (!anchorNode) return "";
+
+        const container =
+          anchorNode.nodeType === Node.TEXT_NODE
+            ? anchorNode.parentElement
+            : anchorNode;
+
+        if (!container || !renderedColumn.contains(container)) {
+          return "";
+        }
+
+        return text.replace(/\s+/g, " ").trim();
+      }
+
+      document.addEventListener("mouseup", () => {
+        const selectedText = getSelectedText();
+        if (!selectedText) return;
+
+        setXmlVisible(true);
+        xmlSearchInput.value = selectedText;
+        searchXml(selectedText);
+      });
+
+      document.addEventListener("keyup", (event) => {
+        if (event.key !== "Enter") return;
+
+        const selectedText = getSelectedText();
+        if (!selectedText) return;
+
+        setXmlVisible(true);
+        xmlSearchInput.value = selectedText;
+        searchXml(selectedText);
       });
     </script>
   </body>
