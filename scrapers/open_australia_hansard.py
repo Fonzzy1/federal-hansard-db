@@ -52,10 +52,11 @@ def scraper(file):
         try:
             with requests.get(file, headers=headers, timeout=60) as resp:
                 resp.raise_for_status()
+                resp.encoding = "utf-8"
                 content = resp.text
                 return content
         except Exception as e:
             if attempt < 4:
-                time.sleep(2**attempt)  # exponential backoff
+                time.sleep(2**attempt)
             else:
                 return f"failed: {e}"

@@ -22,7 +22,9 @@ class HansardExtractor:
         self.chamber_parsing_class = chamber_parsing_class
         self.speech_parsing_class = speech_parsing_class
         if from_file:
-            hansard_string = open(source).read()
+            with open(source, "rb") as f:
+                raw = f.read()
+            hansard_string = raw.decode("utf-8")
         else:
             hansard_string = source
 
@@ -194,6 +196,7 @@ class HansardExtractor:
         # If no valid date found, raise an error
         raise ValueError("No valid session date found in the XML.")
 
+
 def print_tag_tree(element, max_depth, indent=0):
     if indent >= max_depth:
         return
@@ -201,10 +204,15 @@ def print_tag_tree(element, max_depth, indent=0):
     for child in element:
         print_tag_tree(child, max_depth, indent + 1)
 
+
 def is_italic(el):
     if el.tag == "inline":
-        return (  el.attrib.get("font-weight") == "bold" or el.attrib.get("font-style") == "italic" or el.attrib.get("class") == "italic")
-    elif el.tag.lower()== 'emphasis':
-       return el.attrib.get('font-slant') == "ITAL"
+        return (
+            el.attrib.get("font-weight") == "bold"
+            or el.attrib.get("font-style") == "italic"
+            or el.attrib.get("class") == "italic"
+        )
+    elif el.tag.lower() == "emphasis":
+        return el.attrib.get("font-slant") == "ITAL"
     else:
-       return False
+        return False

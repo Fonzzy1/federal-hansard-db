@@ -71,7 +71,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         else:
             for child in elem.getchildren():
                 texts.append(self._pull_paras(child))
-            return "".join(texts)
+            return "\n".join(texts)
 
     def _pull_inline_paras(self, elem):
         # Make a copy so modifications don't affect the original element
@@ -133,6 +133,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
                     and (
                         re.search(r"\b[A-Z]+\b", inline.text)
                         # Cases when it says 'an opppositon member'
+                        # Cannot check for uppercase memeber as in  1920 line 551 - this is a failure case
                         or "member" in inline.text
                         or "senator" in inline.text
                     )

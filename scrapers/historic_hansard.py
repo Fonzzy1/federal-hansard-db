@@ -1,4 +1,4 @@
-import requests
+mport requests
 from tqdm import tqdm
 import zipfile
 import re
@@ -100,5 +100,5 @@ def file_list_extractor(from_day, to_day, use_fine_dates=True):
 
 
 def scraper(path):
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return f.read()
