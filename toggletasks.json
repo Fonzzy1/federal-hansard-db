@@ -1,0 +1,116 @@
+{
+    "tasks": [
+        {
+            "name": "Up DB",
+            "cmd": "docker compose up db"
+        },
+        {
+            "name": "Prisma Studio",
+            "cmd": "docker compose up --build studio"
+        },
+        {
+            "name": "Frontend",
+            "cmd": "docker compose up --build frontend"
+        },
+        {
+            "name": "Download DB",
+            "cmd": "docker compose run download"
+        },
+        {
+            "name": "Upload DB",
+            "cmd": "docker compose run upload"
+        },
+        {
+            "name": "Update DB",
+            "cmd": "docker compose run --build update"
+        },
+        {
+            "name": "Reparse DB",
+            "cmd": "docker compose run --build update scripts/update.py --reparse"
+        },
+        {
+            "name": "Update Hansard 1901-1980",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 1"
+        },
+        {
+            "name": "Update Hansard 1981-1991",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 2"
+        },
+        {
+            "name": "Update Hansard 1992-1996",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 3"
+        },
+        {
+            "name": "Update Hansard 1997",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 4"
+        },
+        {
+            "name": "Update Hansard 1998-1999",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 5"
+        },
+        {
+            "name": "Update Hansard 2000-2011",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 6"
+        },
+        {
+            "name": "Update Hansard 2011",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 7"
+        },
+        {
+            "name": "Update Hansard 2012-2021",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 8"
+        },
+        {
+            "name": "Update Hansard 2021-Present",
+            "cmd": "docker compose run --build update scripts/update.py --source-id 9"
+        },
+        {
+            "name": "Reparse Hansard 1901-1980",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 1"
+        },
+        {
+            "name": "Reparse Hansard 1981-1991",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 2"
+        },
+        {
+            "name": "Reparse Hansard 1992-1996",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 3"
+        },
+        {
+            "name": "Reparse Hansard 1997",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 4"
+        },
+        {
+            "name": "Reparse Hansard 1998-1999",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 5"
+        },
+        {
+            "name": "Reparse Hansard 2000-2011",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 6"
+        },
+        {
+            "name": "Reparse Hansard 2011",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 7"
+        },
+        {
+            "name": "Reparse Hansard 2012-2021",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 8"
+        },
+        {
+            "name": "Reparse Hansard 2021-Present",
+            "cmd": "docker compose run --build update scripts/update.py --reparse --source-id 9"
+        },
+        {
+            "name": "Reset DB",
+            "cmd": "docker compose run --rm  --entrypoint 'prisma' db_manager migrate reset --force"
+        },
+        {
+            "name": "Open DB Client",
+            "cmd": "pgcli postgresql://prisma_user:prisma_password@localhost:5432/prisma_db"
+        },
+        {
+            "name": "Parser Report",
+            "cmd": "python3 tests/run_report.py"
+        }
+    ]
+}
