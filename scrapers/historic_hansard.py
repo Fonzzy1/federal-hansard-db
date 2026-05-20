@@ -1,4 +1,4 @@
-mport requests
+import requests
 from tqdm import tqdm
 import zipfile
 import re

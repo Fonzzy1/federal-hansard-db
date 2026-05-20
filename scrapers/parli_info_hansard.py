@@ -10,7 +10,6 @@ import random
 
 
 def request_with_rate_limit_exception(url, retries=5, delay=20):
-
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)"
         " Chrome/115.0.0.0 Safari/537.36",
@@ -23,7 +22,6 @@ def request_with_rate_limit_exception(url, retries=5, delay=20):
     for _ in range(retries):
         try:
             response = requests.get(url, headers=headers, timeout=10)
-            response.encoding = "utf-8"
             if response.status_code == 200:
                 return response
             elif response.status_code == 403:
@@ -169,9 +167,9 @@ def file_list_extractor(
     return xml_links
 
 
-def scraper(path: str) -> str|None:
-    """Fetch and return text for a given XML file path."""
+def scraper(path: str) -> str | None:
     response = request_with_rate_limit_exception(path)
     if not response:
         return None
+    response.encoding = "utf-8"
     return response.text
