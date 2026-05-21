@@ -1,16 +1,4 @@
-⚠ Speeches allocated outside of service window for Allan McLEAN (ID: KRO)
-outside speech count: 1, first outside date: 1907-09-11, last outside date: 1907-09-11, service window: 1901-05-09 to 1906-11-05
-⚠ Speeches allocated outside of service window for Francis McLEAN (ID: KRP)
-outside speech count: 1, first outside date: 1909-09-07, last outside date: 1909-09-07, service window: 1901-05-09 to 1903-11-23
-⚠ Speeches allocated outside of service window for Charles MORGAN (ID: JVA)
-outside speech count: 1, first outside date: 1949-06-02, last outside date: 1949-06-02, service window: 1940-11-20 to 1958-10-14
-⚠ Speeches allocated outside of service window for Matthew REID (ID: K2L)
-outside speech count: 1, first outside date: 1911-10-26, last outside date: 1911-10-26, service window: 1917-07-01 to 1935-06-30
-⚠ Speeches allocated outside of service window for Anthony ST LEDGER (ID: K78)
-outside speech count: 1, first outside date: 1902-06-05, last outside date: 1902-06-05, service window: 1907-02-20 to 1913-04-23
-⚠ Speeches allocated outside of service window for Josiah SYMON (ID: K7V)
-outside speech count: 1, first outside date: 1930-04-09, last outside date: 1930-04-09, service window: 1901-05-09 to 1913-04-23
-⚠ Speeches allocated outside of service window for David WATSON (ID: 070E)
-outside speech count: 1, first outside date: 1918-06-13, last outside date: 1918-06-13, service window: 1914-10-08 to 1917-06-30
-⚠ Speeches allocated outside of service window for William WATT (ID: KXG)
-outside speech count: 1, first outside date: 1910-08-30, last outside date: 1910-08-30, service window: 1914-10-08 to 1929-07-05
+⚠ Speeches allocated outside of service window for Bob BROWN (ID: QD4)
+outside speech count: 4, first outside date: 2012-06-18, last outside date: 2012-08-14, service window: 1996-07-01 to 2012-06-15
+⚠ Speeches allocated outside of service window for David RIORDAN (ID: KYZ)
+outside speech count: 1, first outside date: 1938-05-05, last outside date: 1938-05-05, service window: 1929-11-20 to 1936-10-15
