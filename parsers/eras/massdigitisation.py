@@ -36,7 +36,7 @@ class SpeechExtractorMassDigitisation(SpeechExtractor):
         out = []
         children = elem.getchildren()
         for child in children:
-            if child.tag.lower() in ["interject", "interjection"]:
+            if self._is_interjection_element(child) == (True, False):
                 # Check for inline para interjections within this interjection block
                 subchildren = child.getchildren()
                 for sub in subchildren:
