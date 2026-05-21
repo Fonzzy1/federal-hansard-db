@@ -1,4 +1,0 @@
-⚠ Speeches allocated outside of service window for Bob BROWN (ID: QD4)
-outside speech count: 4, first outside date: 2012-06-18, last outside date: 2012-08-14, service window: 1996-07-01 to 2012-06-15
-⚠ Speeches allocated outside of service window for David RIORDAN (ID: KYZ)
-outside speech count: 1, first outside date: 1938-05-05, last outside date: 1938-05-05, service window: 1929-11-20 to 1936-10-15
