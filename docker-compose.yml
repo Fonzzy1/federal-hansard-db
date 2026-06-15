@@ -75,6 +75,13 @@ services:
     entrypoint: python3
     command: scripts/update.py --reparse
 
+  export:
+    extends:
+      service: db_manager
+    entrypoint: ["python3", "scripts/to_parquet.py"]
+    volumes:
+      - ${SYS_DIR}/exports:/exports
+
   frontend:
     extends:
       service: db_manager

@@ -256,6 +256,62 @@ Typical use cases include:
 
 You can do this with SQL directly, or through R/Python database libraries.
 
+### Exporting parquet files
+
+This repository also includes a Docker-based export script for producing
+rectangular parquet extracts from a date range.
+
+The `export` service writes files into the local `./exports` directory.
+
+#### Export documents
+
+```bash
+docker compose run --rm export 2024-06-01 2024-06-30
+```
+
+By default this writes:
+
+```text
+./exports/documents.parquet
+```
+
+You can choose the output filename with `--output`. If the filename does not end
+in `.parquet`, the extension is added automatically.
+
+```bash
+docker compose run --rm export 2024-06-01 2024-06-30 --output june_2024
+```
+
+This writes:
+
+```text
+./exports/june_2024.parquet
+```
+
+#### Export documents and interjections
+
+To also export interjections for the same date range, use
+`--include-interjections`:
+
+```bash
+docker compose run --rm export 2024-06-01 2024-06-30 --output june_2024 --include-interjections
+```
+
+This writes:
+
+```text
+./exports/june_2024.parquet
+./exports/june_2024.interjections.parquet
+```
+
+The main document export is a denormalized rectangular table including document
+text, sitting day information, author information, party/service information,
+and ministerial/ministry information where available.
+
+The companion interjections export includes interjection text, interjection
+type, parent document information, author information, party/service
+information, and ministerial/ministry information where available.
+
 ### Example: speeches mentioning a phrase
 
 ```sql
