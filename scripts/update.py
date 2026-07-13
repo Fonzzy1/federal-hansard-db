@@ -518,7 +518,16 @@ async def remove_proofs(db, source):
                 sitting_day_ids = list({d.sittingDayId for d in documents})
 
                 # 2) Delete documents
-                await db.document.delete_many(where={"rawDocumentId": id})
+                while True:
+                    docs = await db.document.find_many(
+                            where={"rawDocumentId": id},
+                        take=25,
+                    )
+                    if not docs:
+                        break
+                    await db.document.delete_many(
+                            where={"id": {"in": [doc.id for doc in docs]}},
+                    )
 
                 # 3) Delete sitting days
                 await db.sittingday.delete_many(
