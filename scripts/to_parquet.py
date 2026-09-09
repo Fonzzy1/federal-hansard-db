@@ -23,117 +23,220 @@ from prisma import Prisma
 
 
 DOCUMENTS_SQL = """
+WITH base AS (
+    SELECT
+        d.id AS document_id,
+        d.text,
+        d.title,
+        d.type,
+        sd.date::date AS date,
+        sd.house,
+        sd.chamber,
+        ra.name AS raw_author_name,
+        p.id AS parliamentarian_id,
+        p."firstName" AS first_name,
+        p."lastName" AS last_name
+    FROM "Document" d
+    JOIN "SittingDay" sd
+        ON sd.id = d."sittingDayId"
+    LEFT JOIN "rawAuthor" ra
+        ON ra.id = d."rawAuthorId"
+    LEFT JOIN "Parliamentarian" p
+        ON p.id = ra."parliamentarianId"
+    WHERE sd.date >= $1::date
+      AND sd.date < ($2::date + INTERVAL '1 day')
+),
+author_dates AS (
+    SELECT DISTINCT
+        parliamentarian_id,
+        date
+    FROM base
+    WHERE parliamentarian_id IS NOT NULL
+),
+service_for_date AS (
+    SELECT
+        ad.parliamentarian_id,
+        ad.date,
+        svc.id AS service_id,
+        svc.seat,
+        svc.state,
+        svc."isSenate" AS is_senate,
+        svc."parliamentId" AS parliament_id,
+        party.name AS party
+    FROM author_dates ad
+    LEFT JOIN LATERAL (
+        SELECT s.*
+        FROM "Service" s
+        WHERE s."parliamentarianId" = ad.parliamentarian_id
+          AND s."startDate" <= ad.date
+          AND (s."endDate" IS NULL OR s."endDate" >= ad.date)
+        ORDER BY s."startDate" DESC, s.id DESC
+        LIMIT 1
+    ) svc ON TRUE
+    LEFT JOIN "Party" party
+        ON party.id = svc."partyId"
+),
+minister_for_date AS (
+    SELECT
+        ad.parliamentarian_id,
+        ad.date,
+        minister.role AS minister_role,
+        minister.portfolio AS minister_portfolio,
+        minister."displayString" AS minister_display_string,
+        ministry.name AS ministry_name,
+        ministry."isShadow" AS ministry_is_shadow
+    FROM author_dates ad
+    LEFT JOIN LATERAL (
+        SELECT m.*
+        FROM "Minister" m
+        WHERE m."parliamentarianId" = ad.parliamentarian_id
+          AND m."firstDate" <= ad.date
+          AND (m."lastDate" IS NULL OR m."lastDate" >= ad.date)
+        ORDER BY m."firstDate" DESC, m.id DESC
+        LIMIT 1
+    ) minister ON TRUE
+    LEFT JOIN "Ministry" ministry
+        ON ministry.id = minister."ministryId"
+)
 SELECT
-    d.id AS document_id,
-    d.text,
-    d.title,
-    d.type,
-    sd.date::date AS date,
-    sd.house,
-    sd.chamber,
-    ra.name AS raw_author_name,
-    p.id AS parliamentarian_id,
-    p."firstName" AS first_name,
-    p."lastName" AS last_name,
-    party.name AS party,
-    svc.seat,
-    svc.state,
-    svc."isSenate" AS is_senate,
-    svc."parliamentId" AS parliament_id,
-    minister.role AS minister_role,
-    minister.portfolio AS minister_portfolio,
-    minister."displayString" AS minister_display_string,
-    ministry.name AS ministry_name,
-    ministry."isShadow" AS ministry_is_shadow
-FROM "Document" d
-JOIN "SittingDay" sd
-    ON sd.id = d."sittingDayId"
-LEFT JOIN "rawAuthor" ra
-    ON ra.id = d."rawAuthorId"
-LEFT JOIN "Parliamentarian" p
-    ON p.id = ra."parliamentarianId"
-LEFT JOIN LATERAL (
-    SELECT s.*
-    FROM "Service" s
-    WHERE s."parliamentarianId" = p.id
-      AND s."startDate" <= sd.date
-      AND (s."endDate" IS NULL OR s."endDate" >= sd.date)
-    ORDER BY s."startDate" DESC, s.id DESC
-    LIMIT 1
-) svc ON TRUE
-LEFT JOIN "Party" party
-    ON party.id = svc."partyId"
-LEFT JOIN LATERAL (
-    SELECT m.*
-    FROM "Minister" m
-    WHERE m."parliamentarianId" = p.id
-      AND m."firstDate" <= sd.date
-      AND (m."lastDate" IS NULL OR m."lastDate" >= sd.date)
-    ORDER BY m."firstDate" DESC, m.id DESC
-    LIMIT 1
-) minister ON TRUE
-LEFT JOIN "Ministry" ministry
-    ON ministry.id = minister."ministryId"
-WHERE sd.date >= $1::date
-  AND sd.date < ($2::date + INTERVAL '1 day')
-ORDER BY sd.date, d.id;
+    b.document_id,
+    b.text,
+    b.title,
+    b.type,
+    b.date,
+    b.house,
+    b.chamber,
+    b.raw_author_name,
+    b.parliamentarian_id,
+    b.first_name,
+    b.last_name,
+    sfd.party,
+    sfd.seat,
+    sfd.state,
+    sfd.is_senate,
+    sfd.parliament_id,
+    mfd.minister_role,
+    mfd.minister_portfolio,
+    mfd.minister_display_string,
+    mfd.ministry_name,
+    mfd.ministry_is_shadow
+FROM base b
+LEFT JOIN service_for_date sfd
+    ON sfd.parliamentarian_id = b.parliamentarian_id
+   AND sfd.date = b.date
+LEFT JOIN minister_for_date mfd
+    ON mfd.parliamentarian_id = b.parliamentarian_id
+   AND mfd.date = b.date
+ORDER BY b.date, b.document_id;
+
 """
 
 INTERJECTIONS_SQL = """
+WITH base AS (
+    SELECT
+        i.id AS interjection_id,
+        i."documentId" AS document_id,
+        i.sequence,
+        i.type AS interjection_type,
+        i.text,
+        sd.date::date AS date,
+        ra.name AS raw_author_name,
+        p.id AS parliamentarian_id,
+        p."firstName" AS first_name,
+        p."lastName" AS last_name
+    FROM "Interjection" i
+    JOIN "Document" d
+        ON d.id = i."documentId"
+    JOIN "SittingDay" sd
+        ON sd.id = d."sittingDayId"
+    LEFT JOIN "rawAuthor" ra
+        ON ra.id = i."rawAuthorId"
+    LEFT JOIN "Parliamentarian" p
+        ON p.id = ra."parliamentarianId"
+    WHERE sd.date >= $1::date
+      AND sd.date < ($2::date + INTERVAL '1 day')
+),
+author_dates AS (
+    SELECT DISTINCT
+        parliamentarian_id,
+        date
+    FROM base
+    WHERE parliamentarian_id IS NOT NULL
+),
+service_for_date AS (
+    SELECT
+        ad.parliamentarian_id,
+        ad.date,
+        svc.id AS service_id,
+        svc.seat,
+        svc.state,
+        svc."isSenate" AS is_senate,
+        svc."parliamentId" AS parliament_id,
+        party.name AS party
+    FROM author_dates ad
+    LEFT JOIN LATERAL (
+        SELECT s.*
+        FROM "Service" s
+        WHERE s."parliamentarianId" = ad.parliamentarian_id
+          AND s."startDate" <= ad.date
+          AND (s."endDate" IS NULL OR s."endDate" >= ad.date)
+        ORDER BY s."startDate" DESC, s.id DESC
+        LIMIT 1
+    ) svc ON TRUE
+    LEFT JOIN "Party" party
+        ON party.id = svc."partyId"
+),
+minister_for_date AS (
+    SELECT
+        ad.parliamentarian_id,
+        ad.date,
+        minister.role AS minister_role,
+        minister.portfolio AS minister_portfolio,
+        minister."displayString" AS minister_display_string,
+        ministry.name AS ministry_name,
+        ministry."isShadow" AS ministry_is_shadow
+    FROM author_dates ad
+    LEFT JOIN LATERAL (
+        SELECT m.*
+        FROM "Minister" m
+        WHERE m."parliamentarianId" = ad.parliamentarian_id
+          AND m."firstDate" <= ad.date
+          AND (m."lastDate" IS NULL OR m."lastDate" >= ad.date)
+        ORDER BY m."firstDate" DESC, m.id DESC
+        LIMIT 1
+    ) minister ON TRUE
+    LEFT JOIN "Ministry" ministry
+        ON ministry.id = minister."ministryId"
+)
 SELECT
-    i.id AS interjection_id,
-    i."documentId" AS document_id,
-    i.sequence,
-    i.type AS interjection_type,
-    i.text,
-    ra.name AS raw_author_name,
-    p.id AS parliamentarian_id,
-    p."firstName" AS first_name,
-    p."lastName" AS last_name,
-    party.name AS party,
-    svc.seat,
-    svc.state,
-    svc."isSenate" AS is_senate,
-    svc."parliamentId" AS parliament_id,
-    minister.role AS minister_role,
-    minister.portfolio AS minister_portfolio,
-    minister."displayString" AS minister_display_string,
-    ministry.name AS ministry_name,
-    ministry."isShadow" AS ministry_is_shadow
-FROM "Interjection" i
-JOIN "Document" d
-    ON d.id = i."documentId"
-JOIN "SittingDay" sd
-    ON sd.id = d."sittingDayId"
-LEFT JOIN "rawAuthor" ra
-    ON ra.id = i."rawAuthorId"
-LEFT JOIN "Parliamentarian" p
-    ON p.id = ra."parliamentarianId"
-LEFT JOIN LATERAL (
-    SELECT s.*
-    FROM "Service" s
-    WHERE s."parliamentarianId" = p.id
-      AND s."startDate" <= sd.date
-      AND (s."endDate" IS NULL OR s."endDate" >= sd.date)
-    ORDER BY s."startDate" DESC, s.id DESC
-    LIMIT 1
-) svc ON TRUE
-LEFT JOIN "Party" party
-    ON party.id = svc."partyId"
-LEFT JOIN LATERAL (
-    SELECT m.*
-    FROM "Minister" m
-    WHERE m."parliamentarianId" = p.id
-      AND m."firstDate" <= sd.date
-      AND (m."lastDate" IS NULL OR m."lastDate" >= sd.date)
-    ORDER BY m."firstDate" DESC, m.id DESC
-    LIMIT 1
-) minister ON TRUE
-LEFT JOIN "Ministry" ministry
-    ON ministry.id = minister."ministryId"
-WHERE sd.date >= $1::date
-  AND sd.date < ($2::date + INTERVAL '1 day')
-ORDER BY sd.date, i."documentId", i.sequence, i.id;
+    b.interjection_id,
+    b.document_id,
+    b.sequence,
+    b.interjection_type,
+    b.text,
+    b.raw_author_name,
+    b.parliamentarian_id,
+    b.first_name,
+    b.last_name,
+    sfd.party,
+    sfd.seat,
+    sfd.state,
+    sfd.is_senate,
+    sfd.parliament_id,
+    mfd.minister_role,
+    mfd.minister_portfolio,
+    mfd.minister_display_string,
+    mfd.ministry_name,
+    mfd.ministry_is_shadow
+FROM base b
+LEFT JOIN service_for_date sfd
+    ON sfd.parliamentarian_id = b.parliamentarian_id
+   AND sfd.date = b.date
+LEFT JOIN minister_for_date mfd
+    ON mfd.parliamentarian_id = b.parliamentarian_id
+   AND mfd.date = b.date
+ORDER BY b.date, b.document_id, b.sequence, b.interjection_id;
+
 """
 
 
